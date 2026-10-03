@@ -1,0 +1,188 @@
+import { useRef, useState, type DragEvent } from 'react';
+import { useApp } from '../state/appStore';
+import { selectCursor, selectDoc } from '../state/store';
+import { locatePlan } from '../model/ops';
+import { computeNumbers } from '../model/numbering';
+import { missingFields } from '../model/completeness';
+import { coverImage } from '../model/images';
+import { displayText } from '../model/entry';
+import { formatDeg, horizontalFovDeg } from '../model/optics';
+import { imageStore } from '../platform/images';
+import type { ImageKind, Plan } from '../model/types';
+
+export function Inspector() {
+  const doc = useApp(selectDoc);
+  const cursor = useApp(selectCursor);
+  const loc = cursor ? locatePlan(doc, cursor.planId) : null;
+  if (!loc) return <aside className="inspector" aria-label="Détails du plan" />;
+  const plan = loc.plan;
+  const n = computeNumbers(doc).get(plan.id)!;
+  const parent = plan.repriseOf ? computeNumbers(doc).get(plan.repriseOf) : null;
+  const missing = missingFields(plan, doc.settings);
+
+  return (
+    <aside className="inspector" aria-label="Détails du plan">
+      <div className="insp-head">
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <span className="big mono">{n.code}</span>
+          <span className="sub">
+            plan n° {n.global}
+            {parent && n.repriseLetter ? ` · reprise de ${parent.code}` : ''}
+          </span>
+        </div>
+        <div className="state" style={{ color: missing.length ? 'var(--warn-text)' : 'var(--ok)' }}>
+          <span className="dot" style={{ background: missing.length ? 'var(--warn)' : 'var(--ok)', width: 7, height: 7 }} />
+          {missing.length ? `À compléter : ${missing.join(', ')}` : 'Complet'}
+        </div>
+      </div>
+      <div className="insp-body">
+        <ImageGroup plan={plan} kind="scouting" />
+        <ImageGroup plan={plan} kind="reference" />
+        <p className="note" style={{ margin: 0 }}>
+          L’image principale s’affiche dans le tableau et les exports. Par défaut c’est la première photo de repérage, sinon la première référence.
+        </p>
+
+        <label className="sec">
+          <span className="sec-h">Extrait du scénario</span>
+          <textarea
+            className="area script"
+            rows={3}
+            value={plan.scriptExcerpt}
+            onChange={(e) => useApp.getState().setPlanText(plan.id, 'scriptExcerpt', e.target.value)}
+          />
+        </label>
+
+        <CameraList plan={plan} />
+
+        <label className="sec">
+          <span className="sec-h">Divers</span>
+          <textarea className="area" rows={2} value={plan.notes} onChange={(e) => useApp.getState().setPlanText(plan.id, 'notes', e.target.value)} />
+        </label>
+      </div>
+    </aside>
+  );
+}
+
+function ImageGroup({ plan, kind }: { plan: Plan; kind: ImageKind }) {
+  const [over, setOver] = useState(false);
+  const input = useRef<HTMLInputElement>(null);
+  const st = useApp.getState;
+  const items = plan.images.filter((i) => i.kind === kind);
+  const cover = coverImage(plan);
+  const label = kind === 'scouting' ? 'Repérage' : 'Références';
+  const onDrop = (e: DragEvent) => {
+    e.preventDefault();
+    setOver(false);
+    void st().addImages(plan.id, kind, Array.from(e.dataTransfer.files));
+  };
+  return (
+    <section
+      className={`sec ${over ? 'over' : ''}`}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setOver(true);
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={onDrop}
+      aria-label={label}
+    >
+      <div className="sec-h">
+        <span>
+          {label}
+          <span className="count">{items.length}</span>
+        </span>
+        <button type="button" className="linkbtn" onClick={() => input.current?.click()}>
+          Ajouter…
+        </button>
+        <input
+          ref={input}
+          type="file"
+          accept="image/*"
+          multiple
+          className="sr-only"
+          tabIndex={-1}
+          onChange={(e) => {
+            void st().addImages(plan.id, kind, Array.from(e.target.files ?? []));
+            e.target.value = '';
+          }}
+        />
+      </div>
+      {items.length > 0 ? (
+        <div className="imgs">
+          {items.map((img) => {
+            const url = imageStore.url(img.file);
+            const isCover = cover?.id === img.id;
+            return (
+              <div className="imgcard" key={img.id}>
+                <button type="button" className={`pic ${isCover ? 'cover' : ''}`} onClick={() => st().openPreview(plan.id, plan.images.indexOf(img))} aria-label={`Agrandir ${img.originalName}`}>
+                  {url ? <img src={url} alt="" draggable={false} /> : <span className="note">introuvable</span>}
+                  {isCover && <span className="badge">PRINCIPALE</span>}
+                </button>
+                <span className="acts">
+                  {!isCover && (
+                    <button type="button" onClick={() => st().setCover(plan.id, img.id)}>
+                      Principale
+                    </button>
+                  )}
+                  <button type="button" onClick={() => st().setImageKind(plan.id, img.id, kind === 'scouting' ? 'reference' : 'scouting')}>
+                    {kind === 'scouting' ? '→ Référence' : '→ Repérage'}
+                  </button>
+                  <button type="button" className="danger" onClick={() => st().removeImage(plan.id, img.id)}>
+                    Retirer
+                  </button>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="dropzone">{kind === 'scouting' ? 'Glissez ici les photos de repérage' : 'Glissez ici films, storyboard, photos'}</div>
+      )}
+    </section>
+  );
+}
+
+function CameraList({ plan }: { plan: Plan }) {
+  const doc = useApp(selectDoc);
+  const st = useApp.getState;
+  return (
+    <section className="sec" aria-label="Caméras">
+      <div className="sec-h">
+        <span>Caméras</span>
+        <button type="button" className="linkbtn" onClick={() => st().addCamera(plan.id)}>
+          + Caméra
+        </button>
+      </div>
+      {plan.cameras.map((c) => {
+        const cam = doc.settings.cameras.find((k) => k.id === c.cameraId);
+        const w = cam?.sensorWidthMm ?? null;
+        const sq = cam?.squeeze ?? 1;
+        const a = horizontalFovDeg(w, c.start.focalMm, sq);
+        const b = c.end && c.end.focalMm !== c.start.focalMm ? horizontalFovDeg(w, c.end.focalMm, sq) : null;
+        const summary = [displayText('size', c), displayText('axis', c), displayText('focal', c)].filter(Boolean).join(' · ') || '—';
+        return (
+          <div className="camrow" key={c.id}>
+            <div className="top">
+              <span className="lbl mono">{cam?.label ?? '?'}</span>
+              <span className="sum">{summary}</span>
+              {plan.cameras.length > 1 && (
+                <button type="button" className="linkbtn danger" onClick={() => st().removeCamera(plan.id, c.id)}>
+                  Retirer
+                </button>
+              )}
+            </div>
+            <div className="fov">
+              <span>{cam?.body ? `${cam.body}${cam.mode ? ` · ${cam.mode}` : ''}` : 'Boîtier non renseigné'}</span>
+              <span className="mono" title="Champ horizontal, mise au point à l’infini">
+                {w === null ? 'capteur ?' : c.start.focalMm === null ? '—' : b !== null ? `${formatDeg(a)} → ${formatDeg(b)}` : formatDeg(a)}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+      <p className="note" style={{ margin: 0 }}>
+        Champ horizontal calculé à partir de la largeur active du capteur (Réglages), mise au point à l’infini.
+      </p>
+    </section>
+  );
+}
