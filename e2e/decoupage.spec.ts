@@ -134,3 +134,14 @@ test('réglages : largeur capteur donne un angle de champ', async ({ page }) => 
   // 1/1 : 32 mm sur 36 mm de large → 2·atan(36/64) = 58,7°
   await expect(page.locator('.camrow .fov .mono').first()).toHaveText('58,7°');
 });
+
+test('enchaîner les plans sans quitter le clavier : action, ⌘↩, action…', async ({ page }) => {
+  await page.keyboard.press('Meta+Enter');
+  await page.keyboard.type('Premier nouveau plan');
+  await page.keyboard.press('Meta+Enter');
+  await page.keyboard.type('Second nouveau plan');
+  await page.keyboard.press('Enter');
+  await expect(cell(page, 1, 'action')).toHaveText('Premier nouveau plan');
+  await expect(cell(page, 2, 'action')).toHaveText('Second nouveau plan');
+  await expect(page.locator('.line.first .code b').nth(2)).toHaveText('1/3');
+});
