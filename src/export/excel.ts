@@ -151,6 +151,37 @@ export async function buildWorkbook(m: ExportModel, opts: ExportOptions, images:
     }
   }
 
+  // ---------------------------------------------------------- dépouillement image
+  if (opts.breakdown) {
+    const bd = wb.addWorksheet('Dépouillement image', {
+      views: [{ state: 'frozen', ySplit: 1 }],
+      pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+    });
+    const heads = ['Séquence', 'Caméra', 'Machinerie', 'Lumière', 'Autre', 'Focales des plans', 'Machinerie des plans'];
+    bd.columns = [{ width: 44 }, { width: 28 }, { width: 28 }, { width: 28 }, { width: 28 }, { width: 22 }, { width: 26 }];
+    const h = bd.getRow(1);
+    heads.forEach((t, i) => {
+      const c = h.getCell(i + 1);
+      c.value = t.toUpperCase();
+      c.font = { name: FONT, size: 9, bold: true, color: { argb: 'FF465061' } };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F3F6' } };
+      c.border = BORDER;
+    });
+    m.sequences.forEach((s, i) => {
+      const row = bd.getRow(i + 2);
+      const vals = [`SÉQ. ${s.number || '?'} — ${s.title}`, s.breakdown.camera, s.breakdown.grip, s.breakdown.lighting, s.breakdown.other, s.summary.focals, s.summary.grip];
+      vals.forEach((v, k) => {
+        const c = row.getCell(k + 1);
+        c.value = v;
+        c.font = { name: FONT, size: 10, bold: k === 0 };
+        c.alignment = { vertical: 'top', wrapText: true };
+        c.border = BORDER;
+        if (k === 0) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: s.strip.fill === '#ffffff' ? 'FFFFFFFF' : argb(s.strip.fill) + '' } };
+        if (k === 0 && (s.strip.fill === '#3e6fd8' || s.strip.fill === '#3a9a5b')) c.font = { name: FONT, size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+      });
+    });
+  }
+
   const buf = await wb.xlsx.writeBuffer();
   return new Uint8Array(buf as ArrayBuffer);
 }

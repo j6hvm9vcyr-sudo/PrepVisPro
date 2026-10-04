@@ -4,9 +4,9 @@ import { validateProject } from './schema';
 import { newProject } from './defaults';
 
 describe('mise à niveau des fichiers', () => {
-  it('format 1 → 2 : ajoute le texte de scène, le reste est intact', () => {
+  it('format 1 → 3 : ajoute texte de scène et dépouillement, le reste est intact', () => {
     const v2 = newProject('X');
-    const v1 = JSON.parse(JSON.stringify({ ...v2, schemaVersion: 1, sequences: v2.sequences.map(({ scriptText: _s, ...rest }) => rest) }));
+    const v1 = JSON.parse(JSON.stringify({ ...v2, schemaVersion: 1, sequences: v2.sequences.map(({ scriptText: _s, breakdown: _b, ...rest }) => rest) }));
     const m = migrate(v1);
     expect(m.ok).toBe(true);
     if (!m.ok) return;

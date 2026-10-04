@@ -6,6 +6,7 @@ import { computeNumbers } from '../model/numbering';
 import { imageStore } from '../platform/images';
 import type { DayNight, IntExt } from '../model/types';
 import { focusGrid } from './focus';
+import { summarizeSequence } from '../model/summary';
 
 export function Preview() {
   const preview = useApp((s) => s.preview);
@@ -185,6 +186,7 @@ export function SequenceDialog() {
   if (!id || !seq) return null;
   const st = useApp.getState;
   const idx = doc.sequences.indexOf(seq);
+  const summary = summarizeSequence(seq);
   const close = () => {
     st().setEditingSequence(null);
     focusGrid();
@@ -240,8 +242,29 @@ export function SequenceDialog() {
         </label>
         <label className="field">
           Commentaires
-          <textarea rows={3} value={seq.comments} onChange={(e) => upd('com', (s) => void (s.comments = e.target.value))} />
+          <textarea rows={2} value={seq.comments} onChange={(e) => upd('com', (s) => void (s.comments = e.target.value))} />
         </label>
+        <div className="sec">
+          <div className="sec-h">Dépouillement image</div>
+          <p className="note" style={{ margin: 0 }}>
+            D’après les plans : {summary.focals || 'aucune focale'} · {summary.grip || 'aucune machinerie'}
+          </p>
+          <div className="breakdown-grid">
+            {(
+              [
+                ['camera', 'Caméra'],
+                ['grip', 'Machinerie'],
+                ['lighting', 'Lumière'],
+                ['other', 'Autre'],
+              ] as const
+            ).map(([k, l]) => (
+              <label className="field" key={k}>
+                {l}
+                <textarea rows={2} value={seq.breakdown[k]} onChange={(e) => upd(`bd-${k}`, (s) => void (s.breakdown[k] = e.target.value))} />
+              </label>
+            ))}
+          </div>
+        </div>
         <div className="row" style={{ alignItems: 'center' }}>
           <button type="button" className="btn" disabled={idx === 0} onClick={() => st().moveSequence(seq.id, -1)}>
             ↑ Monter

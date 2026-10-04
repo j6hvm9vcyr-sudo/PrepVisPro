@@ -8,6 +8,7 @@ import { displayText } from '../model/entry';
 import { coverImage } from '../model/images';
 import { missingFields } from '../model/completeness';
 import { sequenceTitle, stripColors } from '../ui/strip';
+import { summarizeSequence } from '../model/summary';
 
 export type ColumnId = 'global' | 'code' | 'image' | 'action' | 'script' | 'size' | 'axis' | 'angle' | 'focal' | 'movement' | 'grip' | 'notes';
 
@@ -51,6 +52,8 @@ export interface ExportOptions {
   sequenceComments: boolean;
   /** Marquer les plans incomplets (utile en prépa, pas pour un document final). */
   markIncomplete: boolean;
+  /** Ajouter le dépouillement image (une ligne par séquence : caméra, machinerie, lumière, autre). */
+  breakdown: boolean;
 }
 
 export interface ExportPreset {
@@ -66,12 +69,13 @@ const base: Omit<ExportOptions, 'columns'> = {
   coverPage: true,
   sequenceComments: true,
   markIncomplete: false,
+  breakdown: false,
 };
 
 export const BUILTIN_PRESETS: ExportPreset[] = [
-  { id: 'complet', name: 'Découpage complet', options: { ...base, columns: ['global', 'code', 'image', 'action', 'script', 'size', 'axis', 'angle', 'focal', 'movement', 'grip', 'notes'] } },
+  { id: 'complet', name: 'Découpage complet', options: { ...base, breakdown: true, columns: ['global', 'code', 'image', 'action', 'script', 'size', 'axis', 'angle', 'focal', 'movement', 'grip', 'notes'] } },
   { id: 'realisation', name: 'Version réalisation', options: { ...base, columns: ['code', 'image', 'action', 'script', 'size', 'axis', 'angle', 'focal', 'movement'] } },
-  { id: 'technique', name: 'Version électro / machino', options: { ...base, imageSize: 'small', columns: ['code', 'image', 'action', 'size', 'axis', 'angle', 'focal', 'movement', 'grip', 'notes'] } },
+  { id: 'technique', name: 'Version électro / machino', options: { ...base, imageSize: 'small', breakdown: true, columns: ['code', 'image', 'action', 'size', 'axis', 'angle', 'focal', 'movement', 'grip', 'notes'] } },
   { id: 'liste', name: 'Liste des plans (sans images)', options: { ...base, coverPage: false, sequenceComments: false, columns: ['global', 'code', 'action', 'size', 'axis', 'angle', 'focal', 'movement', 'grip'] } },
 ];
 
@@ -101,6 +105,8 @@ export interface ExportSequence {
   address: string;
   comments: string;
   strip: { fill: string; edge: string };
+  breakdown: { camera: string; grip: string; lighting: string; other: string };
+  summary: { focals: string; grip: string; movements: string };
   plans: ExportPlan[];
 }
 
@@ -154,6 +160,8 @@ export function buildExportModel(doc: ProjectDoc, opts: Pick<ExportOptions, 'seq
       address: s.address,
       comments: s.comments,
       strip: stripColors(s),
+      breakdown: { ...s.breakdown },
+      summary: summarizeSequence(s),
       plans: s.plans.map((p) => planRow(p, doc, numbers.get(p.id)!)),
     }),
   );

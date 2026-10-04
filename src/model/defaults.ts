@@ -1,4 +1,4 @@
-import type { CameraSetup, Framing, Id, Plan, ProjectCamera, ProjectDoc, ProjectSettings, Sequence, TermCategory } from './types';
+import type { Breakdown, CameraSetup, Framing, Id, Plan, ProjectCamera, ProjectDoc, ProjectSettings, Sequence, TermCategory } from './types';
 import { SCHEMA_VERSION } from './types';
 
 export const DEFAULT_TERMS: Record<TermCategory, string[]> = {
@@ -26,6 +26,10 @@ export function newId(prefix = 'id'): Id {
   counter = (counter + 1) % 1_000_000;
   const rand = Math.random().toString(36).slice(2, 8);
   return `${prefix}_${Date.now().toString(36)}${counter.toString(36)}${rand}`;
+}
+
+export function emptyBreakdown(): Breakdown {
+  return { camera: '', grip: '', lighting: '', other: '' };
 }
 
 export function emptyFraming(): Framing {
@@ -59,6 +63,7 @@ export function newSequence(number: string, cameraId: Id): Sequence {
     address: '',
     comments: '',
     scriptText: '',
+    breakdown: emptyBreakdown(),
     plans: [newPlan(cameraId)],
   };
 }

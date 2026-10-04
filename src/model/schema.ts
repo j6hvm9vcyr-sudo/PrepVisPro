@@ -56,6 +56,7 @@ const sequence = z.object({
   address: z.string(),
   comments: z.string(),
   scriptText: z.string(),
+  breakdown: z.object({ camera: z.string(), grip: z.string(), lighting: z.string(), other: z.string() }),
   plans: z.array(plan).min(1),
 });
 

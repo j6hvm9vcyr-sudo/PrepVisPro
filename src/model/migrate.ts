@@ -17,6 +17,7 @@ export function migrate(raw: unknown): MigrateResult {
   let doc = raw as Record<string, unknown>;
   // Étapes successives, de version en version.
   if (v <= 1) doc = from1to2(doc);
+  if (v <= 2) doc = from2to3(doc);
   return { ok: true, raw: doc };
 }
 
@@ -27,5 +28,15 @@ function from1to2(doc: Record<string, unknown>): Record<string, unknown> {
     ...doc,
     schemaVersion: 2,
     sequences: seqs.map((s) => (s && typeof s === 'object' ? { scriptText: '', ...(s as object) } : s)),
+  };
+}
+
+/** Format 2 → 3 : chaque séquence reçoit un dépouillement image (vide). */
+function from2to3(doc: Record<string, unknown>): Record<string, unknown> {
+  const seqs = Array.isArray(doc.sequences) ? doc.sequences : [];
+  return {
+    ...doc,
+    schemaVersion: 3,
+    sequences: seqs.map((s) => (s && typeof s === 'object' ? { breakdown: { camera: '', grip: '', lighting: '', other: '' }, ...(s as object) } : s)),
   };
 }

@@ -14,6 +14,7 @@ function docWithImage() {
   return produce(sampleProject(), (d) => {
     d.sequences[0]!.plans[0]!.images.push({ id: 'i1', kind: 'scouting', file: 'images/a.png', originalName: 'a.png', caption: '' });
     d.sequences[0]!.comments = 'Lumière du matin, rasante.';
+    d.sequences[0]!.breakdown.lighting = 'Soleil rasant, réflecteur';
     d.meta.director = 'V. N.';
     d.meta.crew.push({ id: 'c', role: 'Chef opérateur', name: 'A. R.' });
   });
@@ -56,7 +57,7 @@ describe('Excel', () => {
     const bytes = await buildWorkbook(m, BUILTIN_PRESETS[0]!.options, images);
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(bytes.buffer as ArrayBuffer);
-    expect(wb.worksheets.map((w) => w.name)).toEqual(['Page de garde', 'Découpage']);
+    expect(wb.worksheets.map((w) => w.name)).toEqual(['Page de garde', 'Découpage', 'Dépouillement image']);
     const ws = wb.getWorksheet('Découpage')!;
     const values: unknown[] = [];
     ws.eachRow((row) => row.eachCell((c) => values.push(c.value)));
@@ -68,5 +69,9 @@ describe('Excel', () => {
     const garde: unknown[] = [];
     wb.getWorksheet('Page de garde')!.eachRow((row) => row.eachCell((c) => garde.push(c.value)));
     expect(garde).toContain('Chef opérateur — A. R.');
+    const bd: unknown[] = [];
+    wb.getWorksheet('Dépouillement image')!.eachRow((row) => row.eachCell((c) => bd.push(c.value)));
+    expect(bd).toContain('Soleil rasant, réflecteur');
+    expect(bd).toContain('32, 75, 300 mm');
   });
 });

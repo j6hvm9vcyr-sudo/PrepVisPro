@@ -16,6 +16,7 @@ function sanitize(o: Partial<ExportOptions> | undefined): ExportOptions | null {
     coverPage: o.coverPage !== false,
     sequenceComments: o.sequenceComments !== false,
     markIncomplete: o.markIncomplete === true,
+    breakdown: o.breakdown === true,
   };
 }
 
@@ -83,6 +84,7 @@ export function sameOptions(a: ExportOptions, b: ExportOptions): boolean {
     a.imageSize === b.imageSize &&
     a.coverPage === b.coverPage &&
     a.sequenceComments === b.sequenceComments &&
-    a.markIncomplete === b.markIncomplete
+    a.markIncomplete === b.markIncomplete &&
+    a.breakdown === b.breakdown
   );
 }

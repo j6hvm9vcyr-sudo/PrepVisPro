@@ -329,6 +329,12 @@ function SequenceBlock(p: BlockProps) {
             />
           );
         })}
+      {!p.collapsed && seq.comments.trim() && (
+        <div className="seq-comments" role="row">
+          <b>Commentaires : </b>
+          {seq.comments.trim()}
+        </div>
+      )}
     </>
   );
 }

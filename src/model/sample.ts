@@ -45,6 +45,7 @@ export function sampleProject(): ProjectDoc {
     address: '',
     comments: '',
     scriptText: '',
+    breakdown: { camera: '', grip: '', lighting: '', other: '' },
     plans,
   });
 

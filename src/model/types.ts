@@ -81,7 +81,16 @@ export interface Sequence {
   comments: string;
   /** Texte de la scène, importé du scénario (vide si saisi à la main). */
   scriptText: string;
+  /** Dépouillement image : besoins particuliers de la séquence, par département. */
+  breakdown: Breakdown;
   plans: Plan[];
+}
+
+export interface Breakdown {
+  camera: string;
+  grip: string;
+  lighting: string;
+  other: string;
 }
 
 /** Caméra du projet : son format capteur sert au calcul du champ. */
@@ -123,7 +132,7 @@ export interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 2 as const;
+export const SCHEMA_VERSION = 3 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;

@@ -212,6 +212,10 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                 <input type="checkbox" checked={opts.markIncomplete} onChange={(e) => set({ markIncomplete: e.target.checked })} />
                 Signaler les plans à compléter
               </label>
+              <label className="check">
+                <input type="checkbox" checked={opts.breakdown} onChange={(e) => set({ breakdown: e.target.checked })} />
+                Dépouillement image (caméra, machinerie, lumière, autre)
+              </label>
             </section>
 
             <section className="sec">

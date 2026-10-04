@@ -83,6 +83,17 @@ const s = StyleSheet.create({
 
 const IMAGE_WIDTH = { small: 74, medium: 112, large: 168 } as const;
 
+const BD_COLS = [
+  ['seq', 'SÉQUENCE', 2.4],
+  ['camera', 'CAMÉRA', 1.6],
+  ['grip', 'MACHINERIE', 1.6],
+  ['lighting', 'LUMIÈRE', 1.6],
+  ['other', 'AUTRE', 1.6],
+  ['focals', 'FOCALES DES PLANS', 1.1],
+  ['pgrip', 'MACHINERIE DES PLANS', 1.3],
+] as const;
+const BD_TOTAL = BD_COLS.reduce((n, c) => n + c[2], 0);
+
 function today(): string {
   const d = new Date();
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -236,6 +247,48 @@ export function DecoupagePdf({ m, opts, images }: { m: ExportModel; opts: Export
           <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
         </View>
       </Page>
+      {opts.breakdown && (
+        <Page size="A4" orientation={opts.orientation} style={s.page}>
+          <View style={s.head} fixed>
+            <Text>{m.title} — Dépouillement image</Text>
+            <Text>{date}</Text>
+          </View>
+          <View style={s.thead} fixed>
+            {BD_COLS.map(([k, l, wgt]) => (
+              <Text key={k} style={[s.th, { width: (pageW * wgt) / BD_TOTAL }]}>
+                {l}
+              </Text>
+            ))}
+          </View>
+          {m.sequences.map((seq) => (
+            <View key={seq.id} style={s.row} wrap={false}>
+              {BD_COLS.map(([k, , wgt]) => {
+                const width = (pageW * wgt) / BD_TOTAL;
+                if (k === 'seq')
+                  return (
+                    <View key={k} style={[s.td, { width, flexDirection: 'row' }]}>
+                      <View style={[s.strip, { width: 6, height: 18, backgroundColor: seq.strip.fill, borderColor: seq.strip.edge }]} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.code}>SÉQ. {seq.number || '?'}</Text>
+                        <Text style={[s.tdText, s.muted]}>{seq.title}</Text>
+                      </View>
+                    </View>
+                  );
+                const v = k === 'focals' ? seq.summary.focals : k === 'pgrip' ? seq.summary.grip : seq.breakdown[k];
+                return (
+                  <View key={k} style={[s.td, { width }]}>
+                    <Text style={[s.tdText, ...(k === 'focals' || k === 'pgrip' ? [s.muted] : [])]}>{v}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          ))}
+          <View style={s.foot} fixed>
+            <Text>PrepVisPro</Text>
+            <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
+          </View>
+        </Page>
+      )}
     </Document>
   );
 }
