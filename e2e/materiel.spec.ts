@@ -54,3 +54,22 @@ test('mon matériel : une caméra et un vocabulaire enregistrés une fois, repri
   await expect(page.locator('.camtab-item')).toHaveCount(2);
   await expect(page.getByLabel('Nom', { exact: true })).toHaveValue('B');
 });
+
+test('projet suivant : un nouveau projet reprend les réglages et l’équipe, pas les séquences', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Ouvrir l’exemple' }).click();
+  await page.getByRole('button', { name: 'Réglages' }).click();
+  await page.getByRole('button', { name: '+ Ajouter' }).click();
+  await page.getByPlaceholder('Poste').fill('Chef opérateur');
+  await page.getByPlaceholder('Nom').fill('Adrien Rousseau');
+  await page.getByRole('tab', { name: 'Projet' }).click();
+  await page.getByRole('button', { name: 'Nouveau projet avec ces réglages…' }).click();
+  await expect(page.getByRole('dialog', { name: 'Réglages du projet' })).toHaveCount(0);
+  await expect(page.locator('.line')).toHaveCount(1);
+  await expect(page.locator('.toolbar .title')).toContainText('Sans titre');
+  await page.getByRole('button', { name: 'Réglages' }).click();
+  await expect(page.getByPlaceholder('Poste')).toHaveValue('Chef opérateur');
+  await expect(page.getByPlaceholder('Nom')).toHaveValue('Adrien Rousseau');
+  await expect(page.getByPlaceholder('1,85:1')).toHaveValue('1,85:1');
+  await expect(page.getByRole('textbox', { name: 'Titre' })).toHaveValue('Sans titre');
+});

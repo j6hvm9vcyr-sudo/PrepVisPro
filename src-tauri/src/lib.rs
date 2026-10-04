@@ -301,6 +301,7 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
 
     let file_menu = SubmenuBuilder::new(app, "Fichier")
         .item(&item("file_new", "Nouveau projet…", "CmdOrCtrl+N")?)
+        .item(&plain("file_new_from", "Nouveau projet avec les réglages d’un autre…")?)
         .item(&item("file_open", "Ouvrir…", "CmdOrCtrl+O")?)
         .separator()
         .item(&item("file_save", "Enregistrer", "CmdOrCtrl+S")?)

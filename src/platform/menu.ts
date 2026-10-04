@@ -9,7 +9,7 @@ import { startScriptImport } from '../import/flow';
 
 export { isTauri } from './env';
 import { isTauri } from './env';
-import { closeProject, newProjectDialog, openDialog, openPath, quitApp, revealProject, saveNow, useProject } from '../state/project';
+import { closeProject, newProjectDialog, newProjectFromOther, openDialog, openPath, quitApp, revealProject, saveNow, useProject } from '../state/project';
 
 /** Raccourcis portés par le menu natif (voir src-tauri/src/lib.rs). */
 export function isMenuShortcut(e: Pick<KeyboardEvent, 'key' | 'code' | 'shiftKey' | 'altKey'>): boolean {
@@ -24,6 +24,9 @@ function runMenuCommand(id: string) {
   switch (id) {
     case 'file_new':
       void newProjectDialog();
+      return;
+    case 'file_new_from':
+      void newProjectFromOther();
       return;
     case 'file_open':
       void openDialog();

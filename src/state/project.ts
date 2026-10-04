@@ -8,6 +8,7 @@
  * - en cas d'échec, l'état « erreur » reste affiché et un nouvel essai a lieu à la modification
  *   suivante ou sur demande (⌘S) ; rien n'est perdu tant que l'application est ouverte.
  */
+import { projectFrom } from '../model/template';
 import { loadKit } from '../platform/kit';
 import { applyKitDefaults } from '../model/kit';
 import { create } from 'zustand';
@@ -283,6 +284,29 @@ export async function newProjectWithDoc(doc: ProjectDoc, suggestedName: string):
 /** Nouveau projet, avec le vocabulaire et l'exposition de départ de « Mon matériel » s'ils sont enregistrés. */
 export async function freshProject(title: string): Promise<ProjectDoc> {
   return applyKitDefaults(newProject(title), await loadKit());
+}
+
+/** Nouveau projet qui reprend les réglages et l'équipe du projet ouvert (model/template.ts). */
+export async function newProjectFromCurrent(): Promise<boolean> {
+  return newProjectWithDoc(projectFrom(selectDoc(useApp.getState()), 'Sans titre'), 'Nouveau projet');
+}
+
+/** Nouveau projet qui reprend les réglages et l'équipe d'un projet choisi sur le disque. */
+export async function newProjectFromOther(): Promise<boolean> {
+  backend ??= await getBackend();
+  const p = await backend.pickOpen();
+  if (!p) return false;
+  try {
+    const { dir, json } = await backend.load(p);
+    const r = parseProject(json);
+    if (!r.ok) throw new Error(`Impossible de lire « ${baseName(dir)} ». ${r.error}`);
+    return await newProjectWithDoc(projectFrom(r.doc, 'Sans titre'), 'Nouveau projet');
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    setStatus({ openError: msg });
+    if (useProject.getState().mode !== 'none') await backend.alert('Ouverture impossible', msg);
+    return false;
+  }
 }
 
 /** Crée un projet dans `dir` (dossier .prepvis) et l'ouvre. */

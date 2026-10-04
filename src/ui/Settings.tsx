@@ -10,6 +10,7 @@ import { isComposing, focusGrid, useDialogFocus } from './focus';
 import { CamerasTab } from './CamerasTab';
 import { LensesTab } from './LensesTab';
 import { KitTab } from './KitTab';
+import { newProjectFromCurrent } from '../state/project';
 import { useTheme } from './theme';
 
 const CAT_LABEL: Record<TermCategory, string> = { size: 'Valeurs', axis: 'Axes', angle: 'Angles', movement: 'Mouvements', grip: 'Machinerie' };
@@ -117,6 +118,18 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
                   </button>
                 </div>
               ))}
+            </div>
+            <div className="sec">
+              <div className="sec-h">
+                <span>Projet suivant</span>
+              </div>
+              <p className="note" style={{ margin: 0 }}>
+                Un nouveau projet qui reprend la préparation de celui-ci : caméras, optiques, projecteurs, réflecteurs, exposition, listes de termes, champs obligatoires,
+                production, ratio et équipe. Les séquences, plans au sol, jours et images ne sont pas repris.
+              </p>
+              <button type="button" className="btn" style={{ alignSelf: 'flex-start' }} onClick={() => void newProjectFromCurrent().then((ok) => ok && onClose())}>
+                Nouveau projet avec ces réglages…
+              </button>
             </div>
           </>
         )}

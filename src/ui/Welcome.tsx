@@ -4,7 +4,7 @@ import { APP_VERSION } from '../version';
 import { baseName, getBackend } from '../platform/backend';
 import { isTauri } from '../platform/env';
 import { newProjectFromScript } from '../import/flow';
-import { forgetRecent, newProjectDialog, openBlankUnsaved, openDialog, openPath, openSample, recentProjects, useProject } from '../state/project';
+import { forgetRecent, newProjectDialog, newProjectFromOther, openBlankUnsaved, openDialog, openPath, openSample, recentProjects, useProject } from '../state/project';
 
 export function Welcome() {
   const openError = useProject((s) => s.openError);
@@ -87,6 +87,11 @@ export function Welcome() {
           <button type="button" className="linkbtn" onClick={() => void newProjectFromScript()} style={{ display: 'block', marginBottom: 6 }}>
             Nouveau projet depuis un scénario…
           </button>
+          {mac && (
+            <button type="button" className="linkbtn" onClick={() => void newProjectFromOther()} style={{ display: 'block', marginBottom: 6 }} title="Reprend caméras, optiques, projecteurs, réflecteurs, exposition, listes de termes et équipe ; pas les séquences">
+              Nouveau projet avec les réglages d’un autre…
+            </button>
+          )}
           {mac ? (
             <button type="button" className="linkbtn" onClick={() => void openSample()}>
               Découvrir avec un projet d’exemple
