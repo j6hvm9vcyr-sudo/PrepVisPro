@@ -96,6 +96,7 @@ export function newProject(title = 'Sans titre'): ProjectDoc {
     meta: { title, director: '', production: '', aspectRatio: '', crew: [] },
     settings,
     sequences: [newSequence('1', cam.id)],
+    stamps: [],
     floorPlans: [],
     shootingDays: [],
   };

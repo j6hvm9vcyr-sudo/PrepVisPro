@@ -7,6 +7,7 @@ import { produce, type Draft } from 'immer';
 import type { CameraSetup, Id, ImageAsset, Plan, ProjectDoc, Sequence, TermCategory } from './types';
 import { newId, newPlan, newProjectCamera, newSequence } from './defaults';
 import { norm } from './text';
+import { deleteSequenceInFlow, moveInFlow } from './stamps';
 
 export interface PlanLocation {
   seqIndex: number;
@@ -211,18 +212,12 @@ export function updateSequence(doc: ProjectDoc, seqId: Id, fn: (s: Draft<Sequenc
   });
 }
 
+/** Supprime une séquence ; les tampons gardent leur place dans le film (voir stamps.ts). */
 export function deleteSequence(doc: ProjectDoc, seqId: Id): ProjectDoc {
-  return produce(doc, (d) => {
-    d.sequences = d.sequences.filter((s) => s.id !== seqId);
-  });
+  return deleteSequenceInFlow(doc, seqId);
 }
 
+/** Déplace une séquence d'un cran dans le film (un tampon compte comme un cran). */
 export function moveSequence(doc: ProjectDoc, seqId: Id, delta: -1 | 1): ProjectDoc {
-  const i = doc.sequences.findIndex((s) => s.id === seqId);
-  const j = i + delta;
-  if (i < 0 || j < 0 || j >= doc.sequences.length) return doc;
-  return produce(doc, (d) => {
-    const [s] = d.sequences.splice(i, 1);
-    d.sequences.splice(j, 0, s!);
-  });
+  return moveInFlow(doc, seqId, delta);
 }

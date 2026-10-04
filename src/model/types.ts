@@ -214,7 +214,7 @@ export interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 14 as const;
+export const SCHEMA_VERSION = 15 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;
@@ -222,10 +222,23 @@ export interface ProjectDoc {
   meta: ProjectMeta;
   settings: ProjectSettings;
   sequences: Sequence[];
+  /** Tampons entre les séquences (TITRE, GÉNÉRIQUE DE FIN…), voir stamps.ts. */
+  stamps: Stamp[];
   /** Plans au sol (voir floor.ts). */
   floorPlans: import('./floor').FloorPlan[];
   /** Jours de tournage, dans l'ordre (J1, J2… : numéros calculés, jamais stockés). */
   shootingDays: ShootingDay[];
+}
+
+/** Tampon : mention placée entre deux séquences, sans plan ni numéro. */
+export interface Stamp {
+  id: Id;
+  /** « TITRE », « GÉNÉRIQUE DE FIN »… */
+  text: string;
+  /** Précision facultative (« sur noir, 10 s », « carton : trois ans plus tard »). */
+  note: string;
+  /** Séquence qui suit le tampon ; null = en fin de film. */
+  beforeSequenceId: Id | null;
 }
 
 /** Jour de tournage : ses séquences, dans l'ordre de la journée. */

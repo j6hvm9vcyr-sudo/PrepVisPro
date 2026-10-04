@@ -47,6 +47,10 @@ export function ContextMenu() {
       { label: 'Aperçu de l’image', keys: 'espace', disabled: loc.plan.images.length === 0, run: () => st().openPreview(loc.plan.id) },
     ],
     [
+      { label: `Modifier la séquence ${loc.seq.number || ''}`.trim() + '…', run: () => st().setEditingSequence(loc.seq.id) },
+      { label: 'Insérer un tampon après la séquence…', run: () => st().addStamp('', { after: loc.seq.id }) },
+    ],
+    [
       ...(setupIndex > 0 ? [{ label: 'Retirer cette caméra', danger: true, run: () => st().removeCamera(loc.plan.id, menu.setupId) }] : []),
       { label: 'Supprimer le plan', keys: '⌘⌫', danger: true, disabled: loc.seq.plans.length <= 1, run: () => st().deletePlan() },
     ],
@@ -57,7 +61,7 @@ export function ContextMenu() {
   };
   // Le menu reste dans la fenêtre.
   const x = Math.min(menu.x, window.innerWidth - 250);
-  const y = Math.min(menu.y, window.innerHeight - 330);
+  const y = Math.min(menu.y, window.innerHeight - 400);
   return (
     <div
       ref={ref}

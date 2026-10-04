@@ -10,6 +10,7 @@ import { formatCoordinates, parseCoordinates } from '../model/sun';
 import { focusGrid, isComposing, useDialogFocus } from './focus';
 import { norm } from '../model/text';
 import { summarizeSequence } from '../model/summary';
+import { flowBounds, STAMP_SUGGESTIONS } from '../model/stamps';
 
 export function Preview() {
   const preview = useApp((s) => s.preview);
@@ -219,7 +220,7 @@ export function SequenceDialog() {
   const dlg = useDialogFocus<HTMLDivElement>(!!id);
   if (!id || !seq) return null;
   const st = useApp.getState;
-  const idx = doc.sequences.indexOf(seq);
+  const bounds = flowBounds(doc, seq.id);
   const summary = summarizeSequence(seq);
   const close = () => {
     st().setEditingSequence(null);
@@ -350,10 +351,10 @@ export function SequenceDialog() {
           </div>
         </div>
         <div className="row" style={{ alignItems: 'center' }}>
-          <button type="button" className="btn" disabled={idx === 0} onClick={() => st().moveSequence(seq.id, -1)}>
+          <button type="button" className="btn" disabled={bounds.first} onClick={() => st().moveSequence(seq.id, -1)}>
             ↑ Monter
           </button>
-          <button type="button" className="btn" disabled={idx === doc.sequences.length - 1} onClick={() => st().moveSequence(seq.id, 1)}>
+          <button type="button" className="btn" disabled={bounds.last} onClick={() => st().moveSequence(seq.id, 1)}>
             ↓ Descendre
           </button>
           <button type="button" className="btn danger" disabled={doc.sequences.length <= 1} onClick={() => st().deleteSequence(seq.id)}>
@@ -364,9 +365,100 @@ export function SequenceDialog() {
             Terminé
           </button>
         </div>
+        <div className="row" style={{ alignItems: 'center', gap: 6 }}>
+          <span className="note" style={{ margin: 0 }}>
+            Tampon (TITRE, GÉNÉRIQUE…) :
+          </span>
+          <button type="button" className="btn small" onClick={() => st().addStamp('', { before: seq.id })}>
+            Insérer avant
+          </button>
+          <button type="button" className="btn small" onClick={() => st().addStamp('', { after: seq.id })}>
+            Insérer après
+          </button>
+        </div>
         <p className="note" style={{ margin: 0 }}>
           Les modifications sont appliquées immédiatement et s’annulent avec ⌘Z.
         </p>
+      </div>
+    </div>
+  );
+}
+
+/** Tampon : mention entre deux séquences (TITRE, GÉNÉRIQUE DE FIN…), sans plan ni numéro. */
+export function StampDialog() {
+  const id = useApp((s) => s.editingStampId);
+  const doc = useApp(selectDoc);
+  const stamp = doc.stamps.find((t) => t.id === id);
+  const firstField = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    firstField.current?.focus();
+    firstField.current?.select();
+  }, [id]);
+  const dlg = useDialogFocus<HTMLDivElement>(!!id);
+  if (!id || !stamp) return null;
+  const st = useApp.getState;
+  const bounds = flowBounds(doc, stamp.id);
+  const next = stamp.beforeSequenceId ? doc.sequences.find((s) => s.id === stamp.beforeSequenceId) : null;
+  const close = () => {
+    st().setEditingStamp(null);
+    focusGrid();
+  };
+  return (
+    <div
+      ref={dlg}
+      tabIndex={-1}
+      className="overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Tampon"
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === 'Escape') close();
+        else if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
+          if (isComposing(e)) setTimeout(close, 60);
+          else close();
+        }
+      }}
+      onClick={close}
+    >
+      <div className="dialog" style={{ width: 480 }} onClick={(e) => e.stopPropagation()}>
+        <h3>Tampon</h3>
+        <p className="note" style={{ margin: 0 }}>
+          Mention placée entre deux séquences du découpage et des exports. Elle ne compte pas dans la numérotation des plans.
+        </p>
+        <label className="field">
+          Texte
+          <input ref={firstField} value={stamp.text} placeholder="ex. TITRE" onChange={(e) => st().updateStamp(stamp.id, { text: e.target.value })} />
+        </label>
+        <div className="stamp-suggest" role="group" aria-label="Mentions courantes">
+          {STAMP_SUGGESTIONS.map((t) => (
+            <button key={t} type="button" className={`chip-btn ${stamp.text === t ? 'on' : ''}`} aria-pressed={stamp.text === t} onClick={() => st().updateStamp(stamp.id, { text: t })}>
+              {t}
+            </button>
+          ))}
+        </div>
+        <label className="field">
+          Précision (facultatif)
+          <input value={stamp.note} placeholder="ex. sur noir, 10 s" onChange={(e) => st().updateStamp(stamp.id, { note: e.target.value })} />
+        </label>
+        <p className="note" style={{ margin: 0 }}>
+          {next ? `Placé avant la séquence ${next.number || '(sans numéro)'}.` : 'Placé en fin de film, après la dernière séquence.'}
+        </p>
+        <div className="row" style={{ alignItems: 'center' }}>
+          <button type="button" className="btn" disabled={bounds.first} onClick={() => st().moveStamp(stamp.id, -1)}>
+            ↑ Monter
+          </button>
+          <button type="button" className="btn" disabled={bounds.last} onClick={() => st().moveStamp(stamp.id, 1)}>
+            ↓ Descendre
+          </button>
+          <button type="button" className="btn danger" onClick={() => st().removeStamp(stamp.id)}>
+            Supprimer le tampon
+          </button>
+          <span className="spacer" />
+          <button type="button" className="btn primary" onClick={close}>
+            Terminé
+          </button>
+        </div>
       </div>
     </div>
   );

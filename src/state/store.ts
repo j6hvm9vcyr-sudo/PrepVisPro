@@ -8,6 +8,7 @@ import * as ops from '../model/ops';
 import { cleanupFloorRefs } from '../model/floorOps';
 import { cleanupShooting } from '../model/shooting';
 import { cleanupDays } from '../model/days';
+import * as stamps from '../model/stamps';
 import { newId } from '../model/defaults';
 import { createHistory, pushHistory, redoHistory, undoHistory, type History } from './history';
 import { allLines, COLUMNS, moveCursor, visibleLines, type Column, type Cursor, type Line } from './lines';
@@ -52,6 +53,8 @@ export interface AppState {
   showShortcuts: boolean;
   pendingDrop: { planId: Id; files: File[] } | null;
   editingSequenceId: Id | null;
+  /** Tampon ouvert en modification (TITRE, GÉNÉRIQUE…). */
+  editingStampId: Id | null;
   showSettings: boolean;
   showExport: boolean;
   showVersions: boolean;
@@ -77,6 +80,7 @@ export function initialState(doc: ProjectDoc): AppState {
     showShortcuts: false,
     pendingDrop: null,
     editingSequenceId: null,
+    editingStampId: null,
     showSettings: false,
     showExport: false,
     showVersions: false,
@@ -131,7 +135,7 @@ export function suggestSequenceNumber(doc: ProjectDoc, afterSeqId: Id | null): s
 
 /** Une fenêtre superposée a la main sur le clavier (le tableau ne doit pas réagir). */
 export function anyOverlay(s: AppState): boolean {
-  return !!(s.preview || s.showShortcuts || s.pendingDrop || s.editingSequenceId || s.showSettings || s.showExport || s.showVersions || s.importing || s.contextMenu);
+  return !!(s.preview || s.showShortcuts || s.pendingDrop || s.editingSequenceId || s.editingStampId || s.showSettings || s.showExport || s.showVersions || s.importing || s.contextMenu);
 }
 
 /** Rectangle sélectionné (une seule cellule s'il n'y a pas de sélection étendue). */
@@ -245,6 +249,12 @@ interface Actions {
   updateSequence(seqId: Id, fn: (s: Draft<Sequence>) => void, mergeKey?: string): void;
   deleteSequence(seqId: Id): void;
   moveSequence(seqId: Id, delta: -1 | 1): void;
+  /** Ajoute un tampon (avant / après une séquence, ou en fin de film) et l'ouvre. */
+  addStamp(text: string, where: { before: Id } | { after: Id } | null): void;
+  updateStamp(id: Id, patch: { text?: string; note?: string }): void;
+  removeStamp(id: Id): void;
+  moveStamp(id: Id, delta: -1 | 1): void;
+  setEditingStamp(id: Id | null): void;
   undo(): void;
   redo(): void;
   toggleCollapsed(seqId: Id): void;
@@ -288,7 +298,7 @@ export function createAppStore(doc: ProjectDoc) {
     const commit = (raw: ProjectDoc, at: Cursor | null, message?: string | null, mergeKey: string | null = null, after?: Cursor) => {
       // Plans au sol : une caméra dont le plan a disparu est déliée (jamais effacée).
       // Ordre de tournage : un plan supprimé en sort ; un plan ajouté y apparaît « à ranger ».
-      const doc = cleanupDays(cleanupShooting(cleanupFloorRefs(raw)));
+      const doc = stamps.cleanupStamps(cleanupDays(cleanupShooting(cleanupFloorRefs(raw))));
       set((s) => ({
         hist: pushHistory(s.hist, { doc, at }, mergeKey),
         cursor: after ?? at ?? s.cursor,
@@ -678,7 +688,7 @@ export function createAppStore(doc: ProjectDoc) {
           return;
         }
         const seq = doc.sequences.find((s) => s.id === seqId);
-        const next = ops.deleteSequence(doc, seqId);
+        const next = stamps.deleteSequenceInFlow(doc, seqId);
         const first = allLines(next)[0]!;
         const c = cur();
         const keep = c && ops.locatePlan(next, c.planId);
@@ -688,8 +698,34 @@ export function createAppStore(doc: ProjectDoc) {
 
       moveSequence(seqId, delta) {
         const doc = docNow();
-        const next = ops.moveSequence(doc, seqId, delta);
+        const next = stamps.moveInFlow(doc, seqId, delta);
         if (next !== doc) commit(next, cur(), 'Séquence déplacée · numéros généraux mis à jour');
+      },
+
+      addStamp(text, where) {
+        const r = stamps.addStamp(docNow(), text, where);
+        commit(r.doc, cur(), 'Tampon ajouté');
+        set({ editingStampId: r.id, editingSequenceId: null });
+      },
+
+      updateStamp(id, patch) {
+        commit(stamps.updateStamp(docNow(), id, patch), cur(), undefined, `stamp:${id}:${Object.keys(patch).join()}`);
+      },
+
+      removeStamp(id) {
+        const t = docNow().stamps.find((x) => x.id === id);
+        commit(stamps.removeStamp(docNow(), id), cur(), `Tampon ${t?.text ? `« ${t.text} » ` : ''}supprimé · ⌘Z pour annuler`);
+        set({ editingStampId: null });
+      },
+
+      moveStamp(id, delta) {
+        const doc = docNow();
+        const next = stamps.moveInFlow(doc, id, delta);
+        if (next !== doc) commit(next, cur(), 'Tampon déplacé');
+      },
+
+      setEditingStamp(id) {
+        set({ editingStampId: id });
       },
 
       undo() {

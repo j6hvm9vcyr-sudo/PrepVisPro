@@ -5,7 +5,7 @@
 import { APP_VERSION } from '../version';
 import { Document, Font, Image, Page, StyleSheet, Text, View, pdf } from '@react-pdf/renderer';
 import type { ReactElement } from 'react';
-import { COLUMN_DEFS, describePlan, descriptionFields, dtColumns, planValue, type ColumnId, type DtCol, type ExportModel, type ExportOptions, type ExportPlan, type ExportSequence } from './model';
+import { COLUMN_DEFS, describePlan, descriptionFields, dtColumns, planValue, type ColumnId, type DtCol, type ExportModel, type ExportOptions, type ExportPlan, type ExportSequence, type ExportStamp } from './model';
 
 export interface PdfImage {
   /** URL de données (data:image/jpeg;base64,…). */
@@ -387,6 +387,16 @@ function shotValue(p: ExportPlan, k: string): string {
   return p.cameras.map((c) => (p.cameras.length > 1 ? `${c.label} : ` : '') + (c.values[k as ColumnId] ?? '')).join('\n');
 }
 
+/** Tampon (TITRE, GÉNÉRIQUE DE FIN…) entre deux séquences : bande pleine largeur, texte centré. */
+function StampRow({ t }: { t: ExportStamp }) {
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 7, borderTopWidth: 0.75, borderBottomWidth: 0.75, borderColor: DT_LINE, marginVertical: 2 }} wrap={false} minPresenceAhead={40}>
+      <Text style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.6 }}>{t.text.toUpperCase()}</Text>
+      {t.note ? <Text style={{ fontSize: 8.5, color: INK2, marginLeft: 10 }}>{t.note}</Text> : null}
+    </View>
+  );
+}
+
 function ShootingPages({ m, opts, date, pageW }: { m: ExportModel; opts: ExportOptions; date: string; pageW: number }) {
   const total = SH_COLS.reduce((n, c) => n + c.w, 0);
   const w = (c: (typeof SH_COLS)[number]) => (pageW * c.w) / total;
@@ -602,7 +612,15 @@ export function DecoupagePdf({ m, opts, images, floors = [] }: { m: ExportModel;
             ))}
           </View>
           {m.sequences.map((seq) => (
-            <DtSequence key={seq.id} seq={seq} cols={dtCols} widths={dtW} opts={opts} images={images} fields={fields} />
+            <View key={seq.id}>
+              {seq.stampsBefore.map((t, i) => (
+                <StampRow key={i} t={t} />
+              ))}
+              <DtSequence seq={seq} cols={dtCols} widths={dtW} opts={opts} images={images} fields={fields} />
+            </View>
+          ))}
+          {m.stampsAfter.map((t, i) => (
+            <StampRow key={`fin-${i}`} t={t} />
           ))}
           <View style={s.foot} fixed>
             <Text>PrepVisPro {APP_VERSION}</Text>
@@ -624,6 +642,9 @@ export function DecoupagePdf({ m, opts, images, floors = [] }: { m: ExportModel;
           </View>
           {m.sequences.map((seq) => (
             <View key={seq.id}>
+              {seq.stampsBefore.map((t, i) => (
+                <StampRow key={i} t={t} />
+              ))}
               <View style={s.band} wrap={false} minPresenceAhead={60}>
                 <View style={[s.strip, { backgroundColor: seq.strip.fill, borderColor: seq.strip.edge }]} />
                 <Text style={s.bandNum}>SÉQ. {seq.number || '?'}</Text>
@@ -645,6 +666,9 @@ export function DecoupagePdf({ m, opts, images, floors = [] }: { m: ExportModel;
                 </View>
               ) : null}
             </View>
+          ))}
+          {m.stampsAfter.map((t, i) => (
+            <StampRow key={`fin-${i}`} t={t} />
           ))}
           <View style={s.foot} fixed>
             <Text>PrepVisPro {APP_VERSION}</Text>

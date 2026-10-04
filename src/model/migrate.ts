@@ -29,6 +29,7 @@ export function migrate(raw: unknown): MigrateResult {
   if (v <= 11) doc = { ...doc, schemaVersion: 12, shootingDays: [] }; // 11 → 12 : jours de tournage (aucun)
   if (v <= 12) doc = from12to13(doc);
   if (v <= 13) doc = from13to14(doc);
+  if (v <= 14) doc = { ...doc, schemaVersion: 15, stamps: [] }; // 14 → 15 : tampons entre séquences (aucun)
   return { ok: true, raw: doc };
 }
 

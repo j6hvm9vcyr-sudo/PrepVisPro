@@ -6,7 +6,7 @@ import { DecoupageTable } from './Table';
 import { CardsView } from './Cards';
 import { Inspector } from './Inspector';
 import { SequenceIndex, StatusBar, Toolbar } from './Chrome';
-import { DropChoice, Preview, SequenceDialog, Shortcuts } from './Overlays';
+import { DropChoice, Preview, SequenceDialog, Shortcuts, StampDialog } from './Overlays';
 import { SettingsDialog } from './Settings';
 import { Welcome } from './Welcome';
 import { ExportDialog } from './ExportDialog';
@@ -283,6 +283,7 @@ function Workspace() {
       <Shortcuts />
       <DropChoice />
       <SequenceDialog />
+      <StampDialog />
       <ErrorBoundary label="fenêtre">
         {settings && <SettingsDialog onClose={() => useApp.getState().setShowSettings(false)} />}
         {exporting && <ExportDialog onClose={() => useApp.getState().setShowExport(false)} />}

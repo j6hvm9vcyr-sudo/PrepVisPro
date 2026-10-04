@@ -13,6 +13,7 @@ import { effectiveShooting } from '../model/shooting';
 import { compactPlans, dayLabels, daySun, equipmentFor, equipmentLines } from '../model/days';
 import { projectTimeZone } from '../model/sunPlan';
 import { utcToLocal } from '../model/sun';
+import { filmFlow } from '../model/stamps';
 
 export type ColumnId = 'global' | 'code' | 'image' | 'action' | 'script' | 'size' | 'axis' | 'angle' | 'focal' | 'movement' | 'grip' | 'notes';
 
@@ -145,6 +146,14 @@ export interface ExportSequence {
   plans: ExportPlan[];
   /** Ordre de tournage, s'il est établi : installations dans l'ordre, puis plans « à ranger ». */
   shooting: { installations: ExportInstallation[]; loose: ExportPlan[] } | null;
+  /** Tampons placés juste avant la séquence (TITRE…), dans l'ordre. */
+  stampsBefore: ExportStamp[];
+}
+
+/** Tampon (TITRE, GÉNÉRIQUE DE FIN…) : texte et précision éventuelle. */
+export interface ExportStamp {
+  text: string;
+  note: string;
 }
 
 export interface ExportModel {
@@ -158,6 +167,8 @@ export interface ExportModel {
   version: string | null;
   totalPlans: number;
   sequences: ExportSequence[];
+  /** Tampons après la dernière séquence exportée (GÉNÉRIQUE DE FIN…). */
+  stampsAfter: ExportStamp[];
   /** Jours de tournage (tous, quelle que soit la sélection de séquences). */
   days: ExportDay[];
   /** Matériel de tout le tournage. */
@@ -249,6 +260,13 @@ export function buildExportModel(doc: ProjectDoc, opts: Pick<ExportOptions, 'seq
   const numbers = computeNumbers(doc);
   const pick = new Set(opts.sequenceIds);
   const seqs = doc.sequences.filter((s) => pick.size === 0 || pick.has(s.id));
+  // Tampons : avec la séquence qu'ils précèdent ; ceux de fin de film, si la dernière séquence est exportée.
+  const before = new Map<Id | null, ExportStamp[]>();
+  for (const it of filmFlow(doc))
+    if (it.kind === 'stamp' && it.stamp.text.trim())
+      before.set(it.stamp.beforeSequenceId, [...(before.get(it.stamp.beforeSequenceId) ?? []), { text: it.stamp.text.trim(), note: it.stamp.note.trim() }]);
+  const lastSeq = doc.sequences[doc.sequences.length - 1];
+  const stampsAfter = !lastSeq || pick.size === 0 || pick.has(lastSeq.id) ? (before.get(null) ?? []) : [];
   const sequences = seqs.map(
     (s: Sequence): ExportSequence => ({
       id: s.id,
@@ -264,6 +282,7 @@ export function buildExportModel(doc: ProjectDoc, opts: Pick<ExportOptions, 'seq
       summary: summarizeSequence(s),
       plans: s.plans.map((p) => planRow(p, doc, numbers.get(p.id)!)),
       shooting: shootingOf(s, doc, numbers),
+      stampsBefore: before.get(s.id) ?? [],
     }),
   );
   return {
@@ -276,6 +295,7 @@ export function buildExportModel(doc: ProjectDoc, opts: Pick<ExportOptions, 'seq
     version: null,
     totalPlans: sequences.reduce((n, s) => n + s.plans.length, 0),
     sequences,
+    stampsAfter,
     days: exportDays(doc, numbers),
     equipment: equipmentLines(
       equipmentFor(

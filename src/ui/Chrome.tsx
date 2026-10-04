@@ -8,6 +8,7 @@ import { FIELD_LABEL } from '../model/entry';
 import { stripColors } from './strip';
 import { focusGrid } from './focus';
 import { flushSave, saveAsDialog, useProject } from '../state/project';
+import { filmFlow } from '../model/stamps';
 import { IconGear, IconHelp, IconHistory, IconRedo, IconSidebar, IconUndo } from './Icons';
 
 export function Toolbar() {
@@ -109,7 +110,14 @@ export function SequenceIndex() {
   return (
     <nav className="index" aria-label="Séquences">
       <h2>Séquences</h2>
-      {doc.sequences.map((s) => {
+      {filmFlow(doc).map((it) => {
+        if (it.kind === 'stamp')
+          return (
+            <button key={it.stamp.id} type="button" className="index-stamp" title={`Tampon${it.stamp.note.trim() ? ` · ${it.stamp.note.trim()}` : ''} — cliquer pour modifier`} onClick={() => st().setEditingStamp(it.stamp.id)}>
+              <span>{it.stamp.text.trim() || 'Tampon'}</span>
+            </button>
+          );
+        const s = it.seq;
         const c = stripColors(s);
         return (
           <button
@@ -135,9 +143,14 @@ export function SequenceIndex() {
           </button>
         );
       })}
-      <button type="button" className="btn ghost" style={{ marginTop: 6, justifyContent: 'flex-start', color: 'var(--accent)', fontWeight: 600 }} onClick={() => st().addSequence(hereSeq ?? null)}>
-        + Séquence
-      </button>
+      <div className="index-actions">
+        <button type="button" className="btn ghost" title="Nouvelle séquence après la séquence en cours" onClick={() => st().addSequence(hereSeq ?? null)}>
+          + Séquence
+        </button>
+        <button type="button" className="btn ghost" title="TITRE, GÉNÉRIQUE DE FIN… après la séquence en cours" onClick={() => st().addStamp('', hereSeq ? { after: hereSeq } : null)}>
+          + Tampon
+        </button>
+      </div>
     </nav>
   );
 }

@@ -548,3 +548,23 @@ table.modes input:not(.decimal-field input) { border: 1px solid var(--border); b
 .positions { display: flex; flex-direction: column; gap: 3px; }
 .pos-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
 .pos-n { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--accent); color: var(--accent); font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+
+/* ---------------------------------------------------------------- tampons (TITRE, GÉNÉRIQUE…) */
+.btn.small { padding: 3px 8px; font-size: 12px; }
+.stamp-suggest { display: flex; flex-wrap: wrap; gap: 6px; }
+.stamp-suggest .chip-btn { cursor: pointer; }
+.stamp-suggest .chip-btn.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.stamp-band { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 34px; padding: 4px 10px; background: var(--panel); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); scroll-margin-top: 30px; }
+.stamp-band::before, .stamp-band::after { content: ''; flex: 1; border-top: 1px dashed var(--border); }
+.stamp-band button { border: 0; background: transparent; padding: 2px 6px; border-radius: 5px; display: inline-flex; align-items: baseline; gap: 10px; cursor: pointer; color: var(--text); }
+.stamp-band button:hover { background: var(--accent-soft); }
+.stamp-band .stamp-text { font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; font-size: 12.5px; }
+.stamp-band .stamp-text.empty { color: var(--text3); font-weight: 500; letter-spacing: 0; text-transform: none; font-style: italic; }
+.stamp-band .stamp-note { color: var(--text2); font-size: 12px; }
+.index-stamp { display: flex; align-items: center; gap: 5px; width: 100%; border: 0; background: transparent; padding: 3px 4px; border-radius: 6px; color: var(--text2); font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; text-align: left; cursor: pointer; }
+.index-stamp::before, .index-stamp::after { content: ''; flex: 1 1 4px; border-top: 1px dashed var(--border); min-width: 4px; }
+.index-stamp span { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.index-stamp:hover { background: var(--border-soft); color: var(--text); }
+.index-actions { display: flex; gap: 2px; margin-top: 6px; }
+.index-actions .btn { justify-content: flex-start; color: var(--accent); font-weight: 600; }
+.cards .stamp-band { margin: 4px 0 14px; border-radius: 8px; border: 1px solid var(--border); }

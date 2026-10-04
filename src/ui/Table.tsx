@@ -16,6 +16,8 @@ import { focusGrid, registerGrid } from './focus';
 import { floorMismatches, type FloorMismatch } from '../model/floorSuggest';
 import { inKit } from '../model/lenses';
 import { sequenceTitle, stripColors } from './strip';
+import { filmFlow } from '../model/stamps';
+import { StampBand } from './StampBand';
 
 const TECH: { col: Exclude<EditableField, 'action'>; label: string }[] = [
   { col: 'size', label: 'Valeur' },
@@ -277,26 +279,30 @@ export function DecoupageTable() {
             </span>
           ))}
         </div>
-        {doc.sequences.map((seq) => (
-          <SequenceBlock
-            key={seq.id}
-            seq={seq}
-            settings={doc.settings}
-            collapsed={!!collapsed[seq.id]}
-            onlyIncomplete={onlyIncomplete}
-            numbers={numbers}
-            floorDiffs={floorDiffs}
-            cursorPlanId={cursor?.planId ?? null}
-            cursorSetupId={cursor?.setupId ?? null}
-            cursorCol={cursor?.col ?? null}
-            editing={!!editing}
-            selection={selection?.map ?? null}
-            days={doc.shootingDays
-              .filter((d) => d.sequenceIds.includes(seq.id))
-              .map((d) => `J${doc.shootingDays.indexOf(d) + 1}`)
-              .join(', ')}
-          />
-        ))}
+        {filmFlow(doc).map((it) =>
+          it.kind === 'stamp' ? (
+            <StampBand key={it.stamp.id} stamp={it.stamp} />
+          ) : (
+            <SequenceBlock
+              key={it.seq.id}
+              seq={it.seq}
+              settings={doc.settings}
+              collapsed={!!collapsed[it.seq.id]}
+              onlyIncomplete={onlyIncomplete}
+              numbers={numbers}
+              floorDiffs={floorDiffs}
+              cursorPlanId={cursor?.planId ?? null}
+              cursorSetupId={cursor?.setupId ?? null}
+              cursorCol={cursor?.col ?? null}
+              editing={!!editing}
+              selection={selection?.map ?? null}
+              days={doc.shootingDays
+                .filter((d) => d.sequenceIds.includes(it.seq.id))
+                .map((d) => `J${doc.shootingDays.indexOf(d) + 1}`)
+                .join(', ')}
+            />
+          ),
+        )}
         <div style={{ height: 160 }} />
       </div>
     </div>

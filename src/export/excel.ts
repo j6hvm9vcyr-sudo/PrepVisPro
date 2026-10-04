@@ -5,7 +5,7 @@
 import { APP_VERSION } from '../version';
 import ExcelJS from 'exceljs';
 import type { PdfFloorPage } from './pdf';
-import { COLUMN_DEFS, descriptionFields, descriptionText, dtColumns, planValue, type ColumnId, type ExportModel, type ExportOptions } from './model';
+import { COLUMN_DEFS, descriptionFields, descriptionText, dtColumns, planValue, type ColumnId, type ExportModel, type ExportOptions, type ExportStamp } from './model';
 
 export interface PreparedImage {
   bytes: Uint8Array;
@@ -145,6 +145,7 @@ function buildColumnsSheet(wb: ExcelJS.Workbook, m: ExportModel, opts: ExportOpt
 
   let r = 2;
   for (const s of m.sequences) {
+    for (const t of s.stampsBefore) r = stampRow(ws, r, cols.length, t, FONT);
     // Bandeau de séquence, aux couleurs du plan de travail.
     const band = ws.getRow(r);
     ws.mergeCells(r, 1, r, cols.length);
@@ -199,7 +200,23 @@ function buildColumnsSheet(wb: ExcelJS.Workbook, m: ExportModel, opts: ExportOpt
       r++;
     }
   }
+  for (const t of m.stampsAfter) r = stampRow(ws, r, cols.length, t, FONT);
+}
 
+/** Tampon (TITRE, GÉNÉRIQUE DE FIN…) : ligne fusionnée, texte centré. Renvoie la ligne suivante. */
+function stampRow(ws: ExcelJS.Worksheet, r: number, n: number, t: ExportStamp, font: string): number {
+  const row = ws.getRow(r);
+  ws.mergeCells(r, 1, r, n);
+  const c = row.getCell(1);
+  c.value = t.note ? `${t.text.toUpperCase()}    ${t.note}` : t.text.toUpperCase();
+  c.font = { name: font, size: 11, bold: true, color: { argb: 'FF000000' } };
+  c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+  for (let i = 1; i <= n; i++) {
+    row.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
+    row.getCell(i).border = { top: { style: 'medium', color: { argb: 'FF000000' } }, bottom: { style: 'medium', color: { argb: 'FF000000' } } };
+  }
+  row.height = 26;
+  return r + 1;
 }
 
 // ------------------------------------------------------------------ hauteur des lignes
@@ -268,6 +285,7 @@ function buildDtSheet(wb: ExcelJS.Workbook, m: ExportModel, opts: ExportOptions,
 
   let r = 2;
   for (const s of m.sequences) {
+    for (const t of s.stampsBefore) r = stampRow(ws, r, n, t, DT_FONT);
     const tint = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: argb(s.tint) } };
     // Bandeau : titre de la séquence, adresse à droite.
     const band = ws.getRow(r);
@@ -347,6 +365,7 @@ function buildDtSheet(wb: ExcelJS.Workbook, m: ExportModel, opts: ExportOptions,
       r++;
     }
   }
+  for (const t of m.stampsAfter) r = stampRow(ws, r, n, t, DT_FONT);
 }
 
 // ------------------------------------------------------------------ plans au sol

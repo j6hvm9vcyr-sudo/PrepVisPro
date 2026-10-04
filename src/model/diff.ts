@@ -116,6 +116,11 @@ export function compareDocs(before: ProjectDoc, after: ProjectDoc): DocDiff {
   if (before.meta.title !== after.meta.title) other.push(`Titre : « ${before.meta.title} » → « ${after.meta.title} »`);
   if (JSON.stringify(before.settings) !== JSON.stringify(after.settings)) other.push('Réglages du projet modifiés (caméras, listes de termes ou champs obligatoires)');
   if (JSON.stringify(before.floorPlans) !== JSON.stringify(after.floorPlans)) other.push('Plans au sol modifiés');
+  if (JSON.stringify(before.stamps ?? []) !== JSON.stringify(after.stamps ?? [])) {
+    const list = (d: ProjectDoc) => (d.stamps ?? []).map((t) => t.text.trim() || 'sans texte').join(', ') || 'aucun';
+    other.push(`Tampons modifiés (avant : ${list(before)} ; après : ${list(after)})`);
+  }
+  if (JSON.stringify(before.shootingDays) !== JSON.stringify(after.shootingDays)) other.push('Jours de tournage modifiés');
   if (JSON.stringify(before.meta.crew) !== JSON.stringify(after.meta.crew) || before.meta.director !== after.meta.director || before.meta.production !== after.meta.production || before.meta.aspectRatio !== after.meta.aspectRatio)
     other.push('Informations du projet modifiées (équipe, réalisation, production ou ratio)');
   return { sequences, counts, other };

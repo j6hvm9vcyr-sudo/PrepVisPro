@@ -7,6 +7,8 @@ import { coverImage } from '../model/images';
 import { displayText } from '../model/entry';
 import { imageStore } from '../platform/images';
 import { sequenceTitle, stripColors } from './strip';
+import { filmFlow } from '../model/stamps';
+import { StampBand } from './StampBand';
 
 export function CardsView() {
   const doc = useApp(selectDoc);
@@ -16,7 +18,9 @@ export function CardsView() {
   const st = useApp.getState;
   return (
     <div className="cards">
-      {doc.sequences.map((s) => {
+      {filmFlow(doc).map((it) => {
+        if (it.kind === 'stamp') return onlyIncomplete ? null : <StampBand key={it.stamp.id} stamp={it.stamp} />;
+        const s = it.seq;
         const c = stripColors(s);
         const plans = onlyIncomplete ? s.plans.filter((p) => missingFields(p, doc.settings).length) : s.plans;
         if (!plans.length) return null;
