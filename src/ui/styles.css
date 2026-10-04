@@ -617,3 +617,14 @@ table.modes input:not(.decimal-field input) { border: 1px solid var(--border); b
 .lighting .fixture .modes th { text-align: left; font-weight: 600; color: var(--text3); font-size: 11px; padding: 0 2px 2px; }
 .lighting .fixture .modes td { padding: 1px 2px; }
 .lighting .fixture .modes td:first-child input { width: 100%; min-width: 56px; }
+
+/* ---------------------------------------------------------------- détails du plan : ce plan ailleurs */
+.plan-links { gap: 2px; }
+.plan-link-group { display: flex; flex-direction: column; gap: 2px; }
+.plan-link { display: flex; align-items: center; gap: 6px; width: 100%; border: 0; background: transparent; text-align: left; padding: 4px 6px; margin: 0 -6px; border-radius: 6px; font-size: 12.5px; color: var(--text); }
+.plan-link:hover { background: var(--accent-soft); }
+.plan-link .go { margin-left: auto; color: var(--text3); }
+.plan-link.warn { color: var(--text2); }
+.plan-link.warn::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--warn); flex: none; }
+.plan-link:not(.warn)::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); flex: none; }
+.index-actions .btn { padding: 4px 6px; }

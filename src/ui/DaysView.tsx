@@ -17,7 +17,7 @@ import { sequenceTitle, stripColors } from './strip';
 import { useShootingUi } from './ShootingView';
 
 const ALL = '__tout';
-const useDaysUi = create<{ dayId: Id | null; set(id: Id | null): void }>()((set) => ({ dayId: null, set: (dayId) => set({ dayId }) }));
+export const useDaysUi = create<{ dayId: Id | null; set(id: Id | null): void }>()((set) => ({ dayId: null, set: (dayId) => set({ dayId }) }));
 
 const apply = (fn: (d: ProjectDoc) => ProjectDoc, message?: string, key?: string) => {
   const st = useApp.getState();

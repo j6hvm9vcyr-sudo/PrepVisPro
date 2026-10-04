@@ -12,6 +12,7 @@ import { floorMismatches, type FloorMismatch } from '../model/floorSuggest';
 import { replaceCameraSetup } from '../model/ops';
 import { imageStore } from '../platform/images';
 import type { ImageKind, Plan } from '../model/types';
+import { PlanLinksSection } from './PlanLinks';
 
 export function Inspector() {
   const doc = useApp(selectDoc);
@@ -63,6 +64,8 @@ export function Inspector() {
         </label>
 
         <CameraList plan={plan} />
+
+        <PlanLinksSection planId={plan.id} />
 
         <label className="sec">
           <span className="sec-h">Divers</span>
