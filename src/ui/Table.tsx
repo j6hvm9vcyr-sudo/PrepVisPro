@@ -60,6 +60,18 @@ export function DecoupageTable() {
     return { map: m, cells: (r.r1 - r.r0 + 1) * (r.c1 - r.c0 + 1) };
   }, [anchor, cursor, doc, collapsed, onlyIncomplete]); // eslint-disable-line react-hooks/exhaustive-deps
   const gridRef = useRef<HTMLDivElement>(null);
+  // Safari / app Mac : Copier, Couper et Coller (menu Édition, ⌘C ⌘X ⌘V) restent grisés sur un élément
+  // non éditable sans texte sélectionné, sauf si la page annonce qu'elle s'en charge (« before… »).
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    const enable = (e: Event) => {
+      if (!useApp.getState().editing) e.preventDefault();
+    };
+    const types = ['beforecopy', 'beforecut', 'beforepaste'];
+    types.forEach((t) => el.addEventListener(t, enable));
+    return () => types.forEach((t) => el.removeEventListener(t, enable));
+  }, []);
 
   useEffect(() => {
     registerGrid(gridRef.current);

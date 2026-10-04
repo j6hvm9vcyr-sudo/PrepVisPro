@@ -1,6 +1,6 @@
 /** Accès direct aux fonctions, pour piloter l'application réelle sans boîtes de dialogue natives. */
 import { useApp } from './state/appStore';
-import { closeProject, flushSave, newProjectAt, openPath, quitApp, useProject } from './state/project';
+import { closeProject, flushSave, newProjectAt, openPath, openSample, quitApp, useProject } from './state/project';
 import { selectDoc } from './state/store';
 import { imageStore } from './platform/images';
 import { coverImage } from './model/images';
@@ -13,8 +13,19 @@ export async function install() {
   const mutable = b as unknown as { alert: (t: string, x: string) => Promise<void>; confirm: () => Promise<boolean> };
   mutable.alert = async (t, x) => void alerts.push(`${t} : ${x}`);
   mutable.confirm = async () => true;
+  // Erreurs JavaScript non rattrapées : relevées par le test (WebKit ne les remonte pas au pilote).
+  const errors: string[] = [];
+  window.addEventListener('error', (e) => errors.push(`${e.message} @ ${e.filename}:${e.lineno}`));
+  window.addEventListener('unhandledrejection', (e) => errors.push(`rejet : ${String((e.reason as Error)?.message ?? e.reason)}`));
+  const origError = console.error.bind(console);
+  console.error = (...a: unknown[]) => {
+    errors.push(a.map((x) => (x instanceof Error ? x.message : String(x))).join(' ').slice(0, 400));
+    origError(...a);
+  };
   (window as unknown as Record<string, unknown>).__prepvis = {
     alerts,
+    errors,
+    openSample,
     async exportTo(path: string, format: 'pdf' | 'xlsx' | 'csv') {
       const { buildExport } = await import('./export/service');
       const { BUILTIN_PRESETS } = await import('./export/model');
