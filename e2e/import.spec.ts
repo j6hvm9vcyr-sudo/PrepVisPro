@@ -14,9 +14,16 @@ const FDX = `<?xml version="1.0" encoding="UTF-8"?>
 test('importer un scénario dans le projet : aperçu, ajout dans l’ordre, texte de scène, annulation', async ({ page }) => {
   await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
-  const chooser = page.waitForEvent('filechooser');
+  // Le sélecteur de fichiers du navigateur (version web seulement) peut être lent à s'ouvrir sur
+  // une machine chargée : on redemande une fois. Dans l'app Mac, c'est le sélecteur natif.
+  let chooser = page.waitForEvent('filechooser', { timeout: 8000 });
   await page.keyboard.press('ControlOrMeta+Shift+i');
-  await (await chooser).setFiles({ name: 'Le Quai v2.fdx', mimeType: 'application/xml', buffer: Buffer.from(FDX) });
+  const fc = await chooser.catch(async () => {
+    chooser = page.waitForEvent('filechooser', { timeout: 15000 });
+    await page.keyboard.press('ControlOrMeta+Shift+i');
+    return chooser;
+  });
+  await fc.setFiles({ name: 'Le Quai v2.fdx', mimeType: 'application/xml', buffer: Buffer.from(FDX) });
   const dlg = page.getByRole('dialog', { name: 'Importer un scénario' });
   await expect(dlg).toBeVisible();
   await expect(dlg.locator('.status-pill.new')).toHaveCount(1);
