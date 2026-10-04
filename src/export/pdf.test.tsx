@@ -24,6 +24,7 @@ describe('PDF', () => {
       x.meta.crew.push({ id: 'c', role: 'Chef opérateur', name: 'A. R.' });
       x.sequences[0]!.gps = { lat: 48.8566, lon: 2.3522 };
       x.settings.timeZone = 'Europe/Paris';
+      x.stamps.push({ id: 't1', text: 'TITRE', note: 'sur noir, 10 s', beforeSequenceId: x.sequences[1]!.id }, { id: 't2', text: 'GÉNÉRIQUE DE FIN', note: '', beforeSequenceId: null });
       x.shootingDays.push({ id: 'j1', date: '2026-11-03', sequenceIds: [x.sequences[0]!.id, x.sequences[1]!.id], note: 'Départ 7 h, gare de Lyon.' }, { id: 'j2', date: null, sequenceIds: [], note: '' });
       // Projet long : 120 plans de plus.
       for (let i = 0; i < 120; i++) x.sequences[1]!.plans.push({ ...JSON.parse(JSON.stringify(x.sequences[1]!.plans[0]!)), id: `x${i}`, cameras: x.sequences[1]!.plans[0]!.cameras.map((c, k) => ({ ...c, id: `x${i}c${k}` })) });

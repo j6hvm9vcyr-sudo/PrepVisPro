@@ -35,6 +35,25 @@ describe('modèle d’export', () => {
     const m = buildExportModel(d, { sequenceIds: [d.sequences[1]!.id] });
     expect(m.sequences.map((s) => s.number)).toEqual(['2']);
   });
+  it('tampons : avec la séquence qu’ils précèdent ; fin de film seulement si la dernière séquence est exportée', async () => {
+    const { addStamp } = await import('../model/stamps');
+    let d = docWithImage();
+    d = addStamp(d, 'TITRE', { after: d.sequences[0]!.id }).doc;
+    d = addStamp(d, 'GÉNÉRIQUE DE FIN', null).doc;
+    d = addStamp(d, '   ', null).doc; // sans texte : ignoré
+    const all = buildExportModel(d, { sequenceIds: [] });
+    expect(all.sequences.map((s) => s.stampsBefore.map((t) => t.text))).toEqual([[], ['TITRE'], [], []]);
+    expect(all.stampsAfter.map((t) => t.text)).toEqual(['GÉNÉRIQUE DE FIN']);
+    expect(buildExportModel(d, { sequenceIds: [d.sequences[1]!.id] }).stampsAfter).toEqual([]);
+    for (const preset of BUILTIN_PRESETS) {
+      const bytes = await buildWorkbook(all, preset.options, new Map());
+      const wb = new ExcelJS.Workbook();
+      await wb.xlsx.load(bytes.buffer as ArrayBuffer);
+      const texts: string[] = [];
+      wb.getWorksheet('Découpage')!.eachRow((r) => texts.push(String(r.getCell(1).value ?? '')));
+      expect(texts.filter((t) => t === 'TITRE' || t === 'GÉNÉRIQUE DE FIN')).toEqual(['TITRE', 'GÉNÉRIQUE DE FIN']);
+    }
+  });
   it('nom de fichier sûr', () => {
     expect(exportFileName('A/B: "C"', 'Découpage', 'pdf')).toMatch(/^A-B- -C- — Découpage — \d{4}-\d\d-\d\d\.pdf$/);
   });
