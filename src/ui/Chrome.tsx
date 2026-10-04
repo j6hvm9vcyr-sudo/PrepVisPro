@@ -49,6 +49,9 @@ export function Toolbar() {
         <button type="button" aria-pressed={view === 'shooting'} onClick={() => st().setView('shooting')} title="Installations et ordre de tournage (⌘4)">
           Tournage
         </button>
+        <button type="button" aria-pressed={view === 'days'} onClick={() => st().setView('days')} title="Jours de tournage et matériel (⌘5)">
+          Jours
+        </button>
       </div>
       <button
         type="button"

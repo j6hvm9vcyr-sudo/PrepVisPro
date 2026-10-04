@@ -19,6 +19,7 @@ function sanitize(o: Partial<ExportOptions> | undefined): ExportOptions | null {
     breakdown: o.breakdown === true,
     floorPlans: o.floorPlans !== false,
     shootingOrder: o.shootingOrder !== false,
+    days: o.days !== false,
     layout: o.layout === 'columns' ? 'columns' : 'dt',
     showCamera: o.showCamera !== false,
   };
@@ -92,6 +93,7 @@ export function sameOptions(a: ExportOptions, b: ExportOptions): boolean {
     a.breakdown === b.breakdown &&
     a.floorPlans === b.floorPlans &&
     a.shootingOrder === b.shootingOrder &&
+    a.days === b.days &&
     a.layout === b.layout &&
     a.showCamera === b.showCamera
   );

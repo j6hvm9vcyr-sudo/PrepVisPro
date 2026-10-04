@@ -10,6 +10,9 @@ import { missingFields } from '../model/completeness';
 import { sequenceTitle, stripColors } from '../ui/strip';
 import { summarizeSequence } from '../model/summary';
 import { effectiveShooting } from '../model/shooting';
+import { compactPlans, dayLabels, daySun, equipmentFor, equipmentLines } from '../model/days';
+import { projectTimeZone } from '../model/sunPlan';
+import { utcToLocal } from '../model/sun';
 
 export type ColumnId = 'global' | 'code' | 'image' | 'action' | 'script' | 'size' | 'axis' | 'angle' | 'focal' | 'movement' | 'grip' | 'notes';
 
@@ -59,6 +62,8 @@ export interface ExportOptions {
   floorPlans: boolean;
   /** Ajouter l'ordre de tournage (installations) des séquences où il est établi. */
   shootingOrder: boolean;
+  /** Ajouter les jours de tournage (une page par jour) et le matériel de tout le tournage. */
+  days: boolean;
   /**
    * Mise en page : « dt » = comme un découpage technique habituel (valeur, axe, angle, focale,
    * mouvement, machinerie regroupés dans une case Description) ; « colonnes » = une colonne par réglage.
@@ -84,6 +89,7 @@ const base: Omit<ExportOptions, 'columns'> = {
   breakdown: false,
   floorPlans: true,
   shootingOrder: true,
+  days: true,
   layout: 'dt',
   showCamera: true,
 };
@@ -152,6 +158,65 @@ export interface ExportModel {
   version: string | null;
   totalPlans: number;
   sequences: ExportSequence[];
+  /** Jours de tournage (tous, quelle que soit la sélection de séquences). */
+  days: ExportDay[];
+  /** Matériel de tout le tournage. */
+  equipment: { section: string; lines: string[] }[];
+}
+
+export interface ExportDay {
+  label: string;
+  /** « mardi 3 novembre 2026 », ou « date à fixer ». */
+  date: string;
+  note: string;
+  sequences: { heading: string; tint: string; installations: string[] }[];
+  sun: { location: string; line: string }[];
+  floorPlans: string[];
+  equipment: { section: string; lines: string[] }[];
+}
+
+function longDate(date: string): string {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(Date.UTC(y!, m! - 1, d!)).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+}
+
+function exportDays(doc: ProjectDoc, numbers: ReturnType<typeof computeNumbers>): ExportDay[] {
+  const labels = dayLabels(doc);
+  const tz = projectTimeZone(doc);
+  const t = (ms: number | null) => (ms === null ? '—' : utcToLocal(Math.round(ms / 60000) * 60000, tz).time);
+  return doc.shootingDays.map((day) => {
+    const seqs = day.sequenceIds.map((id) => doc.sequences.find((s) => s.id === id)).filter((s): s is Sequence => !!s);
+    const eq = equipmentFor(doc, day.sequenceIds);
+    return {
+      label: labels.get(day.id)!,
+      date: day.date ? longDate(day.date) : 'date à fixer',
+      note: day.note,
+      sequences: seqs.map((s) => {
+        const e = effectiveShooting(s);
+        const code = (id: string) => numbers.get(id)?.code ?? '?';
+        return {
+          heading: `SÉQUENCE ${s.number || '?'} - ${s.intExt}. ${(s.location || 'Décor à préciser').toUpperCase()} - ${s.dayNight}.`,
+          tint: effectTint(s),
+          installations: e
+            ? [
+                ...e.installations.filter((i) => i.plans.length).map((i, k) => `${k + 1}. ${i.name} : ${i.plans.map((p) => code(p.id)).join(', ')}${i.note ? ` — ${i.note}` : ''}`),
+                ...(e.loose.length ? [`À ranger : ${e.loose.map((p) => code(p.id)).join(', ')}`] : []),
+              ]
+            : [`Ordre de tournage à établir — plans ${compactPlans(s.plans.map((p) => code(p.id)))}`],
+        };
+      }),
+      sun: daySun(doc, day).map((x) => ({
+        location: `${x.location} (séq. ${x.sequences.join(', ')})`,
+        line: x.sun.polar
+          ? x.sun.polar === 'day'
+            ? 'Soleil levé toute la journée'
+            : 'Soleil couché toute la journée'
+          : `Lever ${t(x.sun.sunrise)} · coucher ${t(x.sun.sunset)} · heure dorée ${t(x.sun.goldenMorning[0])}–${t(x.sun.goldenMorning[1])} et ${t(x.sun.goldenEvening[0])}–${t(x.sun.goldenEvening[1])} · crépuscule civil ${t(x.sun.dusk)}`,
+      })),
+      floorPlans: eq.floorPlans.map((f) => f.name || 'Plan au sol'),
+      equipment: equipmentLines(eq),
+    };
+  });
 }
 
 function planRow(p: Plan, doc: ProjectDoc, n: { global: number; code: string; repriseLetter: string }): ExportPlan {
@@ -211,6 +276,13 @@ export function buildExportModel(doc: ProjectDoc, opts: Pick<ExportOptions, 'seq
     version: null,
     totalPlans: sequences.reduce((n, s) => n + s.plans.length, 0),
     sequences,
+    days: exportDays(doc, numbers),
+    equipment: equipmentLines(
+      equipmentFor(
+        doc,
+        doc.sequences.map((s) => s.id),
+      ),
+    ),
   };
 }
 

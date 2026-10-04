@@ -11,6 +11,7 @@ import { formatNumber } from '../model/text';
 import { compassName, utcToLocal } from '../model/sun';
 import { planLocation, planSun, projectTimeZone, shadowLength, sunForCamera } from '../model/sunPlan';
 import { DecimalField } from '../ui/DecimalField';
+import { dayLabels } from '../model/days';
 
 const deg = (v: number) => `${formatNumber(Math.round(v))}°`;
 
@@ -21,6 +22,11 @@ function apply(fn: (d: ReturnType<typeof selectDoc>) => ReturnType<typeof select
 
 function todayIn(tz: string): string {
   return utcToLocal(Date.now(), tz).date;
+}
+
+function shortDay(date: string): string {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(Date.UTC(y!, m! - 1, d!)).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 }
 
 const toMinutes = (t: string) => {
@@ -38,6 +44,9 @@ export function SunPanel({ fp }: { fp: FloorPlan }) {
   const t = (ms: number | null) => (ms === null ? '—' : utcToLocal(Math.round(ms / 60000) * 60000, tz).time);
   const numbers = computeNumbers(doc);
   const cams = fp.elements.filter((e): e is FloorCamera => e.kind === 'camera');
+  // Jours de tournage datés où ce décor est tourné : la date se reprend sans la ressaisir.
+  const labels = dayLabels(doc);
+  const shootDays = doc.shootingDays.filter((d) => d.date && d.sequenceIds.some((id) => fp.sequenceIds.includes(id)));
 
   return (
     <section className="sec" aria-label="Soleil">
@@ -69,8 +78,8 @@ export function SunPanel({ fp }: { fp: FloorPlan }) {
             : 'Les séquences de ce plan ont des positions GPS différentes : le soleil n’est pas calculé.'}
         </p>
       ) : !fp.sunAt ? (
-        <button type="button" className="btn" style={{ alignSelf: 'flex-start' }} onClick={() => setPlan((x) => void (x.sunAt = { date: todayIn(tz), time: '12:00' }), 'sun')}>
-          Simuler le soleil
+        <button type="button" className="btn" style={{ alignSelf: 'flex-start' }} onClick={() => setPlan((x) => void (x.sunAt = { date: shootDays[0]?.date ?? todayIn(tz), time: '12:00' }), 'sun')}>
+          Simuler le soleil{shootDays[0] ? ` (${labels.get(shootDays[0].id)})` : ''}
         </button>
       ) : (
         <>
@@ -84,6 +93,22 @@ export function SunPanel({ fp }: { fp: FloorPlan }) {
               <input type="time" aria-label="Heure simulée" value={fp.sunAt.time} required onChange={(e) => e.target.value && setPlan((x) => void (x.sunAt = { ...x.sunAt!, time: e.target.value.slice(0, 5) }), 'suntime')} />
             </label>
           </div>
+          {shootDays.length > 0 && (
+            <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+              {shootDays.map((d) => (
+                <button
+                  key={d.id}
+                  type="button"
+                  className="btn ghost"
+                  aria-pressed={fp.sunAt?.date === d.date}
+                  title="Date de ce jour de tournage"
+                  onClick={() => setPlan((x) => void (x.sunAt = { ...x.sunAt!, date: d.date! }), 'sundate')}
+                >
+                  {labels.get(d.id)} · {shortDay(d.date!)}
+                </button>
+              ))}
+            </div>
+          )}
           <input
             type="range"
             aria-label="Heure de la journée"

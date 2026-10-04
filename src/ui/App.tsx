@@ -1,3 +1,4 @@
+import { DaysView } from './DaysView';
 import { useEffect } from 'react';
 import { useApp } from '../state/appStore';
 import { anyOverlay, selectCursor } from '../state/store';
@@ -132,6 +133,11 @@ function useGlobalShortcuts(settingsOpen: boolean) {
         st.setView('shooting');
         return;
       }
+      if (meta && e.code === 'Digit5') {
+        e.preventDefault();
+        st.setView('days');
+        return;
+      }
       if (meta && e.key.toLowerCase() === 'i' && !e.shiftKey) {
         e.preventDefault();
         st.toggleInspector();
@@ -145,7 +151,7 @@ function useGlobalShortcuts(settingsOpen: boolean) {
         return;
       }
       // En vue Plans au sol, ces touches agissent sur le plan au sol, jamais sur le découpage caché.
-      if ((st.view === 'floor' || st.view === 'shooting') && (e.key === 'Backspace' || e.altKey || (meta && e.shiftKey))) return;
+      if ((st.view === 'floor' || st.view === 'shooting' || st.view === 'days') && (e.key === 'Backspace' || e.altKey || (meta && e.shiftKey))) return;
       if (meta && e.key === 'Backspace') {
         e.preventDefault();
         st.deletePlan();
@@ -239,6 +245,13 @@ function Workspace() {
           <div className="center">
             <ErrorBoundary label="plans au sol" key="floor">
               <FloorView />
+            </ErrorBoundary>
+            <StatusBar />
+          </div>
+        ) : view === 'days' ? (
+          <div className="center">
+            <ErrorBoundary label="jours de tournage" key="days">
+              <DaysView />
             </ErrorBoundary>
             <StatusBar />
           </div>

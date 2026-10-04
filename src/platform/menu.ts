@@ -67,6 +67,9 @@ export function runMenuCommand(id: string) {
     case 'view_shooting':
       st.setView('shooting');
       return;
+    case 'view_days':
+      st.setView('days');
+      return;
     case 'view_inspector':
       st.toggleInspector();
       return;
@@ -94,7 +97,7 @@ export function runMenuCommand(id: string) {
   }
   if (typing || overlay || st.editing) return;
   // Commandes du découpage invisibles depuis les plans au sol : elles ne s'appliquent pas en aveugle.
-  if ((st.view === 'floor' || st.view === 'shooting') && (id === 'plan_camera' || id === 'plan_up' || id === 'plan_down' || id === 'plan_delete')) {
+  if ((st.view === 'floor' || st.view === 'shooting' || st.view === 'days') && (id === 'plan_camera' || id === 'plan_up' || id === 'plan_down' || id === 'plan_delete')) {
     st.setMessage('Commande du découpage : passez en vue Tableau (⌘1)', 'warn');
     return;
   }

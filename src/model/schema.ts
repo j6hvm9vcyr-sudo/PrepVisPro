@@ -170,6 +170,7 @@ export const projectSchema = z.object({
   }),
   sequences: z.array(sequence),
   floorPlans: z.array(floorPlan),
+  shootingDays: z.array(z.object({ id, date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(), sequenceIds: z.array(id), note: z.string() })),
 });
 
 export type LoadResult = { ok: true; doc: ProjectDoc } | { ok: false; error: string };
@@ -223,6 +224,12 @@ export function checkIntegrity(doc: ProjectDoc): string | null {
   for (const fp of doc.floorPlans) {
     if (dup(fp.id)) return `identifiant de plan au sol en double (${fp.id}).`;
     for (const e of fp.elements) if (dup(e.id)) return `élément de plan au sol en double (${e.id}).`;
+  }
+  const seqIds = new Set(doc.sequences.map((x) => x.id));
+  for (const d of doc.shootingDays) {
+    if (dup(d.id)) return `identifiant de jour de tournage en double (${d.id}).`;
+    if (new Set(d.sequenceIds).size !== d.sequenceIds.length) return `séquence en double dans un jour de tournage (${d.id}).`;
+    if (d.sequenceIds.some((x) => !seqIds.has(x))) return `un jour de tournage renvoie à une séquence absente (${d.id}).`;
   }
   return null;
 }

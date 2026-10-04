@@ -212,7 +212,7 @@ export interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 11 as const;
+export const SCHEMA_VERSION = 12 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;
@@ -222,4 +222,15 @@ export interface ProjectDoc {
   sequences: Sequence[];
   /** Plans au sol (voir floor.ts). */
   floorPlans: import('./floor').FloorPlan[];
+  /** Jours de tournage, dans l'ordre (J1, J2… : numéros calculés, jamais stockés). */
+  shootingDays: ShootingDay[];
+}
+
+/** Jour de tournage : ses séquences, dans l'ordre de la journée. */
+export interface ShootingDay {
+  id: Id;
+  /** « AAAA-MM-JJ » ; null tant que la date n'est pas fixée. */
+  date: string | null;
+  sequenceIds: Id[];
+  note: string;
 }

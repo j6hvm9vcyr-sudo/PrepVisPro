@@ -26,6 +26,7 @@ export function migrate(raw: unknown): MigrateResult {
   if (v <= 8) doc = { ...doc, schemaVersion: 9 }; // 8 → 9 : données des projecteurs facultatives (rien à convertir)
   if (v <= 9) doc = from9to10(doc);
   if (v <= 10) doc = from10to11(doc);
+  if (v <= 11) doc = { ...doc, schemaVersion: 12, shootingDays: [] }; // 11 → 12 : jours de tournage (aucun)
   return { ok: true, raw: doc };
 }
 

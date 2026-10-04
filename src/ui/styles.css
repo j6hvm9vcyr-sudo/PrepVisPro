@@ -421,6 +421,25 @@ table.cams input { width: 100%; border: 1px solid var(--border); border-radius: 
 .lens-kind { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text3); }
 .lens-row .decimal-field input { border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-size: 13px; background: var(--field); }
 /* Vue Tournage */
+.day-chip { font-size: 11px; font-weight: 700; color: var(--accent); border: 1px solid var(--accent); border-radius: 9px; padding: 0 6px; line-height: 16px; }
+.day-badge { min-width: 30px; height: 22px; border-radius: 11px; background: var(--accent); color: var(--on-accent); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; padding: 0 6px; flex: none; }
+.day-note { border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; background: var(--field); color: var(--text); font: inherit; resize: vertical; }
+.day-seq { display: flex; flex-direction: column; gap: 4px; padding: 6px 0; border-top: 1px solid var(--border-soft); }
+.day-seq:first-of-type { border-top: 0; }
+.day-seq-h { display: flex; align-items: center; gap: 8px; }
+.day-seq-h .strip { width: 6px; height: 20px; border-radius: 3px; border: 1px solid; flex: none; }
+.day-also { font-size: 11.5px; font-weight: 600; color: var(--warn-text); }
+.day-installs { margin: 0; padding-left: 34px; display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.day-table { border-collapse: collapse; font-size: 12.5px; }
+.day-table th { text-align: left; font-size: 10.5px; color: var(--text3); text-transform: uppercase; font-weight: 700; padding: 3px 12px 3px 0; }
+.day-table td { padding: 3px 12px 3px 0; }
+.equip { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; }
+.equip-col { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.equip h4 { margin: 8px 0 2px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text3); }
+.equip h4:first-child { margin-top: 0; }
+.equip .note { margin: 0; }
+.equip-row { font-size: 13px; line-height: 19px; }
+.warn-tag { font-size: 11.5px; font-weight: 600; color: var(--warn-text); }
 .shooting { display: grid; grid-template-columns: 200px 1fr; height: 100%; min-height: 0; }
 .shooting-list { border-right: 1px solid var(--border); background: var(--side); padding: 10px 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
 .shooting-main { overflow-y: auto; padding: 16px 20px 40px; }

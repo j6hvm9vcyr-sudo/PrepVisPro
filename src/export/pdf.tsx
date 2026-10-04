@@ -448,6 +448,107 @@ function ShootingPages({ m, opts, date, pageW }: { m: ExportModel; opts: ExportO
   );
 }
 
+/** Bloc de matériel en deux colonnes. */
+function EquipmentBlock({ sections }: { sections: { section: string; lines: string[] }[] }) {
+  if (!sections.length) return <Text style={{ fontSize: 8.5, color: INK2 }}>Aucun matériel déduit (découpage et plans au sol à compléter).</Text>;
+  const half = Math.ceil(sections.length / 2);
+  const col = (xs: typeof sections) => (
+    <View style={{ flex: 1, paddingRight: 12 }}>
+      {xs.map((sec) => (
+        <View key={sec.section} style={{ marginBottom: 6 }} wrap={false}>
+          <Text style={{ fontSize: 7.5, fontWeight: 700, color: INK3, marginBottom: 1.5 }}>{sec.section.toUpperCase()}</Text>
+          {sec.lines.map((l, i) => (
+            <Text key={i} style={{ fontSize: 8.5, lineHeight: 1.35 }}>
+              {l}
+            </Text>
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+  return (
+    <View style={{ flexDirection: 'row' }}>
+      {col(sections.slice(0, half))}
+      {col(sections.slice(half))}
+    </View>
+  );
+}
+
+const dayH = { fontSize: 8, fontWeight: 700 as const, color: INK3, marginTop: 10, marginBottom: 3 };
+
+function DaysPages({ m, opts, date }: { m: ExportModel; opts: ExportOptions; date: string }) {
+  const foot = (
+    <View style={s.foot} fixed>
+      <Text>PrepVisPro</Text>
+      <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
+    </View>
+  );
+  return (
+    <>
+      {m.days.map((d) => (
+        <Page key={d.label} size="A4" orientation={opts.orientation} style={s.page}>
+          <View style={s.head} fixed>
+            <Text>
+              {m.title} — Jours de tournage{m.version ? ` · ${m.version}` : ''}
+            </Text>
+            <Text>{date}</Text>
+          </View>
+          <Text style={{ fontSize: 15, fontWeight: 700 }}>
+            {d.label} — {d.date}
+          </Text>
+          {d.note ? <Text style={{ fontSize: 9, color: INK2, marginTop: 3 }}>{d.note}</Text> : null}
+          <Text style={dayH}>SÉQUENCES ET ORDRE DE TOURNAGE</Text>
+          {d.sequences.length === 0 && <Text style={{ fontSize: 8.5, color: INK2 }}>Aucune séquence.</Text>}
+          {d.sequences.map((sq, i) => (
+            <View key={i} wrap={false} style={{ marginBottom: 4 }}>
+              <View style={[dt.band, { backgroundColor: sq.tint, marginTop: 2 }]}>
+                <Text style={dt.bandTitle}>{sq.heading}</Text>
+              </View>
+              {sq.installations.map((l, k) => (
+                <Text key={k} style={{ fontSize: 8.5, paddingLeft: 8, paddingTop: 2 }}>
+                  {l}
+                </Text>
+              ))}
+            </View>
+          ))}
+          {d.sun.length > 0 && (
+            <View wrap={false}>
+              <Text style={dayH}>SOLEIL</Text>
+              {d.sun.map((x, i) => (
+                <Text key={i} style={{ fontSize: 8.5, lineHeight: 1.35 }}>
+                  <Text style={{ fontWeight: 600 }}>{x.location} : </Text>
+                  {x.line}
+                </Text>
+              ))}
+            </View>
+          )}
+          {d.floorPlans.length > 0 && (
+            <View wrap={false}>
+              <Text style={dayH}>PLANS AU SOL</Text>
+              <Text style={{ fontSize: 8.5 }}>{d.floorPlans.join(' · ')}</Text>
+            </View>
+          )}
+          <Text style={dayH}>MATÉRIEL</Text>
+          <EquipmentBlock sections={d.equipment} />
+          {foot}
+        </Page>
+      ))}
+      <Page size="A4" orientation={opts.orientation} style={s.page}>
+        <View style={s.head} fixed>
+          <Text>
+            {m.title} — Matériel{m.version ? ` · ${m.version}` : ''}
+          </Text>
+          <Text>{date}</Text>
+        </View>
+        <Text style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Matériel — tout le tournage</Text>
+        <EquipmentBlock sections={m.equipment} />
+        <Text style={{ fontSize: 7.5, color: INK3, marginTop: 8 }}>Projecteurs et réflecteurs : nombre maximal sur un même plan au sol.</Text>
+        {foot}
+      </Page>
+    </>
+  );
+}
+
 export function DecoupagePdf({ m, opts, images, floors = [] }: { m: ExportModel; opts: ExportOptions; images: Map<string, PdfImage>; floors?: PdfFloorPage[] }): ReactElement {
   const pageW = (opts.orientation === 'landscape' ? 841.89 : 595.28) - 52;
   const w = widths(opts, pageW, m.multiCamera && opts.showCamera);
@@ -551,6 +652,7 @@ export function DecoupagePdf({ m, opts, images, floors = [] }: { m: ExportModel;
         </Page>
       )}
       {opts.shootingOrder && m.sequences.some((x) => x.shooting) && <ShootingPages m={m} opts={opts} date={date} pageW={pageW} />}
+      {opts.days && m.days.length > 0 && <DaysPages m={m} opts={opts} date={date} />}
       {opts.breakdown && (
         <Page size="A4" orientation={opts.orientation} style={s.page}>
           <View style={s.head} fixed>

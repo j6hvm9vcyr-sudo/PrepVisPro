@@ -13,7 +13,7 @@ import { addInstallation, effectiveShooting, moveInstallation, movePlanToInstall
 import { getBackend } from '../platform/backend';
 import { sequenceTitle, stripColors } from './strip';
 
-const useShootingUi = create<{ seqId: Id | null; set(id: Id): void }>()((set) => ({ seqId: null, set: (seqId) => set({ seqId }) }));
+export const useShootingUi = create<{ seqId: Id | null; set(id: Id): void }>()((set) => ({ seqId: null, set: (seqId) => set({ seqId }) }));
 
 /** Plan en cours de glisser-déposer. */
 let dragged: Id | null = null;

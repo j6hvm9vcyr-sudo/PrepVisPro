@@ -291,6 +291,10 @@ export function DecoupageTable() {
             cursorCol={cursor?.col ?? null}
             editing={!!editing}
             selection={selection?.map ?? null}
+            days={doc.shootingDays
+              .filter((d) => d.sequenceIds.includes(seq.id))
+              .map((d) => `J${doc.shootingDays.indexOf(d) + 1}`)
+              .join(', ')}
           />
         ))}
         <div style={{ height: 160 }} />
@@ -311,6 +315,8 @@ interface BlockProps {
   cursorCol: Column | null;
   editing: boolean;
   selection: Map<string, Record<string, [number, number]>> | null;
+  /** Jours de tournage de la séquence (« J2, J3 »), vide sinon. */
+  days: string;
 }
 
 function SequenceBlock(p: BlockProps) {
@@ -338,6 +344,11 @@ function SequenceBlock(p: BlockProps) {
           {seq.plans.length} plan{seq.plans.length > 1 ? 's' : ''}
           {p.onlyIncomplete ? ` · ${plans.length} à compléter` : ''}
         </span>
+        {p.days && (
+          <span className="day-chip" title="Jour(s) de tournage (vue Jours, ⌘5)">
+            {p.days}
+          </span>
+        )}
         <span className="spacer" />
         <button type="button" className="linkbtn" tabIndex={-1} aria-label={`Modifier la séquence ${seq.number}`} onClick={() => st().setEditingSequence(seq.id)}>
           Modifier

@@ -50,6 +50,40 @@ describe('CSV', () => {
   });
 });
 
+describe('jours de tournage', () => {
+  it('modèle : une page par jour, ordre, soleil, matériel ; feuilles Excel', async () => {
+    const d = produce(docWithImage(), (x) => {
+      x.settings.timeZone = 'Europe/Paris';
+      x.sequences[0]!.gps = { lat: 48.8566, lon: 2.3522 };
+      x.sequences[0]!.shooting = { installations: [{ id: 'i1', name: 'Champ', note: 'Contre-jour', planIds: [x.sequences[0]!.plans[0]!.id] }] };
+      x.shootingDays.push({ id: 'j1', date: '2026-06-21', sequenceIds: [x.sequences[0]!.id, x.sequences[1]!.id], note: 'Départ 7 h' });
+    });
+    const m = buildExportModel(d, { sequenceIds: [] });
+    expect(m.days).toHaveLength(1);
+    const j = m.days[0]!;
+    expect(j.label).toBe('J1');
+    expect(j.date).toBe('dimanche 21 juin 2026');
+    expect(j.sequences[0]!.installations).toEqual(['1. Champ : 1/1 — Contre-jour', 'À ranger : 1/2, 1/3, 1/2B']);
+    expect(j.sequences[1]!.installations[0]).toMatch(/^Ordre de tournage à établir/);
+    // Référence NREL SPA : lever 05:46:56, coucher 21:57:51.
+    expect(j.sun[0]!.line).toMatch(/^Lever 05:47 · coucher 21:58/);
+    expect(j.equipment.map((x) => x.section)).toEqual(['Caméra', 'Optiques', 'Machinerie', 'Dépouillement']);
+    const bytes = await buildWorkbook(m, BUILTIN_PRESETS[0]!.options, new Map());
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(bytes.buffer as ArrayBuffer);
+    expect(wb.worksheets.map((w) => w.name)).toContain('Jours de tournage');
+    const vals: unknown[] = [];
+    wb.getWorksheet('Matériel')!.eachRow((r) => r.eachCell((c) => vals.push(c.value)));
+    expect(vals).toContain('Optiques');
+    expect(vals.some((v) => typeof v === 'string' && v.startsWith('300 mm'))).toBe(true);
+    // Option décochée : pas de feuilles.
+    const off = await buildWorkbook(m, { ...BUILTIN_PRESETS[0]!.options, days: false }, new Map());
+    const wb2 = new ExcelJS.Workbook();
+    await wb2.xlsx.load(off.buffer as ArrayBuffer);
+    expect(wb2.worksheets.map((w) => w.name)).not.toContain('Jours de tournage');
+  });
+});
+
 describe('Excel', () => {
   it('produit un classeur relisible, codes de plan en texte, images intégrées', async () => {
     const m = buildExportModel(docWithImage(), { sequenceIds: [] });

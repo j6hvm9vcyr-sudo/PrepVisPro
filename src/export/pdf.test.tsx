@@ -22,6 +22,9 @@ describe('PDF', () => {
       x.sequences[0]!.address = "93 Rue Villiers de l'Isle Adam 75020";
       x.sequences[0]!.shooting = { installations: [{ id: 'i1', name: 'Champ 1', note: 'Contre-jour, réflecteur', planIds: x.sequences[0]!.plans.slice(0, 2).map((p) => p.id) }] };
       x.meta.crew.push({ id: 'c', role: 'Chef opérateur', name: 'A. R.' });
+      x.sequences[0]!.gps = { lat: 48.8566, lon: 2.3522 };
+      x.settings.timeZone = 'Europe/Paris';
+      x.shootingDays.push({ id: 'j1', date: '2026-11-03', sequenceIds: [x.sequences[0]!.id, x.sequences[1]!.id], note: 'Départ 7 h, gare de Lyon.' }, { id: 'j2', date: null, sequenceIds: [], note: '' });
       // Projet long : 120 plans de plus.
       for (let i = 0; i < 120; i++) x.sequences[1]!.plans.push({ ...JSON.parse(JSON.stringify(x.sequences[1]!.plans[0]!)), id: `x${i}`, cameras: x.sequences[1]!.plans[0]!.cameras.map((c, k) => ({ ...c, id: `x${i}c${k}` })) });
     });

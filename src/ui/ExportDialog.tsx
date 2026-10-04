@@ -210,6 +210,12 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                   Ordre de tournage (installations), en PDF et Excel
                 </label>
               )}
+              {doc.shootingDays.length > 0 && (
+                <label className="check">
+                  <input type="checkbox" checked={opts.days} onChange={(e) => set({ days: e.target.checked })} />
+                  Jours de tournage et matériel (tous les jours), en PDF et Excel
+                </label>
+              )}
               {doc.floorPlans.length > 0 && (
                 <label className="check">
                   <input type="checkbox" checked={opts.floorPlans} onChange={(e) => set({ floorPlans: e.target.checked })} />

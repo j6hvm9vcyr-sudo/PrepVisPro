@@ -65,6 +65,7 @@ export async function buildWorkbook(m: ExportModel, opts: ExportOptions, images:
 
   // ---------------------------------------------------------- dépouillement image
   if (opts.shootingOrder && m.sequences.some((x) => x.shooting)) buildShootingSheet(wb, m);
+  if (opts.days && m.days.length) buildDaysSheets(wb, m);
 
   if (opts.breakdown) {
     const bd = wb.addWorksheet('Dépouillement image', {
@@ -515,4 +516,69 @@ function buildShootingSheet(wb: ExcelJS.Workbook, m: ExportModel) {
     }
     r++;
   }
+}
+
+// ------------------------------------------------------------------ jours de tournage et matériel
+
+function buildDaysSheets(wb: ExcelJS.Workbook, m: ExportModel) {
+  const ws = wb.addWorksheet('Jours de tournage', {
+    views: [{ showGridLines: false }],
+    pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+  });
+  ws.columns = [{ width: 26 }, { width: 110 }];
+  let r = 1;
+  const line = (a: string, b: string, opt: { bold?: boolean; size?: number; fill?: string } = {}) => {
+    const row = ws.getRow(r);
+    row.getCell(1).value = a;
+    row.getCell(2).value = b;
+    for (const i of [1, 2]) {
+      const c = row.getCell(i);
+      c.font = { name: DT_FONT, size: opt.size ?? 10, bold: i === 1 || opt.bold };
+      c.alignment = { vertical: 'top', wrapText: true };
+      if (opt.fill) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: argb(opt.fill) } };
+    }
+    row.height = rowHeight([{ text: b, width: 110 }], opt.size ?? 10);
+    r++;
+  };
+  for (const d of m.days) {
+    ws.mergeCells(r, 1, r, 2);
+    const h = ws.getRow(r).getCell(1);
+    h.value = `${d.label} — ${d.date}`;
+    h.font = { name: DT_FONT, size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+    h.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3A3F47' } };
+    ws.getRow(r).height = 24;
+    r++;
+    if (d.note) line('Note', d.note);
+    for (const sq of d.sequences) {
+      line('', sq.heading, { bold: true, fill: sq.tint });
+      for (const l of sq.installations) line('', l);
+    }
+    for (const x of d.sun) line('Soleil', `${x.location} : ${x.line}`);
+    if (d.floorPlans.length) line('Plans au sol', d.floorPlans.join(' · '));
+    for (const sec of d.equipment) sec.lines.forEach((l, i) => line(i === 0 ? sec.section : '', l));
+    r += 2;
+  }
+
+  const eq = wb.addWorksheet('Matériel', {
+    views: [{ showGridLines: false }],
+    pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+  });
+  eq.columns = [{ width: 26 }, { width: 110 }];
+  eq.mergeCells(1, 1, 1, 2);
+  const t = eq.getRow(1).getCell(1);
+  t.value = 'Matériel — tout le tournage';
+  t.font = { name: DT_FONT, size: 14, bold: true };
+  let k = 3;
+  for (const sec of m.equipment)
+    sec.lines.forEach((l, i) => {
+      const row = eq.getRow(k++);
+      row.getCell(1).value = i === 0 ? sec.section : '';
+      row.getCell(2).value = l;
+      row.getCell(1).font = { name: DT_FONT, size: 10, bold: true };
+      row.getCell(2).font = { name: DT_FONT, size: 10 };
+      row.getCell(2).alignment = { vertical: 'top', wrapText: true };
+      row.height = rowHeight([{ text: l, width: 110 }], 10);
+    });
+  eq.getRow(k + 1).getCell(1).value = 'Projecteurs et réflecteurs : nombre maximal sur un même plan au sol.';
+  eq.getRow(k + 1).getCell(1).font = { name: DT_FONT, size: 9, italic: true };
 }
