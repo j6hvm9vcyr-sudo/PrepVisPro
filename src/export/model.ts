@@ -56,6 +56,13 @@ export interface ExportOptions {
   breakdown: boolean;
   /** Ajouter les plans au sol des séquences exportées (PDF). */
   floorPlans: boolean;
+  /**
+   * Mise en page : « dt » = comme un découpage technique habituel (valeur, axe, angle, focale,
+   * mouvement, machinerie regroupés dans une case Description) ; « colonnes » = une colonne par réglage.
+   */
+  layout: 'dt' | 'columns';
+  /** Afficher la caméra (A, B…) des plans tournés à plusieurs caméras. */
+  showCamera: boolean;
 }
 
 export interface ExportPreset {
@@ -73,13 +80,18 @@ const base: Omit<ExportOptions, 'columns'> = {
   markIncomplete: false,
   breakdown: false,
   floorPlans: true,
+  layout: 'dt',
+  showCamera: true,
 };
 
+/** Ordre des colonnes d'un découpage technique habituel. */
+const DT_ORDER: ColumnId[] = ['global', 'code', 'action', 'script', 'size', 'axis', 'angle', 'focal', 'movement', 'grip', 'image', 'notes'];
+
 export const BUILTIN_PRESETS: ExportPreset[] = [
-  { id: 'complet', name: 'Découpage complet', options: { ...base, breakdown: true, columns: ['global', 'code', 'image', 'action', 'script', 'size', 'axis', 'angle', 'focal', 'movement', 'grip', 'notes'] } },
-  { id: 'realisation', name: 'Version réalisation', options: { ...base, columns: ['code', 'image', 'action', 'script', 'size', 'axis', 'angle', 'focal', 'movement'] } },
-  { id: 'technique', name: 'Version électro / machino', options: { ...base, imageSize: 'small', breakdown: true, columns: ['code', 'image', 'action', 'size', 'axis', 'angle', 'focal', 'movement', 'grip', 'notes'] } },
-  { id: 'liste', name: 'Liste des plans (sans images)', options: { ...base, coverPage: false, sequenceComments: false, floorPlans: false, columns: ['global', 'code', 'action', 'size', 'axis', 'angle', 'focal', 'movement', 'grip'] } },
+  { id: 'complet', name: 'Découpage complet', options: { ...base, breakdown: true, columns: DT_ORDER } },
+  { id: 'realisation', name: 'Version réalisation', options: { ...base, columns: ['code', 'action', 'script', 'size', 'axis', 'angle', 'focal', 'movement', 'image'] } },
+  { id: 'technique', name: 'Version électro / machino', options: { ...base, imageSize: 'small', breakdown: true, columns: ['code', 'action', 'size', 'axis', 'angle', 'focal', 'movement', 'grip', 'image', 'notes'] } },
+  { id: 'liste', name: 'Liste des plans (une colonne par réglage)', options: { ...base, layout: 'columns', coverPage: false, sequenceComments: false, floorPlans: false, columns: ['global', 'code', 'action', 'size', 'axis', 'angle', 'focal', 'movement', 'grip'] } },
 ];
 
 export interface ExportCameraRow {
@@ -108,6 +120,10 @@ export interface ExportSequence {
   address: string;
   comments: string;
   strip: { fill: string; edge: string };
+  /** Couleur pâle de la séquence selon l'effet (fond des lignes, style découpage technique). */
+  tint: string;
+  /** « SÉQUENCE 4 - INT. CHAMBRE D'AXEL - NUIT. » */
+  heading: string;
   breakdown: { camera: string; grip: string; lighting: string; other: string };
   summary: { focals: string; grip: string; movements: string };
   plans: ExportPlan[];
@@ -163,6 +179,8 @@ export function buildExportModel(doc: ProjectDoc, opts: Pick<ExportOptions, 'seq
       address: s.address,
       comments: s.comments,
       strip: stripColors(s),
+      tint: effectTint(s),
+      heading: `SÉQUENCE ${s.number || '?'} - ${s.intExt}. ${(s.location || 'Décor à préciser').toUpperCase()} - ${s.dayNight}.`,
       breakdown: { ...s.breakdown },
       summary: summarizeSequence(s),
       plans: s.plans.map((p) => planRow(p, doc, numbers.get(p.id)!)),
@@ -179,6 +197,72 @@ export function buildExportModel(doc: ProjectDoc, opts: Pick<ExportOptions, 'seq
     sequences,
   };
 }
+
+/**
+ * Teinte pâle d'une séquence selon l'effet, dans l'esprit du plan de travail :
+ * INT jour gris très clair (« blanc »), EXT jour jaune, INT nuit bleu, EXT nuit vert.
+ */
+export function effectTint(s: Pick<Sequence, 'intExt' | 'dayNight'>): string {
+  const ext = s.intExt !== 'INT';
+  if (s.dayNight === 'JOUR') return ext ? '#FFF2CC' : '#F3F3F3';
+  return ext ? '#D9EAD3' : '#CFE2F3';
+}
+
+const DESC_LABEL: Partial<Record<ColumnId, string>> = { size: 'VALEUR', axis: 'AXE', angle: 'ANGLE', focal: 'FOCALE', movement: 'MV', grip: 'MACH' };
+
+/** Réglages techniques retenus pour la case Description, dans l'ordre choisi. */
+export function descriptionFields(columns: ColumnId[]): ColumnId[] {
+  return columns.filter((c) => COLUMN_DEFS[c].perCamera);
+}
+
+/**
+ * Case « Description » d'un plan : « VALEUR: Poitrine », « AXE: 3/4 »… une ligne par réglage
+ * renseigné ; un bloc par caméra pour un plan multicaméra.
+ */
+export function describePlan(p: ExportPlan, fields: ColumnId[], opts: { showCamera: boolean; gap?: string }): { camera: string | null; lines: { label: string; value: string }[] }[] {
+  const multi = p.cameras.length > 1;
+  return p.cameras.map((cam) => ({
+    camera: multi && opts.showCamera ? cam.label : null,
+    lines: fields.map((f) => ({ label: DESC_LABEL[f] ?? COLUMN_DEFS[f].label.toUpperCase(), value: cam.values[f] ?? '' })).filter((l) => l.value),
+  }));
+}
+
+/** Description en texte brut (Excel, CSV) : lignes séparées par `gap`. */
+export function descriptionText(p: ExportPlan, fields: ColumnId[], showCamera: boolean, gap = '\n'): string {
+  return describePlan(p, fields, { showCamera })
+    .map((b) => [...(b.camera ? [`CAM ${b.camera}`] : []), ...b.lines.map((l) => `${l.label}: ${l.value}`)].join(gap))
+    .filter(Boolean)
+    .join(gap + gap);
+}
+
+const DT_IMG_WIDTH = { small: 30, medium: 40, large: 48 } as const;
+
+export type DtCol = { id: 'global' | 'code' | 'camera' | 'action' | 'script' | 'description' | 'image' | 'notes'; label: string; width: number };
+
+/** Colonnes du découpage technique, dans l'ordre choisi ; les réglages techniques forment la Description. */
+export function dtColumns(opts: ExportOptions, multiCamera: boolean): DtCol[] {
+  const out: DtCol[] = [];
+  let desc = false;
+  for (const c of opts.columns) {
+    if (COLUMN_DEFS[c].perCamera) {
+      if (!desc) {
+        out.push({ id: 'description', label: 'DESCRIPTION', width: 24 });
+        desc = true;
+      }
+      continue;
+    }
+    if (c === 'global') out.push({ id: 'global', label: 'N°', width: 4.5 });
+    else if (c === 'code') {
+      out.push({ id: 'code', label: 'PLAN', width: 7 });
+      if (multiCamera && opts.showCamera) out.push({ id: 'camera', label: 'CAM', width: 5 });
+    } else if (c === 'action') out.push({ id: 'action', label: 'ACTION', width: 32 });
+    else if (c === 'script') out.push({ id: 'script', label: 'SCÉNARIO', width: 50 });
+    else if (c === 'image') out.push({ id: 'image', label: 'RÉFÉRENCE', width: DT_IMG_WIDTH[opts.imageSize] });
+    else if (c === 'notes') out.push({ id: 'notes', label: 'DIVERS', width: 24 });
+  }
+  return out;
+}
+
 
 /** Valeur texte d'une cellule non liée à une caméra. */
 export function planValue(p: ExportPlan, col: ColumnId): string {
@@ -213,16 +297,17 @@ function csvCell(v: string): string {
 }
 
 /** CSV au format français (séparateur « ; », UTF-8 avec BOM : s'ouvre correctement dans Excel). */
-export function buildCsv(m: ExportModel, columns: ColumnId[]): string {
+export function buildCsv(m: ExportModel, columns: ColumnId[], showCamera = true): string {
   const cols = columns.filter((c) => c !== 'image');
-  const header = ['Séquence', ...(m.multiCamera ? ['Caméra'] : []), ...cols.map((c) => COLUMN_DEFS[c].label)];
+  const withCam = m.multiCamera && showCamera;
+  const header = ['Séquence', ...(withCam ? ['Caméra'] : []), ...cols.map((c) => COLUMN_DEFS[c].label)];
   const lines = [header];
   for (const s of m.sequences)
     for (const p of s.plans)
       p.cameras.forEach((cam, i) => {
         lines.push([
           s.number,
-          ...(m.multiCamera ? [cam.label] : []),
+          ...(withCam ? [cam.label] : []),
           ...cols.map((c) => (COLUMN_DEFS[c].perCamera ? (cam.values[c] ?? '') : i === 0 ? planValue(p, c) : '')),
         ]);
       });

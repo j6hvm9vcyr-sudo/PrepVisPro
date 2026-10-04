@@ -18,6 +18,8 @@ function sanitize(o: Partial<ExportOptions> | undefined): ExportOptions | null {
     markIncomplete: o.markIncomplete === true,
     breakdown: o.breakdown === true,
     floorPlans: o.floorPlans !== false,
+    layout: o.layout === 'columns' ? 'columns' : 'dt',
+    showCamera: o.showCamera !== false,
   };
 }
 
@@ -87,6 +89,8 @@ export function sameOptions(a: ExportOptions, b: ExportOptions): boolean {
     a.sequenceComments === b.sequenceComments &&
     a.markIncomplete === b.markIncomplete &&
     a.breakdown === b.breakdown &&
-    a.floorPlans === b.floorPlans
+    a.floorPlans === b.floorPlans &&
+    a.layout === b.layout &&
+    a.showCamera === b.showCamera
   );
 }

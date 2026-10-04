@@ -165,6 +165,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                       <label className="check">
                         <input type="checkbox" checked={on} onChange={() => toggleCol(c)} />
                         {COLUMN_DEFS[c].label}
+                        {opts.layout === 'dt' && COLUMN_DEFS[c].perCamera && on && <span className="note"> → Description</span>}
                       </label>
                       {on && (
                         <span className="col-move">
@@ -184,6 +185,27 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="export-col">
+            <section className="sec">
+              <div className="sec-h">Présentation (PDF et Excel)</div>
+              <div className="seg" role="group" aria-label="Présentation">
+                <button type="button" aria-pressed={opts.layout === 'dt'} onClick={() => set({ layout: 'dt' })}>
+                  Découpage technique
+                </button>
+                <button type="button" aria-pressed={opts.layout === 'columns'} onClick={() => set({ layout: 'columns' })}>
+                  Une colonne par réglage
+                </button>
+              </div>
+              <p className="note" style={{ margin: 0 }}>
+                {opts.layout === 'dt'
+                  ? 'Valeur, axe, angle, focale, mouvement et machinerie regroupés dans une case Description ; lignes aux couleurs de l’effet de chaque séquence.'
+                  : 'Chaque réglage dans sa propre colonne : pratique pour trier ou filtrer dans Excel.'}
+              </p>
+              <label className="check">
+                <input type="checkbox" checked={opts.showCamera} onChange={(e) => set({ showCamera: e.target.checked })} />
+                Caméra (A, B…) des plans à plusieurs caméras
+              </label>
+            </section>
+
             <section className="sec">
               <div className="sec-h">Mise en page (PDF)</div>
               <div className="row">

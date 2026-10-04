@@ -6,7 +6,7 @@ import { renderToBuffer } from '@react-pdf/renderer';
 import { produce } from 'immer';
 import { DecoupagePdf, registerPdfFonts, type PdfImage } from './pdf';
 import { BUILTIN_PRESETS, buildExportModel } from './model';
-import { sampleProject } from '../model/sample';
+import { sampleProjectMultiCam as sampleProject } from '../model/sample';
 import { PNG_160x90_B64 } from '../test/fixtures';
 
 const F = (n: string) => resolve('src/assets/fonts', n);
@@ -19,6 +19,7 @@ describe('PDF', () => {
     const d = produce(sampleProject(), (x) => {
       x.sequences[0]!.plans[0]!.images.push({ id: 'i', kind: 'scouting', file: 'images/a.png', originalName: '', caption: '' });
       x.sequences[0]!.comments = 'Commentaire de séquence — « guillemets », œ, →.';
+      x.sequences[0]!.address = "93 Rue Villiers de l'Isle Adam 75020";
       x.meta.crew.push({ id: 'c', role: 'Chef opérateur', name: 'A. R.' });
       // Projet long : 120 plans de plus.
       for (let i = 0; i < 120; i++) x.sequences[1]!.plans.push({ ...JSON.parse(JSON.stringify(x.sequences[1]!.plans[0]!)), id: `x${i}`, cameras: x.sequences[1]!.plans[0]!.cameras.map((c, k) => ({ ...c, id: `x${i}c${k}` })) });

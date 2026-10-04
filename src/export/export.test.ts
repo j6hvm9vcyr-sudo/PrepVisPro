@@ -64,14 +64,49 @@ describe('Excel', () => {
     expect(values).toContain('1/2');
     expect(values).toContain('1/2B');
     expect(values.some((v) => v instanceof Date)).toBe(false);
-    expect(values).toContain('Commentaires : Lumière du matin, rasante.');
+    expect(values).toContain('COMMENTAIRES : Lumière du matin, rasante.');
+    expect(values).toContain('SÉQUENCE 1 - EXT. QUAI DE GARE - JOUR.');
+    // En-têtes du découpage technique et case Description regroupée.
+    expect(values.slice(0, 7)).toEqual(['N°', 'PLAN', 'CAM', 'ACTION', 'SCÉNARIO', 'DESCRIPTION', 'RÉFÉRENCE']);
+    expect(values).toContain('VALEUR: Ensemble\n\nAXE: Face\n\nANGLE: À niveau\n\nFOCALE: 32 mm\n\nMV: Fixe\n\nMACH: Branches');
+    // Plan multicaméra : un bloc par caméra.
+    expect(values.some((v) => typeof v === 'string' && v.startsWith('CAM A\n\nVALEUR: Taille') && v.includes('CAM B'))).toBe(true);
+    // Couleur de la séquence selon l'effet (EXT jour : jaune pâle) et lignes assez hautes pour le texte.
+    const band = ws.getRow(2).getCell(1);
+    expect((band.fill as { fgColor: { argb: string } }).fgColor.argb).toBe('FFFFF2CC');
+    expect(ws.getRow(3).height).toBeGreaterThan(80);
     expect(ws.getImages()).toHaveLength(1);
     const garde: unknown[] = [];
     wb.getWorksheet('Page de garde')!.eachRow((row) => row.eachCell((c) => garde.push(c.value)));
-    expect(garde).toContain('Chef opérateur — A. R.');
+    expect(garde).toContain('Chef opérateur - A. R.');
     const bd: unknown[] = [];
     wb.getWorksheet('Dépouillement image')!.eachRow((row) => row.eachCell((c) => bd.push(c.value)));
     expect(bd).toContain('Soleil rasant, réflecteur');
     expect(bd).toContain('32, 75, 300 mm');
+  });
+});
+
+describe('Excel sans colonne caméra, et mise en page « une colonne par réglage »', () => {
+  it('colonne CAM désactivable', async () => {
+    const m = buildExportModel(docWithImage(), { sequenceIds: [] });
+    const bytes = await buildWorkbook(m, { ...BUILTIN_PRESETS[0]!.options, showCamera: false }, new Map());
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(bytes.buffer as ArrayBuffer);
+    const head: unknown[] = [];
+    wb.getWorksheet('Découpage')!.getRow(1).eachCell((c) => head.push(c.value));
+    expect(head).not.toContain('CAM');
+  });
+  it('liste : une colonne par réglage, lignes ajustées au texte', async () => {
+    const d = produce(docWithImage(), (x) => void (x.sequences[0]!.plans[0]!.action = 'Une très longue action '.repeat(12)));
+    const m = buildExportModel(d, { sequenceIds: [] });
+    const opts = BUILTIN_PRESETS.find((p) => p.id === 'liste')!.options;
+    const bytes = await buildWorkbook(m, opts, new Map());
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(bytes.buffer as ArrayBuffer);
+    const ws = wb.getWorksheet('Découpage')!;
+    const head: unknown[] = [];
+    ws.getRow(1).eachCell((c) => head.push(c.value));
+    expect(head).toContain('VALEUR');
+    expect(ws.getRow(3).height).toBeGreaterThan(60);
   });
 });

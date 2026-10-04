@@ -166,7 +166,7 @@ export async function saveFloorExport(doc: ProjectDoc, ext: 'png' | 'pdf', bytes
 
 export async function buildExport(doc: ProjectDoc, format: ExportFormat, opts: ExportOptions, onProgress?: (done: number, total: number) => void): Promise<BuiltExport> {
   const m = buildExportModel(doc, opts);
-  if (format === 'csv') return { bytes: new TextEncoder().encode(buildCsv(m, opts.columns)), failedImages: 0 };
+  if (format === 'csv') return { bytes: new TextEncoder().encode(buildCsv(m, opts.columns, opts.showCamera)), failedImages: 0 };
   const withImages = opts.columns.includes('image');
   const { images, failed } = withImages ? await prepareImages(m, format === 'xlsx' ? 480 : MAX_WIDTH[opts.imageSize], onProgress) : { images: new Map<string, Resized>(), failed: [] };
   if (format === 'xlsx') {

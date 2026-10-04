@@ -3,7 +3,7 @@
  * Toutes les cellules de texte sont écrites comme du TEXTE : « 4/2 » ne devient jamais une date.
  */
 import ExcelJS from 'exceljs';
-import { COLUMN_DEFS, planValue, type ColumnId, type ExportModel, type ExportOptions } from './model';
+import { COLUMN_DEFS, descriptionFields, descriptionText, dtColumns, planValue, type ColumnId, type ExportModel, type ExportOptions } from './model';
 
 export interface PreparedImage {
   bytes: Uint8Array;
@@ -32,30 +32,71 @@ export async function buildWorkbook(m: ExportModel, opts: ExportOptions, images:
 
   // ---------------------------------------------------------- page de garde
   if (opts.coverPage) {
-    const ws = wb.addWorksheet('Page de garde', { views: [{ showGridLines: false }] });
-    ws.columns = [{ width: 4 }, { width: 70 }];
-    let r = 3;
-    const put = (text: string, size: number, bold = false, color = 'FF13161B') => {
-      const c = ws.getCell(r, 2);
+    // Mise en page du découpage d'origine : titre centré, ratio et production à gauche, équipe à droite.
+    const ws = wb.addWorksheet('Page de garde', { views: [{ showGridLines: false }], pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 1 } });
+    ws.columns = [{ width: 3 }, { width: 28 }, { width: 52 }, { width: 52 }];
+    const put = (ref: string, text: string, size: number, opt: { bold?: boolean; align?: 'left' | 'center' | 'right' } = {}) => {
+      const c = ws.getCell(ref);
       c.value = text;
-      c.font = { name: FONT, size, bold, color: { argb: color } };
-      r++;
+      c.font = { name: DT_FONT, size, bold: !!opt.bold, color: { argb: 'FF000000' } };
+      c.alignment = { horizontal: opt.align ?? 'left', vertical: 'middle' };
     };
-    put('DÉCOUPAGE TECHNIQUE', 12, true, 'FF465061');
-    put(m.title || 'Sans titre', 28, true);
-    if (m.director) put(`de ${m.director}`, 14);
-    r++;
-    if (m.aspectRatio) put(`Ratio : ${m.aspectRatio}`, 11);
-    if (m.production) put(`Production : ${m.production}`, 11);
-    put(`${m.sequences.length} séquence${m.sequences.length > 1 ? 's' : ''} · ${m.totalPlans} plan${m.totalPlans > 1 ? 's' : ''}`, 11, false, 'FF465061');
+    put('C3', 'DÉCOUPAGE TECHNIQUE', 14, { align: 'center' });
+    put('C4', m.title || 'Sans titre', 20, { bold: true, align: 'center' });
+    ws.getRow(4).height = 28;
+    if (m.director) put('C6', `de ${m.director}`, 12, { align: 'center' });
+    let r = 9;
+    if (m.aspectRatio) put(`B${r++}`, `RATIO : ${m.aspectRatio}`, 11);
+    if (m.production) put(`B${r++}`, `PRODUCTION : ${m.production}`, 11);
+    put(`B${r}`, `${m.sequences.length} SÉQUENCE${m.sequences.length > 1 ? 'S' : ''} · ${m.totalPlans} PLAN${m.totalPlans > 1 ? 'S' : ''}`, 11);
     if (m.crew.length) {
-      r++;
-      put('ÉQUIPE', 11, true, 'FF465061');
-      for (const c of m.crew) put(`${c.role}${c.role && c.name ? ' — ' : ''}${c.name}`, 11);
+      let k = 9;
+      put(`D${k++}`, 'INFORMATIONS :', 11, { align: 'right' });
+      k++;
+      for (const c of m.crew) put(`D${k++}`, `${c.role}${c.role && c.name ? ' - ' : ''}${c.name}`, 11, { align: 'right' });
     }
   }
 
   // ---------------------------------------------------------- découpage
+  if (opts.layout === 'dt') buildDtSheet(wb, m, opts, images);
+  else buildColumnsSheet(wb, m, opts, images);
+
+  // ---------------------------------------------------------- dépouillement image
+  if (opts.breakdown) {
+    const bd = wb.addWorksheet('Dépouillement image', {
+      views: [{ state: 'frozen', ySplit: 1 }],
+      pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+    });
+    const heads = ['Séquence', 'Caméra', 'Machinerie', 'Lumière', 'Autre', 'Focales des plans', 'Machinerie des plans'];
+    bd.columns = [{ width: 44 }, { width: 28 }, { width: 28 }, { width: 28 }, { width: 28 }, { width: 22 }, { width: 26 }];
+    const h = bd.getRow(1);
+    heads.forEach((t, i) => {
+      const c = h.getCell(i + 1);
+      c.value = t.toUpperCase();
+      c.font = { name: FONT, size: 9, bold: true, color: { argb: 'FF465061' } };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F3F6' } };
+      c.border = BORDER;
+    });
+    m.sequences.forEach((s, i) => {
+      const row = bd.getRow(i + 2);
+      const vals = [`SÉQ. ${s.number || '?'} — ${s.title}`, s.breakdown.camera, s.breakdown.grip, s.breakdown.lighting, s.breakdown.other, s.summary.focals, s.summary.grip];
+      vals.forEach((v, k) => {
+        const c = row.getCell(k + 1);
+        c.value = v;
+        c.font = { name: FONT, size: 10, bold: k === 0 };
+        c.alignment = { vertical: 'top', wrapText: true };
+        c.border = BORDER;
+        if (k === 0) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: s.strip.fill === '#ffffff' ? 'FFFFFFFF' : argb(s.strip.fill) + '' } };
+        if (k === 0 && (s.strip.fill === '#3e6fd8' || s.strip.fill === '#3a9a5b')) c.font = { name: FONT, size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+      });
+    });
+  }
+
+  const buf = await wb.xlsx.writeBuffer();
+  return new Uint8Array(buf as ArrayBuffer);
+}
+
+function buildColumnsSheet(wb: ExcelJS.Workbook, m: ExportModel, opts: ExportOptions, images: Map<string, PreparedImage>) {
   const ws = wb.addWorksheet('Découpage', {
     views: [{ state: 'frozen', ySplit: 1 }],
     pageSetup: {
@@ -72,9 +113,9 @@ export async function buildWorkbook(m: ExportModel, opts: ExportOptions, images:
   const cols: (ColumnId | 'camera')[] = [];
   for (const c of opts.columns) {
     cols.push(c);
-    if (c === 'code' && m.multiCamera) cols.push('camera');
+    if (c === 'code' && m.multiCamera && opts.showCamera) cols.push('camera');
   }
-  if (m.multiCamera && !cols.includes('camera')) cols.unshift('camera');
+  if (m.multiCamera && opts.showCamera && !cols.includes('camera')) cols.unshift('camera');
 
   ws.columns = cols.map((c) => ({ width: c === 'camera' ? 6 : COLUMN_DEFS[c].xlsWidth }));
   ws.pageSetup.printTitlesRow = '1:1';
@@ -132,8 +173,8 @@ export async function buildWorkbook(m: ExportModel, opts: ExportOptions, images:
           const h = ratio >= 16 / 9 ? Math.round(imgW / ratio) : imgH;
           ws.addImage(id, { tl: { col: imgCol + 0.08, row: r - 1 + 0.1 }, ext: { width: w, height: h }, editAs: 'oneCell' });
           row.height = Math.max(row.height ?? 15, Math.round(h * 0.75) + 8);
-        } else if (ci === 0) {
-          row.height = 30;
+        } else {
+          row.height = Math.max(row.height ?? 15, rowHeight(cols.map((c, i) => ({ text: String(row.getCell(i + 1).value ?? ''), width: (ws.getColumn(i + 1).width ?? 10) })), 10));
         }
         r++;
       });
@@ -151,37 +192,151 @@ export async function buildWorkbook(m: ExportModel, opts: ExportOptions, images:
     }
   }
 
-  // ---------------------------------------------------------- dépouillement image
-  if (opts.breakdown) {
-    const bd = wb.addWorksheet('Dépouillement image', {
-      views: [{ state: 'frozen', ySplit: 1 }],
-      pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
-    });
-    const heads = ['Séquence', 'Caméra', 'Machinerie', 'Lumière', 'Autre', 'Focales des plans', 'Machinerie des plans'];
-    bd.columns = [{ width: 44 }, { width: 28 }, { width: 28 }, { width: 28 }, { width: 28 }, { width: 22 }, { width: 26 }];
-    const h = bd.getRow(1);
-    heads.forEach((t, i) => {
-      const c = h.getCell(i + 1);
-      c.value = t.toUpperCase();
-      c.font = { name: FONT, size: 9, bold: true, color: { argb: 'FF465061' } };
-      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F3F6' } };
-      c.border = BORDER;
-    });
-    m.sequences.forEach((s, i) => {
-      const row = bd.getRow(i + 2);
-      const vals = [`SÉQ. ${s.number || '?'} — ${s.title}`, s.breakdown.camera, s.breakdown.grip, s.breakdown.lighting, s.breakdown.other, s.summary.focals, s.summary.grip];
-      vals.forEach((v, k) => {
-        const c = row.getCell(k + 1);
-        c.value = v;
-        c.font = { name: FONT, size: 10, bold: k === 0 };
-        c.alignment = { vertical: 'top', wrapText: true };
-        c.border = BORDER;
-        if (k === 0) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: s.strip.fill === '#ffffff' ? 'FFFFFFFF' : argb(s.strip.fill) + '' } };
-        if (k === 0 && (s.strip.fill === '#3e6fd8' || s.strip.fill === '#3a9a5b')) c.font = { name: FONT, size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
-      });
-    });
-  }
+}
 
-  const buf = await wb.xlsx.writeBuffer();
-  return new Uint8Array(buf as ArrayBuffer);
+// ------------------------------------------------------------------ hauteur des lignes
+
+/**
+ * Hauteur (points) qu'il faut à une ligne pour que tout le texte soit visible.
+ * Excel n'ajuste pas seul la hauteur des lignes d'un fichier généré : sans cela, le texte
+ * long serait coupé dans les cases.
+ */
+export function rowHeight(cells: { text: string; width: number }[], fontSize: number): number {
+  const charPx = fontSize * 0.62; // largeur moyenne d'un caractère
+  const linePt = fontSize * 1.35;
+  let lines = 1;
+  for (const c of cells) {
+    if (!c.text) continue;
+    const usable = Math.max(20, c.width * 7 + 5 - 10);
+    const perLine = Math.max(4, Math.floor(usable / charPx));
+    const n = c.text.split('\n').reduce((acc, para) => acc + Math.max(1, Math.ceil(para.length / perLine)), 0);
+    lines = Math.max(lines, n);
+  }
+  return Math.min(409, Math.ceil(lines * linePt + 8));
+}
+
+// ------------------------------------------------------------------ style « découpage technique »
+
+const DT_FONT = 'Lexend';
+const BLACK_THIN: Partial<ExcelJS.Borders> = {
+  top: { style: 'thin', color: { argb: 'FF000000' } },
+  bottom: { style: 'thin', color: { argb: 'FF000000' } },
+  left: { style: 'thin', color: { argb: 'FF000000' } },
+  right: { style: 'thin', color: { argb: 'FF000000' } },
+};
+function buildDtSheet(wb: ExcelJS.Workbook, m: ExportModel, opts: ExportOptions, images: Map<string, PreparedImage>) {
+  const ws = wb.addWorksheet('Découpage', {
+    views: [{ state: 'frozen', ySplit: 1, showGridLines: false }],
+    pageSetup: {
+      paperSize: 9,
+      orientation: opts.orientation,
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0,
+      margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 },
+    },
+    headerFooter: { oddFooter: `&L${(m.title || '').replace(/&/g, '&&')} — Découpage technique&RPage &P / &N` },
+  });
+  const cols = dtColumns(opts, m.multiCamera);
+  const fields = descriptionFields(opts.columns);
+  const n = cols.length;
+  ws.columns = cols.map((c) => ({ width: c.width }));
+  ws.pageSetup.printTitlesRow = '1:1';
+
+  const header = ws.getRow(1);
+  cols.forEach((c, i) => {
+    const cell = header.getCell(i + 1);
+    cell.value = c.label;
+    cell.font = { name: DT_FONT, size: 9, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF464646' } };
+    cell.alignment = { horizontal: 'center', vertical: 'top', wrapText: true };
+    cell.border = BLACK_THIN;
+  });
+  header.height = 16;
+
+  const imgCol = cols.findIndex((c) => c.id === 'image');
+  const imgW = imgCol >= 0 ? colPx(cols[imgCol]!.width) - 10 : 0;
+  const imgMaxH = Math.round(imgW * 0.62);
+
+  let r = 2;
+  for (const s of m.sequences) {
+    const tint = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: argb(s.tint) } };
+    // Bandeau : titre de la séquence, adresse à droite.
+    const band = ws.getRow(r);
+    const withAddress = !!s.address && n > 1;
+    ws.mergeCells(r, 1, r, withAddress ? n - 1 : n);
+    const bc = band.getCell(1);
+    bc.value = s.heading;
+    bc.font = { name: DT_FONT, size: 14, bold: true, color: { argb: 'FF000000' } };
+    bc.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+    for (let i = 1; i <= n; i++) {
+      const c = band.getCell(i);
+      c.fill = tint;
+      c.border = { ...BLACK_THIN, top: { style: 'medium', color: { argb: 'FF000000' } }, bottom: { style: 'medium', color: { argb: 'FF000000' } } };
+    }
+    if (withAddress) {
+      const ac = band.getCell(n);
+      ac.value = s.address;
+      ac.font = { name: DT_FONT, size: 8, color: { argb: 'FF000000' } };
+      ac.alignment = { horizontal: 'right', vertical: 'middle', wrapText: true };
+    }
+    band.height = 24;
+    r++;
+
+    for (const p of s.plans) {
+      const row = ws.getRow(r);
+      const texts: { text: string; width: number }[] = [];
+      cols.forEach((c, i) => {
+        const cell = row.getCell(i + 1);
+        let v: string | number = '';
+        if (c.id === 'global') v = p.global;
+        else if (c.id === 'code') v = p.code;
+        else if (c.id === 'camera') v = p.cameras.length > 1 ? p.cameras.map((k) => k.label).join('/') : '';
+        else if (c.id === 'action') v = p.action;
+        else if (c.id === 'script') v = p.script;
+        // Description aérée comme dans un découpage manuel : une ligne vide entre les réglages.
+        else if (c.id === 'description') v = descriptionText(p, fields, opts.showCamera, '\n\n');
+        else if (c.id === 'notes') v = p.notes;
+        cell.value = v; // texte : « 4/2 » n'est jamais converti en date
+        cell.font = { name: DT_FONT, size: 9, bold: c.id === 'code', color: { argb: 'FF000000' } };
+        cell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
+        cell.fill = tint;
+        cell.border = BLACK_THIN;
+        if (typeof v === 'string') texts.push({ text: v, width: c.width });
+      });
+      let h = rowHeight(texts, 9);
+      const img = p.imageFile ? images.get(p.imageFile) : undefined;
+      if (img && imgCol >= 0) {
+        const id = wb.addImage({ buffer: img.bytes.buffer.slice(img.bytes.byteOffset, img.bytes.byteOffset + img.bytes.byteLength) as ArrayBuffer, extension: img.ext });
+        const ratio = img.width / img.height;
+        let w = imgW;
+        let ih = Math.round(w / ratio);
+        if (ih > imgMaxH) {
+          ih = imgMaxH;
+          w = Math.round(ih * ratio);
+        }
+        ws.addImage(id, { tl: { col: imgCol + 0.05, row: r - 1 + 0.06 }, ext: { width: w, height: ih }, editAs: 'oneCell' });
+        h = Math.max(h, Math.round(ih * 0.75) + 8);
+      }
+      row.height = h;
+      r++;
+    }
+
+    // Commentaires de la séquence (ligne toujours présente, comme dans le découpage d'origine).
+    if (opts.sequenceComments) {
+      const row = ws.getRow(r);
+      ws.mergeCells(r, 1, r, n);
+      const c = row.getCell(1);
+      c.value = `COMMENTAIRES :${s.comments.trim() ? ` ${s.comments.trim()}` : ''}`;
+      c.font = { name: DT_FONT, size: 9, color: { argb: 'FF000000' } };
+      c.alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
+      for (let i = 1; i <= n; i++) {
+        row.getCell(i).fill = tint;
+        row.getCell(i).border = BLACK_THIN;
+      }
+      const total = cols.reduce((a, k) => a + k.width, 0);
+      row.height = rowHeight([{ text: c.value as string, width: total }], 9);
+      r++;
+    }
+  }
 }

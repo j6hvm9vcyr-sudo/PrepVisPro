@@ -4,7 +4,7 @@
  */
 import { Document, Font, Image, Page, StyleSheet, Text, View, pdf } from '@react-pdf/renderer';
 import type { ReactElement } from 'react';
-import { COLUMN_DEFS, planValue, type ColumnId, type ExportModel, type ExportOptions, type ExportPlan } from './model';
+import { COLUMN_DEFS, describePlan, descriptionFields, dtColumns, planValue, type ColumnId, type DtCol, type ExportModel, type ExportOptions, type ExportPlan, type ExportSequence } from './model';
 
 export interface PdfImage {
   /** URL de données (data:image/jpeg;base64,…). */
@@ -187,6 +187,99 @@ function PlanBlock({ p, opts, w, images, multi }: { p: ExportPlan; opts: ExportO
 
 const A4 = { w: 595.28, h: 841.89 };
 
+// ------------------------------------------------------------------ style « découpage technique »
+
+const DT_HEAD = '#464646';
+const DT_LINE = '#8A8F98';
+
+function dtWidths(cols: DtCol[], opts: ExportOptions, pageW: number): number[] {
+  const imgW = IMAGE_WIDTH[opts.imageSize] + 10;
+  const flex = cols.filter((c) => c.id !== 'image');
+  const fixed = cols.some((c) => c.id === 'image') ? imgW : 0;
+  const total = flex.reduce((n, c) => n + c.width, 0);
+  return cols.map((c) => (c.id === 'image' ? imgW : ((pageW - fixed) * c.width) / total));
+}
+
+const dt = StyleSheet.create({
+  head: { flexDirection: 'row', backgroundColor: DT_HEAD },
+  th: { paddingVertical: 4, paddingHorizontal: 4, fontSize: 7, color: '#FFFFFF', textAlign: 'center', letterSpacing: 0.3 },
+  band: { flexDirection: 'row', alignItems: 'center', marginTop: 8, paddingVertical: 5, paddingHorizontal: 6, borderTopWidth: 1.2, borderBottomWidth: 1.2, borderColor: '#000000' },
+  bandTitle: { fontSize: 10.5, fontWeight: 700, flex: 1 },
+  bandAddr: { fontSize: 7, color: INK2, maxWidth: 200, textAlign: 'right' },
+  row: { flexDirection: 'row', borderBottomWidth: 0.5, borderColor: DT_LINE },
+  td: { paddingVertical: 4, paddingHorizontal: 4, borderRightWidth: 0.5, borderColor: DT_LINE },
+  text: { fontSize: 8, lineHeight: '10.5pt' },
+  label: { fontSize: 6.3, fontWeight: 700, color: INK2, letterSpacing: 0.4 },
+  value: { fontSize: 8, lineHeight: '10pt' },
+  comments: { paddingVertical: 4, paddingHorizontal: 6, fontSize: 8, lineHeight: '10.5pt', borderBottomWidth: 0.8, borderColor: '#000000' },
+});
+
+function DtPlan({ p, cols, widths, opts, images, fields, tint }: { p: ExportPlan; cols: DtCol[]; widths: number[]; opts: ExportOptions; images: Map<string, PdfImage>; fields: ColumnId[]; tint: string }) {
+  const img = p.imageFile ? images.get(p.imageFile) : undefined;
+  const iw = IMAGE_WIDTH[opts.imageSize];
+  return (
+    <View style={[dt.row, { backgroundColor: tint }]} wrap={false}>
+      {cols.map((c, i) => {
+        const w = widths[i]!;
+        const last = i === cols.length - 1;
+        const cellStyle = [dt.td, { width: w }, last ? { borderRightWidth: 0 } : {}];
+        if (c.id === 'image')
+          return (
+            <View key={c.id} style={cellStyle}>
+              {img ? <Image src={img.dataUrl} style={{ width: iw, height: Math.min((iw * img.height) / img.width, (iw * 3) / 4), objectFit: 'cover' }} /> : null}
+            </View>
+          );
+        if (c.id === 'description')
+          return (
+            <View key={c.id} style={cellStyle}>
+              {describePlan(p, fields, { showCamera: opts.showCamera }).map((b, bi) => (
+                <View key={bi} style={bi > 0 ? { marginTop: 5, paddingTop: 4, borderTopWidth: 0.4, borderColor: DT_LINE, borderStyle: 'dashed' } : {}}>
+                  {b.camera ? <Text style={[dt.label, { color: INK, fontSize: 7 }]}>CAM {b.camera}</Text> : null}
+                  {b.lines.map((l) => (
+                    <Text key={l.label} style={dt.value}>
+                      <Text style={dt.label}>{l.label}  </Text>
+                      {l.value}
+                    </Text>
+                  ))}
+                </View>
+              ))}
+              {opts.markIncomplete && p.missing.length > 0 ? <Text style={s.warn}>à compléter</Text> : null}
+            </View>
+          );
+        const v =
+          c.id === 'global' ? String(p.global) : c.id === 'code' ? p.code : c.id === 'camera' ? (p.cameras.length > 1 ? p.cameras.map((k) => k.label).join('/') : '') : c.id === 'action' ? p.action : c.id === 'script' ? p.script : p.notes;
+        return (
+          <View key={c.id} style={cellStyle}>
+            <Text style={[dt.text, ...(c.id === 'code' ? [s.code] : c.id === 'global' || c.id === 'camera' ? [s.mono, s.muted] : c.id === 'script' ? [s.script] : [])]}>{v}</Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+function DtSequence({ seq, cols, widths, opts, images, fields }: { seq: ExportSequence; cols: DtCol[]; widths: number[]; opts: ExportOptions; images: Map<string, PdfImage>; fields: ColumnId[] }) {
+  return (
+    <View>
+      <View style={[dt.band, { backgroundColor: seq.tint }]} wrap={false} minPresenceAhead={70}>
+        <Text style={dt.bandTitle}>{seq.heading}</Text>
+        {seq.address ? <Text style={dt.bandAddr}>{seq.address}</Text> : null}
+      </View>
+      {seq.plans.map((p) => (
+        <DtPlan key={p.id} p={p} cols={cols} widths={widths} opts={opts} images={images} fields={fields} tint={seq.tint} />
+      ))}
+      {opts.sequenceComments ? (
+        <View style={[dt.comments, { backgroundColor: seq.tint }]} wrap={false}>
+          <Text>
+            <Text style={{ fontWeight: 700 }}>COMMENTAIRES :</Text>
+            {seq.comments.trim() ? ` ${seq.comments.trim()}` : ''}
+          </Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 /** Une page par plan au sol, orientée selon la forme du plan. */
 function FloorPages({ title, floors, date }: { title: string; floors: PdfFloorPage[]; date: string }) {
   return (
@@ -256,8 +349,11 @@ export async function renderFloorPdf(title: string, director: string, floors: Pd
 
 export function DecoupagePdf({ m, opts, images, floors = [] }: { m: ExportModel; opts: ExportOptions; images: Map<string, PdfImage>; floors?: PdfFloorPage[] }): ReactElement {
   const pageW = (opts.orientation === 'landscape' ? 841.89 : 595.28) - 52;
-  const w = widths(opts, pageW, m.multiCamera);
-  const lay = layoutColumns(opts.columns, m.multiCamera);
+  const w = widths(opts, pageW, m.multiCamera && opts.showCamera);
+  const lay = layoutColumns(opts.columns, m.multiCamera && opts.showCamera);
+  const dtCols = dtColumns(opts, m.multiCamera);
+  const dtW = dtWidths(dtCols, opts, pageW);
+  const fields = descriptionFields(opts.columns);
   const ordered = [...lay.before, ...lay.cams, ...lay.after];
   const date = today();
   return (
@@ -288,47 +384,70 @@ export function DecoupagePdf({ m, opts, images, floors = [] }: { m: ExportModel;
           </View>
         </Page>
       )}
-      <Page size="A4" orientation={opts.orientation} style={s.page}>
-        <View style={s.head} fixed>
-          <Text>{m.title} — Découpage technique</Text>
-          <Text>{date}</Text>
-        </View>
-        <View style={s.thead} fixed>
-          {ordered.map((c) => (
-            <Text key={c} style={[s.th, { width: w.get(c)! }]}>
-              {c === 'camera' ? 'CAM' : COLUMN_DEFS[c].label.toUpperCase()}
-            </Text>
-          ))}
-        </View>
-        {m.sequences.map((seq) => (
-          <View key={seq.id}>
-            <View style={s.band} wrap={false} minPresenceAhead={60}>
-              <View style={[s.strip, { backgroundColor: seq.strip.fill, borderColor: seq.strip.edge }]} />
-              <Text style={s.bandNum}>SÉQ. {seq.number || '?'}</Text>
-              <Text style={s.bandTitle}>{seq.title}</Text>
-              <Text style={s.bandMeta}>
-                {seq.address ? `${seq.address} · ` : ''}
-                {seq.plans.length} plan{seq.plans.length > 1 ? 's' : ''}
+      {opts.layout === 'dt' ? (
+        <Page size="A4" orientation={opts.orientation} style={s.page}>
+          <View style={s.head} fixed>
+            <Text>{m.title} — Découpage technique</Text>
+            <Text>{date}</Text>
+          </View>
+          <View style={dt.head} fixed>
+            {dtCols.map((c, i) => (
+              <Text key={c.id} style={[dt.th, { width: dtW[i]! }]}>
+                {c.label}
               </Text>
-            </View>
-            {seq.plans.map((p) => (
-              <PlanBlock key={p.id} p={p} opts={opts} w={w} images={images} multi={m.multiCamera} />
             ))}
-            {opts.sequenceComments && seq.comments.trim() ? (
-              <View style={s.comments} wrap={false}>
-                <Text>
-                  <Text style={{ fontWeight: 600 }}>Commentaires : </Text>
-                  {seq.comments.trim()}
+          </View>
+          {m.sequences.map((seq) => (
+            <DtSequence key={seq.id} seq={seq} cols={dtCols} widths={dtW} opts={opts} images={images} fields={fields} />
+          ))}
+          <View style={s.foot} fixed>
+            <Text>PrepVisPro</Text>
+            <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
+          </View>
+        </Page>
+      ) : (
+      <Page size="A4" orientation={opts.orientation} style={s.page}>
+          <View style={s.head} fixed>
+            <Text>{m.title} — Découpage technique</Text>
+            <Text>{date}</Text>
+          </View>
+          <View style={s.thead} fixed>
+            {ordered.map((c) => (
+              <Text key={c} style={[s.th, { width: w.get(c)! }]}>
+                {c === 'camera' ? 'CAM' : COLUMN_DEFS[c].label.toUpperCase()}
+              </Text>
+            ))}
+          </View>
+          {m.sequences.map((seq) => (
+            <View key={seq.id}>
+              <View style={s.band} wrap={false} minPresenceAhead={60}>
+                <View style={[s.strip, { backgroundColor: seq.strip.fill, borderColor: seq.strip.edge }]} />
+                <Text style={s.bandNum}>SÉQ. {seq.number || '?'}</Text>
+                <Text style={s.bandTitle}>{seq.title}</Text>
+                <Text style={s.bandMeta}>
+                  {seq.address ? `${seq.address} · ` : ''}
+                  {seq.plans.length} plan{seq.plans.length > 1 ? 's' : ''}
                 </Text>
               </View>
-            ) : null}
+              {seq.plans.map((p) => (
+                <PlanBlock key={p.id} p={p} opts={opts} w={w} images={images} multi={m.multiCamera && opts.showCamera} />
+              ))}
+              {opts.sequenceComments && seq.comments.trim() ? (
+                <View style={s.comments} wrap={false}>
+                  <Text>
+                    <Text style={{ fontWeight: 600 }}>Commentaires : </Text>
+                    {seq.comments.trim()}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          ))}
+          <View style={s.foot} fixed>
+            <Text>PrepVisPro</Text>
+            <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
           </View>
-        ))}
-        <View style={s.foot} fixed>
-          <Text>PrepVisPro</Text>
-          <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
-        </View>
-      </Page>
+        </Page>
+      )}
       {opts.breakdown && (
         <Page size="A4" orientation={opts.orientation} style={s.page}>
           <View style={s.head} fixed>
