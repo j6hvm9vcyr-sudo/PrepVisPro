@@ -23,8 +23,7 @@ export function LightingPanel({ fp }: { fp: FloorPlan }) {
       </Fold>
       <Fold id="light-fixtures" title="Projecteurs" label="Projecteurs" count={lights}>
         <p className="note" style={{ margin: 0 }}>
-          {lights ? `${plural(lights, 'projecteur placé', 'projecteurs placés')} sur ce plan.` : 'Aucun projecteur sur ce plan.'} Outil Projecteur (L) pour en placer ; cliquez sur l’un d’eux pour
-          régler modèle, mode, gradateur et gélatines.
+          {lights ? `${plural(lights, 'projecteur placé', 'projecteurs placés')} sur ce plan` : 'Aucun projecteur sur ce plan'} · outil L pour en placer.
         </p>
         <PowerSummary fp={fp} />
         <div className="reading-h">Modèles du projet ({doc.settings.fixtures.length})</div>
@@ -32,7 +31,7 @@ export function LightingPanel({ fp }: { fp: FloorPlan }) {
       </Fold>
       <Fold id="light-reflectors" title="Réflecteurs" label="Réflecteurs" count={refl}>
         <p className="note" style={{ margin: 0 }}>
-          {refl ? `${plural(refl, 'réflecteur placé', 'réflecteurs placés')} sur ce plan.` : 'Aucun réflecteur sur ce plan.'} Outil Réflecteur (B) pour en placer.
+          {refl ? `${plural(refl, 'réflecteur placé', 'réflecteurs placés')} sur ce plan` : 'Aucun réflecteur sur ce plan'} · outil B pour en placer.
         </p>
         <div className="reading-h">Matières du projet ({doc.settings.reflectors.length})</div>
         <ReflectorCatalog />

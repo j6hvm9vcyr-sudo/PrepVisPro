@@ -58,7 +58,7 @@ export function SunSection({ fp }: { fp: FloorPlan }) {
   return (
     <>
 
-      <div className="row" style={{ gap: 8, alignItems: 'flex-end' }}>
+      <div className="row" style={{ gap: 8, alignItems: 'flex-end', flexWrap: 'nowrap' }}>
         <div className="field small">
           Nord du plan
           <DecimalField

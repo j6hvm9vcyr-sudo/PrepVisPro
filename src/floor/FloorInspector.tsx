@@ -274,9 +274,17 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
                 <DecimalField label="Longueur des champs caméra en mètres" unit="m" width={80} required min={0.5} max={200} value={fp.fovLengthM} onChange={(v) => v !== null && apply((d) => updateFloorPlan(d, fp.id, (x) => void (x.fovLengthM = v)), undefined, `fovlen-${fp.id}`)} />
               </div>
             )}
-            <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-              <BackgroundButton fp={fp} />
-              <FloorExportButtons fp={fp} />
+            <div className="field">
+              Fond (plan d’architecte, vue satellite)
+              <div className="row" style={{ gap: 6 }}>
+                <BackgroundButton fp={fp} />
+              </div>
+            </div>
+            <div className="field">
+              Exporter ce plan
+              <div className="row" style={{ gap: 6 }}>
+                <FloorExportButtons fp={fp} />
+              </div>
             </div>
             <button type="button" className="btn danger" onClick={() => (apply((d) => deleteFloorPlan(d, fp.id), 'Plan au sol supprimé · ⌘Z pour annuler'), useFloor.getState().set({ currentId: null }))}>
               Supprimer ce plan au sol

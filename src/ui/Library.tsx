@@ -174,8 +174,7 @@ export function LibraryView() {
       )}
       {cursor && code && doc.library.length > 0 && (
         <p className="note library-foot">
-          Les boutons « + {code} » ajoutent l’image au plan sélectionné dans le découpage ({code}). Pour un autre plan, sélectionnez-le d’abord (⌘1) ou utilisez « Bibliothèque… » dans
-          ses détails.
+          « + {code} » ajoute l’image au plan sélectionné dans le tableau. Pour un autre plan : « Bibliothèque… » dans ses détails.
         </p>
       )}
       {drop.over && <div className="library-drop">Déposez pour ajouter à la bibliothèque</div>}
