@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
     if (m.type() === 'error') errors.push(m.text());
   });
   (page as unknown as { __errors: string[] }).__errors = errors;
-  await page.goto('/');
+  await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
 });
 

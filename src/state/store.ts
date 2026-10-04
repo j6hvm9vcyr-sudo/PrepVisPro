@@ -36,6 +36,7 @@ export interface AppState {
   showShortcuts: boolean;
   pendingDrop: { planId: Id; files: File[] } | null;
   editingSequenceId: Id | null;
+  showSettings: boolean;
 }
 
 const MESSAGE_CLEAR = null;
@@ -55,6 +56,7 @@ export function initialState(doc: ProjectDoc): AppState {
     showShortcuts: false,
     pendingDrop: null,
     editingSequenceId: null,
+    showSettings: false,
   };
 }
 
@@ -112,6 +114,8 @@ interface Actions {
   requestDrop(planId: Id, files: File[]): void;
   resolveDrop(kind: ImageKind | null): void;
   setEditingSequence(id: Id | null): void;
+  setShowSettings(v: boolean): void;
+  setShowSettings(v: boolean): void;
   /** Modification libre du document (réglages, infos projet). */
   updateDoc(fn: (d: Draft<ProjectDoc>) => void, mergeKey?: string, message?: string): void;
 }
@@ -491,6 +495,10 @@ export function createAppStore(doc: ProjectDoc) {
 
       setEditingSequence(id) {
         set({ editingSequenceId: id });
+      },
+
+      setShowSettings(v) {
+        set({ showSettings: v, editing: null });
       },
 
       updateDoc(fn, mergeKey, message) {

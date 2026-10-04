@@ -237,3 +237,25 @@ table.cams { width: 100%; border-collapse: collapse; font-size: 13px; }
 table.cams th { text-align: left; font-size: 11px; color: var(--text3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 4px; }
 table.cams td { padding: 3px 4px; }
 table.cams input { width: 100%; border: 1px solid var(--border); border-radius: 5px; padding: 4px 6px; background: var(--field); }
+
+/* ---------- accueil ---------- */
+.welcome { height: 100%; display: flex; align-items: center; justify-content: center; background: var(--bg); padding: 24px; }
+.welcome-card { width: 520px; max-width: 100%; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 28px 30px; display: flex; flex-direction: column; gap: 20px; }
+.welcome-head { display: flex; align-items: center; gap: 14px; }
+.welcome-head h1 { margin: 0; font-size: 22px; }
+.welcome-head p { margin: 2px 0 0; color: var(--text2); }
+.welcome-actions { display: flex; gap: 10px; }
+.btn.big { padding: 10px 16px; font-size: 14px; flex: 1; justify-content: center; }
+.welcome-error { background: color-mix(in srgb, var(--danger) 12%, var(--panel)); color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--panel)); border-radius: 8px; padding: 10px 12px; font-size: 13px; line-height: 18px; user-select: text; -webkit-user-select: text; }
+.welcome-recent h2 { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text3); margin: 0 0 6px; }
+.recent-row { display: flex; align-items: center; gap: 4px; }
+.recent { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; border: 0; background: transparent; padding: 7px 8px; border-radius: 7px; text-align: left; }
+.recent:hover, .recent:focus-visible { background: var(--accent-soft); }
+.recent b { font-size: 14px; }
+.recent span { font-size: 11px; color: var(--text3); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.welcome-foot { border-top: 1px solid var(--border-soft); padding-top: 12px; }
+
+/* ---------- état d'enregistrement ---------- */
+.save-state { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text3); white-space: nowrap; }
+.save-state.error { color: var(--danger); font-weight: 600; }
+.save-state.unsaved { color: var(--warn-text); font-weight: 600; }

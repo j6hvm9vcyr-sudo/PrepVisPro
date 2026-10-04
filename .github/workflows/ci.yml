@@ -34,9 +34,35 @@ jobs:
           path: test-results/
           retention-days: 14
 
+  app:
+    name: Application réelle (fichiers, images, enregistrement)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Bibliothèques système
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev webkit2gtk-driver xvfb
+      - run: cargo install tauri-driver --locked
+      - run: npm ci
+      - name: Tests Rust (stockage)
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+      - name: Construire l'application de test
+        run: VITE_TEST_HOOKS=1 npx tauri build --debug --no-bundle
+      - name: Piloter l'application
+        run: xvfb-run -a node tauri-e2e/run.mjs
+
   mac:
     name: Application Mac (Apple Silicon)
-    needs: tests
+    needs: [tests, app]
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4

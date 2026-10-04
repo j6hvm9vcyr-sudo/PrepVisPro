@@ -6,19 +6,41 @@ import { useApp } from '../state/appStore';
 import { selectCursor } from '../state/store';
 import { isTypingTarget } from '../ui/focus';
 
-export function isTauri(): boolean {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
-}
+export { isTauri } from './env';
+import { isTauri } from './env';
+import { closeProject, newProjectDialog, openDialog, quitApp, revealProject, saveNow, useProject } from '../state/project';
 
 /** Raccourcis portés par le menu natif (voir src-tauri/src/lib.rs). */
 export function isMenuShortcut(e: Pick<KeyboardEvent, 'key' | 'code' | 'shiftKey' | 'altKey'>): boolean {
   if (e.altKey) return false;
   const k = e.key.toLowerCase();
-  return k === 'z' || e.code === 'Digit1' || e.code === 'Digit2' || k === 'i' || k === 'enter' || (e.shiftKey && k === 'c');
+  return k === 'z' || e.code === 'Digit1' || e.code === 'Digit2' || k === 'i' || k === 'enter' || (e.shiftKey && k === 'c') || k === 's' || k === 'o' || k === 'n' || k === ',' || k === 'q';
 }
 
 /** Exécute une commande de menu. Exporté pour les tests. */
 export function runMenuCommand(id: string) {
+  // Commandes de fichier : valables partout, même sur l'écran d'accueil.
+  switch (id) {
+    case 'file_new':
+      void newProjectDialog();
+      return;
+    case 'file_open':
+      void openDialog();
+      return;
+    case 'file_save':
+      void saveNow();
+      return;
+    case 'file_reveal':
+      void revealProject();
+      return;
+    case 'file_close':
+      void closeProject();
+      return;
+    case 'app_quit':
+      void quitApp();
+      return;
+  }
+  if (useProject.getState().mode === 'none') return;
   const st = useApp.getState();
   const typing = isTypingTarget(document.activeElement);
   const overlay = !!(st.preview || st.showShortcuts || st.pendingDrop || st.editingSequenceId);
@@ -40,6 +62,9 @@ export function runMenuCommand(id: string) {
       return;
     case 'view_inspector':
       st.toggleInspector();
+      return;
+    case 'view_settings':
+      st.setShowSettings(true);
       return;
     case 'help_shortcuts':
       st.setShowShortcuts(true);
@@ -81,4 +106,10 @@ export async function installMenuBridge(): Promise<void> {
   if (!isTauri()) return;
   const { listen } = await import('@tauri-apps/api/event');
   await listen<string>('menu', (e) => runMenuCommand(e.payload));
+  // Fermeture de la fenêtre ou « Quitter » depuis le Dock : enregistrer d'abord.
+  const { invoke } = await import('@tauri-apps/api/core');
+  await listen('quit-requested', () => {
+    void invoke('quit_ack');
+    void quitApp();
+  });
 }

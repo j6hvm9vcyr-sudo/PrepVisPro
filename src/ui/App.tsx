@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useApp } from '../state/appStore';
 import { selectCursor } from '../state/store';
 import { DecoupageTable } from './Table';
@@ -7,6 +7,8 @@ import { Inspector } from './Inspector';
 import { SequenceIndex, StatusBar, Toolbar } from './Chrome';
 import { DropChoice, Preview, SequenceDialog, Shortcuts } from './Overlays';
 import { SettingsDialog } from './Settings';
+import { Welcome } from './Welcome';
+import { useProject, saveNow, newProjectDialog, openDialog } from '../state/project';
 import { focusGrid, isTypingTarget } from './focus';
 import { isMenuShortcut, isTauri } from '../platform/menu';
 
@@ -55,6 +57,26 @@ function useGlobalShortcuts(settingsOpen: boolean) {
         e.preventDefault();
         if (e.shiftKey) st.redo();
         else st.undo();
+        return;
+      }
+      if (meta && !e.shiftKey && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        void saveNow();
+        return;
+      }
+      if (meta && !e.shiftKey && e.key.toLowerCase() === 'o') {
+        e.preventDefault();
+        void openDialog();
+        return;
+      }
+      if (meta && !e.shiftKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        void newProjectDialog();
+        return;
+      }
+      if (meta && e.key === ',') {
+        e.preventDefault();
+        st.setShowSettings(true);
         return;
       }
       if (meta && e.code === 'Digit1') {
@@ -115,9 +137,15 @@ function useGlobalShortcuts(settingsOpen: boolean) {
 }
 
 export function App() {
+  const mode = useProject((s) => s.mode);
+  if (mode === 'none') return <Welcome />;
+  return <Workspace />;
+}
+
+function Workspace() {
   const view = useApp((s) => s.view);
   const inspector = useApp((s) => s.inspector);
-  const [settings, setSettings] = useState(false);
+  const settings = useApp((s) => s.showSettings);
   useGlobalShortcuts(settings);
 
   // Empêche le navigateur d'ouvrir une image lâchée hors d'une zone prévue.
@@ -133,7 +161,7 @@ export function App() {
 
   return (
     <div className="app">
-      <Toolbar onSettings={() => setSettings(true)} />
+      <Toolbar />
       <div className="app-body">
         <SequenceIndex />
         <main className="center">
@@ -146,7 +174,7 @@ export function App() {
       <Shortcuts />
       <DropChoice />
       <SequenceDialog />
-      {settings && <SettingsDialog onClose={() => setSettings(false)} />}
+      {settings && <SettingsDialog onClose={() => useApp.getState().setShowSettings(false)} />}
     </div>
   );
 }

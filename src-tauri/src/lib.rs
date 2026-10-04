@@ -18,6 +18,9 @@ const QUIT_EVENT: &str = "quit-requested";
 
 /// L'interface a confirmé que tout est enregistré : on peut quitter.
 static READY_TO_QUIT: AtomicBool = AtomicBool::new(false);
+/// L'interface a bien reçu la demande de fermeture (elle peut alors prendre son temps,
+/// par exemple pour demander à l'utilisateur quoi faire si l'enregistrement échoue).
+static QUIT_ACK: AtomicBool = AtomicBool::new(false);
 
 /// Autorise l'affichage des images du projet (protocole asset) pour ce dossier uniquement.
 fn allow_project_assets(app: &AppHandle, dir: &Path) -> Result<(), String> {
@@ -54,8 +57,19 @@ fn project_save(dir: String, json: String, force_backup: bool) -> Result<(), Str
 /// le dossier et le nom arrivent dans les en-têtes, encodés en pourcentage.
 #[tauri::command]
 fn image_write(request: Request<'_>) -> Result<String, String> {
-    let InvokeBody::Raw(bytes) = request.body() else {
-        return Err("Image reçue dans un format inattendu".into());
+    // Normalement des octets bruts ; si le canal rapide est indisponible, une liste JSON.
+    let owned: Vec<u8>;
+    let bytes: &[u8] = match request.body() {
+        InvokeBody::Raw(b) => b,
+        InvokeBody::Json(serde_json::Value::Array(a)) => {
+            owned = a
+                .iter()
+                .map(|v| v.as_u64().filter(|n| *n <= 255).map(|n| n as u8))
+                .collect::<Option<Vec<u8>>>()
+                .ok_or("Image reçue dans un format inattendu")?;
+            &owned
+        }
+        _ => return Err("Image reçue dans un format inattendu".into()),
     };
     let header = |k: &str| -> Result<String, String> {
         let v = request.headers().get(k).ok_or(format!("En-tête {k} manquant"))?;
@@ -83,6 +97,12 @@ fn reveal_in_finder(path: String) -> Result<(), String> {
     #[cfg(not(target_os = "macos"))]
     let _ = path;
     Ok(())
+}
+
+/// L'interface accuse réception d'une demande de fermeture.
+#[tauri::command]
+fn quit_ack() {
+    QUIT_ACK.store(true, Ordering::SeqCst);
 }
 
 /// Appelée par l'interface une fois l'enregistrement terminé.
@@ -173,21 +193,25 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
     Ok(())
 }
 
-/// Demande l'enregistrement à l'interface, avec une sécurité si elle ne répond pas.
+/// Demande l'enregistrement à l'interface. Sécurité : si l'interface ne répond pas du tout
+/// (bloquée), on quitte quand même après quelques secondes pour ne pas rester coincé.
 fn request_quit(app: &AppHandle) {
+    QUIT_ACK.store(false, Ordering::SeqCst);
     let _ = app.emit(QUIT_EVENT, ());
     let handle = app.clone();
     std::thread::spawn(move || {
         std::thread::sleep(Duration::from_secs(5));
-        READY_TO_QUIT.store(true, Ordering::SeqCst);
-        handle.exit(0);
+        if !QUIT_ACK.load(Ordering::SeqCst) {
+            READY_TO_QUIT.store(true, Ordering::SeqCst);
+            handle.exit(0);
+        }
     });
 }
 
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![project_create, project_load, project_save, image_write, reveal_in_finder, quit_now])
+        .invoke_handler(tauri::generate_handler![project_create, project_load, project_save, image_write, reveal_in_finder, quit_ack, quit_now])
         .setup(|app| {
             build_menu(app)?;
             Ok(())

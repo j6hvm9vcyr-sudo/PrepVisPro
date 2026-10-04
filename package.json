@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
+    "e2e:app": "VITE_TEST_HOOKS=1 tauri build --debug --no-bundle && xvfb-run -a node tauri-e2e/run.mjs",
     "check": "npm run typecheck && npm run lint && npm run test",
     "tauri": "tauri"
   },

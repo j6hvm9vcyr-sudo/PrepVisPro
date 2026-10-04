@@ -1,0 +1,92 @@
+import { useEffect, useState } from 'react';
+import { baseName, getBackend } from '../platform/backend';
+import { forgetRecent, newProjectDialog, openBlankUnsaved, openDialog, openPath, openSample, recentProjects, useProject } from '../state/project';
+
+export function Welcome() {
+  const openError = useProject((s) => s.openError);
+  const [kind, setKind] = useState<'tauri' | 'memory' | null>(null);
+  const [recent, setRecent] = useState<string[]>(recentProjects);
+  useEffect(() => {
+    void getBackend().then((b) => setKind(b.kind));
+  }, []);
+  const mac = kind === 'tauri';
+
+  return (
+    <div className="welcome">
+      <div className="welcome-card">
+        <div className="welcome-head">
+          <svg width="44" height="44" viewBox="0 0 64 64" aria-hidden="true">
+            <rect width="64" height="64" rx="14" fill="#2457C5" />
+            <path d="M14 22h26v20H14z" fill="none" stroke="#fff" strokeWidth="5" strokeLinejoin="round" />
+            <path d="M40 28l10-6v20l-10-6" fill="none" stroke="#fff" strokeWidth="5" strokeLinejoin="round" />
+          </svg>
+          <div>
+            <h1>PrepVisPro</h1>
+            <p>Découpage technique, plans au sol, plans feux.</p>
+          </div>
+        </div>
+
+        {openError && (
+          <div className="welcome-error" role="alert">
+            {openError}
+          </div>
+        )}
+
+        {mac ? (
+          <div className="welcome-actions">
+            <button type="button" className="btn primary big" onClick={() => void newProjectDialog()} autoFocus>
+              Nouveau projet… <span className="kbd">⌘N</span>
+            </button>
+            <button type="button" className="btn big" onClick={() => void openDialog()}>
+              Ouvrir… <span className="kbd">⌘O</span>
+            </button>
+          </div>
+        ) : (
+          <div className="welcome-actions">
+            <button type="button" className="btn primary big" onClick={() => void openSample()} autoFocus>
+              Ouvrir l’exemple
+            </button>
+            <button type="button" className="btn big" onClick={() => void openBlankUnsaved()}>
+              Projet vierge
+            </button>
+          </div>
+        )}
+
+        {mac && recent.length > 0 && (
+          <section className="welcome-recent" aria-label="Projets récents">
+            <h2>Récents</h2>
+            {recent.map((d) => (
+              <div className="recent-row" key={d}>
+                <button type="button" className="recent" onClick={() => void openPath(d)} title={d}>
+                  <b>{baseName(d)}</b>
+                  <span>{d.replace(/\/[^/]+$/, '')}</span>
+                </button>
+                <button
+                  type="button"
+                  className="linkbtn"
+                  aria-label={`Retirer ${baseName(d)} des récents`}
+                  onClick={() => {
+                    forgetRecent(d);
+                    setRecent(recentProjects());
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </section>
+        )}
+
+        <div className="welcome-foot">
+          {mac ? (
+            <button type="button" className="linkbtn" onClick={() => void openSample()}>
+              Découvrir avec un projet d’exemple
+            </button>
+          ) : (
+            <p className="note">Dans le navigateur, rien n’est enregistré. L’application Mac enregistre vos projets sur votre disque.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

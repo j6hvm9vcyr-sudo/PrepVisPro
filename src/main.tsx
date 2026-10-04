@@ -11,9 +11,17 @@ import './ui/styles.css';
 import { App } from './ui/App';
 import { initTheme } from './ui/theme';
 import { installMenuBridge } from './platform/menu';
+import { startup } from './state/project';
 
 initTheme();
 void installMenuBridge();
+// ?exemple : ouvre directement le projet d'exemple (démonstration, tests).
+void startup({ sample: new URLSearchParams(location.search).has('exemple') });
+
+// Crochets pour les tests de l'application réelle (jamais présents dans une version normale).
+if (import.meta.env.VITE_TEST_HOOKS === '1') {
+  void import('./testHooks').then((m) => m.install());
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

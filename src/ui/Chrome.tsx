@@ -8,8 +8,9 @@ import { FIELD_LABEL } from '../model/entry';
 import { stripColors } from './strip';
 import { focusGrid } from './focus';
 import { useTheme, type ThemeChoice } from './theme';
+import { flushSave, saveAsDialog, useProject } from '../state/project';
 
-export function Toolbar({ onSettings }: { onSettings: () => void }) {
+export function Toolbar() {
   const doc = useApp(selectDoc);
   const view = useApp((s) => s.view);
   const inspector = useApp((s) => s.inspector);
@@ -36,7 +37,7 @@ export function Toolbar({ onSettings }: { onSettings: () => void }) {
       <div className="title">
         <b>{doc.meta.title || 'Sans titre'}</b>
         <span>
-          Découpage · {doc.sequences.length} séq. · {total} plans
+          {doc.sequences.length} séq. · {total} plans · <SaveIndicator />
         </span>
       </div>
       <div className="seg" role="group" aria-label="Vue">
@@ -76,7 +77,7 @@ export function Toolbar({ onSettings }: { onSettings: () => void }) {
       <button type="button" className={`btn ${inspector ? 'on' : ''}`} aria-pressed={inspector} onClick={() => st().toggleInspector()} title="⌘I">
         Détails
       </button>
-      <button type="button" className="btn" onClick={onSettings}>
+      <button type="button" className="btn" onClick={() => st().setShowSettings(true)} title="⌘,">
         Réglages
       </button>
       <button type="button" className="btn" onClick={() => setTheme(nextTheme[theme])}>
@@ -156,5 +157,41 @@ export function StatusBar() {
         <span className="kbd">⌘↩</span>nouveau plan<span className="kbd">↩</span>modifier<span className="kbd">espace</span>aperçu<span className="kbd">?</span>raccourcis
       </span>
     </footer>
+  );
+}
+
+function timeLabel(t: number | null): string {
+  if (!t) return '';
+  const d = new Date(t);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+export function SaveIndicator() {
+  const p = useProject();
+  if (p.mode === 'unsaved')
+    return (
+      <span className="save-state unsaved">
+        Non enregistré ·{' '}
+        <button type="button" className="linkbtn" style={{ padding: 0 }} onClick={() => void saveAsDialog()}>
+          Enregistrer…
+        </button>
+      </span>
+    );
+  if (p.mode !== 'file') return null;
+  if (p.status === 'error')
+    return (
+      <span className="save-state error" title={p.error ?? ''} role="alert">
+        Erreur d’enregistrement ·{' '}
+        <button type="button" className="linkbtn danger" style={{ padding: 0 }} onClick={() => void flushSave()}>
+          Réessayer
+        </button>
+      </span>
+    );
+  const label = p.status === 'saving' ? 'Enregistrement…' : p.status === 'pending' ? 'Modifié' : `Enregistré ${timeLabel(p.savedAt)}`;
+  return (
+    <span className="save-state" title={p.dir ?? ''}>
+      <span className="dot" style={{ width: 6, height: 6, background: p.status === 'saved' ? 'var(--ok)' : 'var(--text3)' }} />
+      {label}
+    </span>
   );
 }
