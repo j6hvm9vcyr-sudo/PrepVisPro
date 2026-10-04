@@ -10,7 +10,6 @@ import { cleanupShooting } from '../model/shooting';
 import { cleanupDays } from '../model/days';
 import * as stamps from '../model/stamps';
 import * as library from '../model/library';
-import { newId } from '../model/defaults';
 import { createHistory, pushHistory, redoHistory, undoHistory, type History } from './history';
 import { allLines, COLUMNS, moveCursor, visibleLines, type Column, type Cursor, type Line } from './lines';
 import { imageStore } from '../platform/images';

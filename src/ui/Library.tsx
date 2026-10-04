@@ -2,9 +2,9 @@
  * Bibliothèque d'images du projet : chaque image n'est importée qu'une fois, puis réutilisée
  * dans les plans (repérage, références) et comme fond de plan au sol.
  */
-import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
+import { useMemo, useRef, useState, type DragEvent } from 'react';
 import { useApp } from '../state/appStore';
-import { selectCursor, selectDoc } from '../state/store';
+import { selectCursor, selectDoc, type AppState } from '../state/store';
 import { imageStore } from '../platform/images';
 import { isUsed, libraryUsage, syncLibrary, type ImageUsage } from '../model/library';
 import { computeNumbers } from '../model/numbering';
@@ -194,19 +194,19 @@ export function LibraryView() {
 /** Choix dans la bibliothèque : images à ajouter à un plan, ou fond d'un plan au sol. */
 export function LibraryPicker() {
   const pick = useApp((s) => s.libraryPick);
+  if (!pick) return null;
+  return <PickerDialog key={JSON.stringify(pick)} pick={pick} />;
+}
+
+function PickerDialog({ pick }: { pick: NonNullable<AppState['libraryPick']> }) {
   const raw = useApp(selectDoc);
   const doc = useMemo(() => syncLibrary(raw), [raw]);
   const usage = useMemo(() => libraryUsage(doc), [doc]);
   const [chosen, setChosen] = useState<string[]>([]);
-  const [kind, setKind] = useState<ImageKind>('scouting');
+  const [kind, setKind] = useState<ImageKind>(pick.mode === 'plan' ? pick.kind : 'scouting');
   const [busy, setBusy] = useState(false);
-  const dlg = useDialogFocus<HTMLDivElement>(!!pick);
+  const dlg = useDialogFocus<HTMLDivElement>(true);
   const drop = useDrop((f) => void useApp.getState().importToLibrary(f));
-  useEffect(() => {
-    setChosen([]);
-    if (pick?.mode === 'plan') setKind(pick.kind);
-  }, [pick]);
-  if (!pick) return null;
   const st = useApp.getState;
   const single = pick.mode === 'background';
   const close = () => {
