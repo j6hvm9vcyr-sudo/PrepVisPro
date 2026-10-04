@@ -11,6 +11,39 @@ function ok(r: ReturnType<typeof parseEntry>) {
 }
 type V = Exclude<FieldValue, { field: 'action' }>;
 
+describe('abréviations du projet et ordre d’emploi', () => {
+  const grip = DEFAULT_TERMS.grip;
+  it('une abréviation du projet est reconnue ; sans elle, non', () => {
+    const ctx = { aliases: { Dolly: ['dol', 'chariot'] } };
+    expect(parseEntry('grip', 'chariot', grip, { strict: true, ctx })).toMatchObject({ ok: true, value: { list: ['Dolly'] } });
+    expect(parseEntry('grip', 'chariot', grip, { strict: true, ctx: { aliases: {} } }).ok).toBe(false);
+  });
+  it('début tapé : le terme le plus employé d’abord ; liste complète : ordre des Réglages', () => {
+    const terms = ['Taille', 'TGP', 'Trois-quarts'];
+    const usage = new Map([['TGP', 5], ['Trois-quarts', 2]]);
+    expect(suggest('size', 't', terms, { usage }).filter((s) => !s.create).map((s) => s.term)).toEqual(['TGP', 'Trois-quarts', 'Taille']);
+    expect(suggest('size', '', terms, { usage }).map((s) => s.term)).toEqual(terms);
+    // La validation suit le même ordre que la liste affichée.
+    expect(parseEntry('size', 't', terms, { pick: 0, ctx: { usage } })).toMatchObject({ ok: true, value: { start: 'TGP' } });
+  });
+  it('emplois comptés au début et à la fin des plans évolutifs, et dans les listes', async () => {
+    const { termUsage } = await import('./entry');
+    const { doc, plan, seq } = await import('./testkit');
+    const d = doc((c) => [seq('1', [plan(c, { cameras: [setup(c, { start: fr({ size: 'GP' }), end: fr({ size: 'TGP' }), grip: ['Dolly'] })] }), plan(c, { cameras: [setup(c, { start: fr({ size: 'GP' }), grip: ['Dolly', 'Rail'] })] })])]);
+    expect([...termUsage(d, 'size')]).toEqual([['GP', 2], ['TGP', 1]]);
+    expect(termUsage(d, 'grip').get('Dolly')).toBe(2);
+  });
+  it('une abréviation déjà prise par un autre terme est refusée (saisie ambiguë)', async () => {
+    const { aliasConflict } = await import('./entry');
+    const aliases = { Steadicam: ['stead'] };
+    expect(aliasConflict(grip, aliases, 'Dolly', 'Stead')).toMatch(/Steadicam/);
+    expect(aliasConflict(grip, aliases, 'Dolly', 'rail')).toMatch(/Rail/);
+    expect(aliasConflict(grip, aliases, 'Steadicam', 'stead')).toMatch(/ce terme/);
+    expect(aliasConflict(grip, aliases, 'Dolly', '  ')).toBeTruthy();
+    expect(aliasConflict(grip, aliases, 'Dolly', 'chariot')).toBeNull();
+  });
+});
+
 describe('suggestions', () => {
   it('propose les termes qui commencent par le fragment, sans accents', () => {
     expect(suggest('size', 'po', T.size).map((s) => s.term)).toEqual(['Poitrine', 'Po']);

@@ -3,7 +3,7 @@ import type { Id, ImageKind, ProjectDoc, Sequence } from '../model/types';
 import { computeNumbers } from '../model/numbering';
 import { kitFocals } from '../model/lenses';
 import { formatNumber, norm } from '../model/text';
-import { applyValue, categoryOf, completeWithPick, focalWithPick, editText as fieldEditText, FIELD_LABEL, parseEntry, type EditableField, type TermField } from '../model/entry';
+import { applyValue, categoryOf, completeWithPick, focalWithPick, editText as fieldEditText, FIELD_LABEL, parseEntry, termCtx, type EditableField, type TermField } from '../model/entry';
 import * as ops from '../model/ops';
 import { cleanupFloorRefs } from '../model/floorOps';
 import { cleanupShooting } from '../model/shooting';
@@ -202,7 +202,7 @@ function writeCells(doc: ProjectDoc, targets: { line: Line; col: Column; value: 
       continue;
     }
     const terms = t.col === 'focal' ? [] : next.settings.terms[categoryOf(t.col as TermField)];
-    const res = parseEntry(t.col, t.value, terms, { strict: true });
+    const res = parseEntry(t.col, t.value, terms, { strict: true, ctx: { aliases: next.settings.aliases } });
     if (!res.ok) {
       errors.push(`${where} : ${res.error}`);
       continue;
@@ -422,10 +422,12 @@ export function createAppStore(doc: ProjectDoc) {
         const doc = docNow();
         const terms = field === 'action' ? [] : field === 'focal' ? kitFocals(doc.settings.lenses).map(formatNumber) : doc.settings.terms[categoryOf(field as TermField)];
         const at = pick ?? s.editing.pick;
+        // Même contexte que les suggestions affichées (abréviations, ordre d'emploi) : le choix surligné est celui validé.
+        const ctx = termCtx(doc, field);
         // Case vide (ou partie vide) + suggestion choisie aux flèches : c'est elle qu'on valide.
         const text =
-          (!strict && s.editing.navigated && (field === 'focal' ? focalWithPick(s.editing.text, terms, at) : completeWithPick(field, s.editing.text, terms, at))) || s.editing.text;
-        const r = parseEntry(field, text, terms, { pick: at, strict });
+          (!strict && s.editing.navigated && (field === 'focal' ? focalWithPick(s.editing.text, terms, at) : completeWithPick(field, s.editing.text, terms, at, ctx))) || s.editing.text;
+        const r = parseEntry(field, text, terms, { pick: at, strict, ctx });
         if (!r.ok) {
           set({ editing: { ...s.editing, error: r.error } });
           return false;

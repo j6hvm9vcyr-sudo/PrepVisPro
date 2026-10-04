@@ -667,3 +667,8 @@ table.modes input:not(.decimal-field input) { border: 1px solid var(--border); b
 .kit-empty { margin: 0; font-size: 12px; }
 .kit-error { margin: 0; padding: 8px 10px; border-radius: 7px; background: var(--accent-soft); color: var(--warn-text); font-size: 12.5px; }
 .kit-save.same { color: var(--ok); }
+/* Abréviations des termes */
+.term-chip .term-name { border: 0; background: transparent; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+.term-chip .term-name small { color: var(--text3); font-size: 11px; }
+.term-chip.on { border-color: var(--accent); background: var(--accent-soft); }
+.alias-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }

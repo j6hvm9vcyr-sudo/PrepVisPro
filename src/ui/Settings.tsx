@@ -6,6 +6,7 @@ import { REQUIRED_LABEL } from '../model/completeness';
 import { CARRY_FIELDS, REQUIRED_FIELDS, TERM_CATEGORIES, type CarryField, type TermCategory } from '../model/types';
 import { newId } from '../model/defaults';
 import { norm } from '../model/text';
+import { aliasConflict } from '../model/entry';
 import { isComposing, focusGrid, useDialogFocus } from './focus';
 import { CamerasTab } from './CamerasTab';
 import { LensesTab } from './LensesTab';
@@ -146,7 +147,8 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               <TermEditor key={cat} cat={cat} />
             ))}
             <p className="note" style={{ margin: 0, fontSize: 12 }}>
-              Retirer un terme ne modifie pas les plans qui l’utilisent déjà : il y reste, souligné en pointillé.
+              Cliquez un terme pour ses abréviations (« stead » pour Steadicam). Retirer un terme ne modifie pas les plans qui l’utilisent déjà : il y reste, souligné en
+              pointillé. À la saisie, les termes qui commencent pareil sont proposés du plus employé au moins employé dans le projet.
             </p>
           </div>
         )}
@@ -220,13 +222,26 @@ function TermEditor({ cat }: { cat: TermCategory }) {
     st().updateDoc((d) => void d.settings.terms[cat].push(t));
     setDraft('');
   };
+  const aliases = useApp((s) => s.hist.present.doc.settings.aliases);
+  const [sel, setSel] = useState<string | null>(null);
+  const [alias, setAlias] = useState('');
+  const term = sel && terms.includes(sel) ? sel : null;
+  const conflict = term && alias.trim() ? aliasConflict(terms, aliases, term, alias) : null;
+  const addAlias = (raw: string) => {
+    if (!term || !raw.trim() || aliasConflict(terms, st().hist.present.doc.settings.aliases, term, raw)) return;
+    st().updateDoc((d) => void (d.settings.aliases[term] = [...(d.settings.aliases[term] ?? []), raw.trim()]));
+    setAlias('');
+  };
   return (
     <div className="sec">
       <div className="sec-h">{CAT_LABEL[cat]}</div>
       <div className="terms-list">
         {terms.map((t, i) => (
-          <span className="term-chip" key={t}>
-            {t}
+          <span className={`term-chip ${t === term ? 'on' : ''}`} key={t}>
+            <button type="button" className="term-name" aria-pressed={t === term} title="Abréviations reconnues à la saisie" onClick={() => setSel(t === term ? null : t)}>
+              {t}
+              {(aliases[t]?.length ?? 0) > 0 && <small> · {aliases[t]!.join(', ')}</small>}
+            </button>
             <button type="button" aria-label={`Retirer ${t}`} onClick={() => st().updateDoc((d) => void d.settings.terms[cat].splice(i, 1))}>
               ×
             </button>
@@ -251,6 +266,36 @@ function TermEditor({ cat }: { cat: TermCategory }) {
         />
         {exists && <span className="note">déjà dans la liste</span>}
       </div>
+      {term && (
+        <div className="alias-row" role="group" aria-label={`Abréviations de ${term}`}>
+          <span className="note">Abréviations de « {term} » :</span>
+          {(aliases[term] ?? []).map((a, i) => (
+            <span className="term-chip" key={a}>
+              {a}
+              <button type="button" aria-label={`Retirer l’abréviation ${a}`} onClick={() => st().updateDoc((d) => void d.settings.aliases[term]?.splice(i, 1))}>
+                ×
+              </button>
+            </span>
+          ))}
+          <input
+            className="term-chip"
+            style={{ width: 120, padding: '3px 8px' }}
+            placeholder="+ abréviation"
+            aria-label={`Ajouter une abréviation à ${term}`}
+            aria-invalid={!!conflict}
+            value={alias}
+            onChange={(e) => setAlias(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter') return;
+              e.preventDefault();
+              const input = e.currentTarget;
+              if (isComposing(e)) setTimeout(() => addAlias(input.value), 60);
+              else addAlias(input.value);
+            }}
+          />
+          {conflict && <span className="note" style={{ color: 'var(--warn-text)' }}>{conflict}</span>}
+        </div>
+      )}
     </div>
   );
 }

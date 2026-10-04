@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, type FocusEvent, type KeyboardEvent } from 'react';
 import { useApp } from '../state/appStore';
-import { categoryOf, suggest, type EditableField, type TermField } from '../model/entry';
+import { categoryOf, suggest, termCtx, type EditableField, type TermField } from '../model/entry';
 import { kitFocals } from '../model/lenses';
 import { formatNumber } from '../model/text';
 import { focusGrid } from './focus';
@@ -21,9 +21,12 @@ export function CellEditor({ field }: { field: EditableField }) {
   const termList = useApp((s) => (field === 'action' || field === 'focal' ? null : s.hist.present.doc.settings.terms[categoryOf(field as TermField)]));
   // Focale : les focales des optiques du projet servent de propositions.
   const terms = useMemo(() => (field === 'focal' ? (lenses.length ? kitFocals(lenses).map(formatNumber) : null) : termList), [field, lenses, termList]);
+  const doc = useApp((s) => s.hist.present.doc);
+  // Abréviations du projet, et ordre d'emploi : le même contexte que la validation (store.commitEdit).
+  const ctx = useMemo(() => termCtx(doc, field), [doc, field]);
   const text = editing?.text ?? '';
   const browse = editing?.browse;
-  const sugs = useMemo(() => (browse ? browse.map((term) => ({ term, create: false })) : terms ? suggest(field, text, terms) : []), [browse, field, text, terms]);
+  const sugs = useMemo(() => (browse ? browse.map((term) => ({ term, create: false })) : terms ? suggest(field, text, terms, ctx) : []), [browse, field, text, terms, ctx]);
   // Touche de validation reçue pendant une composition (accent, texte prédictif de macOS) :
   // exécutée dès que la composition se termine, sur le texte final.
   const input = useRef<HTMLInputElement>(null);

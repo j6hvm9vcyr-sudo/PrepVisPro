@@ -8,7 +8,7 @@
  * - En mode strict (validation implicite, ex. clic ailleurs), la dernière partie
  *   doit elle aussi être sans ambiguïté, et aucun terme n'est créé.
  */
-import type { CameraSetup, Framing, TermCategory } from './types';
+import type { CameraSetup, Framing, ProjectDoc, TermCategory } from './types';
 import { TERM_ALIASES } from './defaults';
 import { capitalize, formatNumber, norm, parseDecimal } from './text';
 
@@ -75,19 +75,27 @@ export function splitAnglePart(part: string): { word: string; tilt: number | nul
 
 // ---------------------------------------------------------------- termes
 
-function keysOf(term: string): string[] {
-  return [norm(term), ...(TERM_ALIASES[term] ?? []).map(norm)];
+/** Contexte de la saisie des termes : abréviations du projet, et nombre d'emplois de chaque terme. */
+export interface TermCtx {
+  /** Abréviations reconnues, par terme (Réglages › Listes de termes). Par défaut : celles de l'application. */
+  aliases?: Readonly<Record<string, readonly string[]>>;
+  /** Emplois dans le projet : départage les termes qui commencent pareil (le plus employé d'abord). */
+  usage?: ReadonlyMap<string, number>;
+}
+
+function keysOf(term: string, aliases: TermCtx['aliases'] = TERM_ALIASES): string[] {
+  return [norm(term), ...(aliases[term] ?? []).map(norm)];
 }
 
 type Resolve = { term: string } | { error: string };
 
 /** Trouve LE terme correspondant à un fragment (exact ou préfixe unique). */
-function resolveTerm(terms: readonly string[], fragment: string, label: string): Resolve {
+function resolveTerm(terms: readonly string[], fragment: string, label: string, aliases?: TermCtx['aliases']): Resolve {
   const n = norm(fragment);
   if (!n) return { error: 'Partie vide.' };
-  const exact = terms.filter((t) => keysOf(t).includes(n));
+  const exact = terms.filter((t) => keysOf(t, aliases).includes(n));
   if (exact.length === 1) return { term: exact[0]! };
-  const prefix = terms.filter((t) => keysOf(t).some((k) => k.startsWith(n)));
+  const prefix = terms.filter((t) => keysOf(t, aliases).some((k) => k.startsWith(n)));
   if (prefix.length === 1) return { term: prefix[0]! };
   if (prefix.length > 1) return { error: `« ${fragment.trim()} » est ambigu : ${prefix.join(', ')}.` };
   return { error: `« ${fragment.trim()} » n’existe pas en ${label.toLowerCase()}.` };
@@ -100,7 +108,7 @@ export interface Suggestion {
 }
 
 /** Suggestions pour la dernière partie tapée. */
-export function suggest(field: EditableField, text: string, terms: readonly string[]): Suggestion[] {
+export function suggest(field: EditableField, text: string, terms: readonly string[], ctx: TermCtx = {}): Suggestion[] {
   if (field === 'action') return [];
   if (field === 'focal') {
     // Focales des optiques du projet (« terms » = focales en texte) : celles qui commencent par ce qui est tapé.
@@ -116,8 +124,11 @@ export function suggest(field: EditableField, text: string, terms: readonly stri
     if (!fragment && a.tilt !== null) return [];
   }
   const n = norm(fragment);
-  const exact = n ? terms.filter((t) => keysOf(t).includes(n)) : [];
-  const prefix = terms.filter((t) => !exact.includes(t) && (!n || keysOf(t).some((k) => k.startsWith(n))));
+  const exact = n ? terms.filter((t) => keysOf(t, ctx.aliases).includes(n)) : [];
+  const prefix = terms.filter((t) => !exact.includes(t) && (!n || keysOf(t, ctx.aliases).some((k) => k.startsWith(n))));
+  // Liste complète (rien de tapé) : l'ordre des Réglages, stable. Début tapé : le plus employé d'abord.
+  const use = ctx.usage;
+  if (n && use) prefix.sort((a, b) => (use.get(b) ?? 0) - (use.get(a) ?? 0));
   const list: Suggestion[] = [...exact, ...prefix].map((term) => ({ term, create: false }));
   if (n && exact.length === 0) list.push({ term: capitalize(fragment), create: true });
   return list;
@@ -139,6 +150,7 @@ export interface ParseOptions {
   pick?: number;
   /** Validation implicite : pas de création, pas de choix par défaut ambigu. */
   strict?: boolean;
+  ctx?: TermCtx;
 }
 
 export function parseEntry(field: EditableField, text: string, terms: readonly string[], opts: ParseOptions = {}): ParseResult {
@@ -173,10 +185,10 @@ export function parseEntry(field: EditableField, text: string, terms: readonly s
   const newTerms: string[] = [];
   const pickLast = (fragment: string): Resolve => {
     if (opts.strict) {
-      const r = resolveTerm(terms, fragment, label);
+      const r = resolveTerm(terms, fragment, label, opts.ctx?.aliases);
       return r;
     }
-    const sugs = suggest(field, fragment, terms);
+    const sugs = suggest(field, fragment, terms, opts.ctx);
     const s = sugs[Math.min(Math.max(0, opts.pick ?? 0), sugs.length - 1)];
     if (!s) return { error: `« ${fragment} » : aucune proposition.` };
     if (s.create) newTerms.push(s.term);
@@ -197,7 +209,7 @@ export function parseEntry(field: EditableField, text: string, terms: readonly s
     }
     let word = '';
     if (fragment) {
-      const r = isLast ? pickLast(fragment) : resolveTerm(terms, fragment, label);
+      const r = isLast ? pickLast(fragment) : resolveTerm(terms, fragment, label, opts.ctx?.aliases);
       if ('error' in r) return { ok: false, error: r.error };
       word = r.term;
     }
@@ -357,14 +369,14 @@ export function editText(field: Exclude<EditableField, 'action'>, s: CameraSetup
  * Suggestion choisie aux flèches alors que la partie en cours est vide (case vide, ou après
  * « > » / « , ») : le terme choisi complète le texte. null s'il n'y a rien à compléter.
  */
-export function completeWithPick(field: EditableField, text: string, terms: readonly string[], pick: number): string | null {
+export function completeWithPick(field: EditableField, text: string, terms: readonly string[], pick: number, ctx: TermCtx = {}): string | null {
   if (field === 'action' || field === 'focal') return null;
   const parts = splitParts(field, text);
   const last = parts[parts.length - 1] ?? '';
   const fragment = field === 'angle' ? splitAnglePart(last) : null;
   const empty = fragment ? !fragment.word && fragment.tilt === null : last.trim() === '';
   if (!empty) return null;
-  const s = suggest(field, text, terms)[pick];
+  const s = suggest(field, text, terms, ctx)[pick];
   if (!s || s.create) return null;
   const head = text.replace(/\s+$/, '');
   return head ? `${head} ${s.term}` : s.term;
@@ -379,4 +391,39 @@ export function focalWithPick(text: string, kit: readonly string[], pick: number
   if (!s) return null;
   const i = text.lastIndexOf('>');
   return i < 0 ? s.term : `${text.slice(0, i + 1).trimEnd()} ${s.term}`;
+}
+
+/** Emplois de chaque terme d'une catégorie dans le projet (début et fin des plans évolutifs compris). */
+export function termUsage(doc: ProjectDoc, cat: TermCategory): Map<string, number> {
+  const m = new Map<string, number>();
+  const add = (t: string) => void (t && m.set(t, (m.get(t) ?? 0) + 1));
+  for (const s of doc.sequences)
+    for (const p of s.plans)
+      for (const c of p.cameras) {
+        if (cat === 'movement') c.movements.forEach(add);
+        else if (cat === 'grip') c.grip.forEach(add);
+        else {
+          add(c.start[cat]);
+          if (c.end) add(c.end[cat]);
+        }
+      }
+  return m;
+}
+
+/**
+ * Pourquoi cette abréviation ne peut pas être ajoutée à ce terme : vide, ou déjà prise par un
+ * autre terme de la liste (elle rendrait la saisie ambiguë). null si elle convient.
+ */
+export function aliasConflict(terms: readonly string[], aliases: Readonly<Record<string, readonly string[]>>, term: string, alias: string): string | null {
+  const n = norm(alias);
+  if (!n) return 'Abréviation vide';
+  if (keysOf(term, aliases).includes(n)) return 'Déjà reconnue pour ce terme';
+  const other = terms.find((t) => t !== term && keysOf(t, aliases).includes(n));
+  return other ? `Déjà prise par « ${other} »` : null;
+}
+
+/** Contexte de saisie d'un champ du projet. */
+export function termCtx(doc: ProjectDoc, field: EditableField): TermCtx {
+  if (field === 'action' || field === 'focal') return {};
+  return { aliases: doc.settings.aliases, usage: termUsage(doc, categoryOf(field)) };
 }

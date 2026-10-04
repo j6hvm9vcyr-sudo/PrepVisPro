@@ -73,3 +73,23 @@ test('projet suivant : un nouveau projet reprend les réglages et l’équipe, p
   await expect(page.getByPlaceholder('1,85:1')).toHaveValue('1,85:1');
   await expect(page.getByRole('textbox', { name: 'Titre' })).toHaveValue('Sans titre');
 });
+
+test('abréviations : ajoutées dans les Réglages, reconnues à la saisie ; une abréviation ambiguë est refusée', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Projet vierge' }).click();
+  await page.getByRole('button', { name: 'Réglages' }).click();
+  await page.getByRole('tab', { name: 'Listes de termes' }).click();
+  await page.getByRole('button', { name: 'Dolly', exact: true }).click();
+  const field = page.getByLabel('Ajouter une abréviation à Dolly');
+  await field.fill('stead');
+  await expect(page.getByText('Déjà prise par « Steadicam »')).toBeVisible();
+  await field.fill('chariot');
+  await field.press('Enter');
+  await expect(page.getByRole('button', { name: 'Dolly · chariot' })).toBeVisible();
+  await page.getByRole('button', { name: 'Terminé' }).click();
+  // Saisie dans la colonne Machinerie : « chariot » devient Dolly.
+  await page.locator('.line [id$="-grip"]').first().click();
+  await page.keyboard.type('chariot');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.line [id$="-grip"]').first()).toHaveText('Dolly');
+});

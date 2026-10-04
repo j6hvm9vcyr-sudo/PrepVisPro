@@ -155,6 +155,8 @@ export interface ProjectSettings {
   reflectors: ReflectorMaterial[];
   /** Réglages repris par le plan suivant (↩ en fin de plan, « Nouveau plan ») ; les autres partent vides. */
   carryOver: Record<CarryField, boolean>;
+  /** Abréviations reconnues à la saisie, par terme (« stead » → Steadicam). */
+  aliases: Record<string, string[]>;
   /** Fuseau horaire des heures du projet (nom IANA, ex. « Europe/Paris ») ; null = celui de cet ordinateur. */
   timeZone: string | null;
 }
