@@ -12,6 +12,7 @@ import { stripColors } from '../ui/strip';
 import { useLateFocus } from '../ui/focus';
 import { DecimalField } from '../ui/DecimalField';
 import { IconPalette } from './icons';
+import { FramingSuggestion } from './Suggest';
 
 const TOOLS: { id: FloorTool; label: string; key: string }[] = [
   { id: 'select', label: 'Sélection', key: 'V' },
@@ -234,6 +235,7 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
                 <p className="note" style={{ margin: 0 }}>
                   Le champ suit la focale et le format capteur du plan (Réglages › Caméras). Plan évolutif : champ de fin en pointillé violet.
                 </p>
+                <FramingSuggestion fp={fp} cam={el} />
               </>
             )}
             {el.kind === 'actor' && (

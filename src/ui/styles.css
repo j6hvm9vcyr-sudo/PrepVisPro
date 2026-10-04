@@ -376,3 +376,9 @@ table.cams input { width: 100%; border: 1px solid var(--border); border-radius: 
 .icon-tile img { width: 44px; height: 44px; object-fit: contain; }
 .icon-name { font-size: 10px; line-height: 12px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .icon-remove { position: absolute; top: -4px; right: -4px; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--border); background: var(--panel); color: var(--danger); font-size: 12px; line-height: 14px; cursor: pointer; padding: 0; }
+.suggest { border: 1px solid var(--border-soft); border-radius: 8px; padding: 8px 10px; background: var(--head); }
+.suggest-row { display: flex; align-items: baseline; gap: 8px; font-size: 13px; }
+.suggest-k { width: 48px; color: var(--text2); font-size: 12px; }
+.suggest-v { flex: 1; font-weight: 600; }
+.suggest-v small { font-weight: 400; color: var(--text3); }
+.suggest-ok { color: var(--ok); font-weight: 700; }

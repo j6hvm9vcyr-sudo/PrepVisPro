@@ -42,6 +42,25 @@ test('plan au sol : fond, mise à l’échelle, caméra du découpage avec son c
   await expect(page.locator('.floor-canvas [data-el]')).toHaveCount(1);
   await expect(page.locator('.floor-canvas polygon')).toHaveCount(1);
   await expect(page.locator('.floor-canvas text', { hasText: '1/1' })).toBeVisible();
+  const suggest = page.getByRole('region', { name: 'D’après le plan' });
+  await expect(suggest).toContainText('Aucun personnage dans le champ');
+
+  // Un personnage à 3 m devant la caméra, tourné vers elle : valeur et axe déduits du plan.
+  await canvas.press('p');
+  const who = at(300, 300);
+  await page.mouse.click(who.x, who.y);
+  await page.mouse.click(c.x, c.y); // re-sélectionne la caméra
+  // 32 mm, image 24,89 × 13,45 mm (ratio 1,85:1) : à 3 m, champ de 1,26 m de haut → Américain, de face.
+  await expect(suggest).toContainText('Personnage 1 à 3 m');
+  await expect(suggest).toContainText('champ ≈ 1,3 m de haut');
+  await expect(suggest.locator('.suggest-row', { hasText: 'Valeur' })).toContainText('Américain');
+  await expect(suggest.locator('.suggest-row', { hasText: 'Axe' })).toContainText('Face');
+  await suggest.locator('.suggest-row', { hasText: 'Valeur' }).getByRole('button', { name: 'Reporter' }).click();
+  await expect(suggest.locator('.suggest-row', { hasText: 'Valeur' }).locator('.suggest-ok')).toBeVisible();
+  // Retirer le personnage pour la suite du test.
+  await page.mouse.click(who.x, who.y);
+  await canvas.press('Backspace');
+  await expect(page.locator('.floor-canvas [data-el]')).toHaveCount(1);
 
   // Mesure : 5 m entre deux points.
   await canvas.press('m');
