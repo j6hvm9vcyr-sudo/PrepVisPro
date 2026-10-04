@@ -210,7 +210,7 @@ export function Picker({ label, groups, actions = [], onPick, children, variant 
                 {g.items.map(option)}
               </div>
             ))}
-            {!shown.length && <div className="pick-none">{query ? 'Aucun résultat' : (empty ?? 'Rien à choisir')}</div>}
+            {!shown.length && (query || !actions.length) && <div className="pick-none">{query ? 'Aucun résultat' : (empty ?? 'Rien à choisir')}</div>}
             {actions.length > 0 && <div className="pick-actions">{actions.map(option)}</div>}
           </div>
         </div>

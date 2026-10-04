@@ -136,6 +136,21 @@ const projectCamera = z.object({
   squeeze: z.number().finite().positive(),
 });
 
+const fixture = z.object({
+  id,
+  name: z.string(),
+  watts: z.number().finite().min(0).max(100000).nullable(),
+  kind: z.enum(['led', 'tungsten', 'hmi', 'other']),
+  modes: z.array(z.object({ label: z.string(), lux: z.number().finite().positive().nullable(), distanceM: z.number().finite().positive().nullable(), beamDeg: z.number().finite().positive().max(180).nullable() })),
+});
+
+const exposure = z.object({ iso: z.number().finite().positive(), fps: z.number().finite().positive(), shutterDeg: z.number().finite().positive().max(360) });
+
+const reflector = z.object({ id, name: z.string(), type: z.enum(['diffuse', 'mirror']), reflectance: z.number().finite().positive().max(1).nullable(), presetId: z.string().min(1).nullable() });
+
+/** Éléments des réglages, repris par « Mon matériel » (model/kit.ts). */
+export const settingsSchemas = { terms, lensSeries, projectCamera, fixture, exposure, reflector };
+
 const projectSchema = z.object({
   schemaVersion: z.literal(SCHEMA_VERSION),
   id,
@@ -159,17 +174,9 @@ const projectSchema = z.object({
     }),
     cameras: z.array(projectCamera).min(1),
     lenses: z.array(lensSeries),
-    fixtures: z.array(
-      z.object({
-        id,
-        name: z.string(),
-        watts: z.number().finite().min(0).max(100000).nullable(),
-        kind: z.enum(['led', 'tungsten', 'hmi', 'other']),
-        modes: z.array(z.object({ label: z.string(), lux: z.number().finite().positive().nullable(), distanceM: z.number().finite().positive().nullable(), beamDeg: z.number().finite().positive().max(180).nullable() })),
-      }),
-    ),
-    exposure: z.object({ iso: z.number().finite().positive(), fps: z.number().finite().positive(), shutterDeg: z.number().finite().positive().max(360) }),
-    reflectors: z.array(z.object({ id, name: z.string(), type: z.enum(['diffuse', 'mirror']), reflectance: z.number().finite().positive().max(1).nullable(), presetId: z.string().min(1).nullable() })),
+    fixtures: z.array(fixture),
+    exposure,
+    reflectors: z.array(reflector),
     timeZone: z.string().min(1).nullable(),
   }),
   sequences: z.array(sequence),

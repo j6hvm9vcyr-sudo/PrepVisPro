@@ -14,6 +14,8 @@ import { formatNumber } from '../model/text';
 import type { ReflectorMaterial } from '../model/types';
 import { DecimalField } from '../ui/DecimalField';
 import { Picker, type PickGroup, type PickItem } from '../ui/Picker';
+import { addPickedFromKit, kitGroup, KIT_PICK } from '../ui/KitControls';
+import { useKit } from '../platform/kit';
 import { lx, m } from './LightPanels';
 import { materialForPreset, pct, PRESET_GROUPS, presetById, presetRange, presetValue, REFLECTOR_PRESETS } from '../model/reflectorPresets';
 
@@ -115,6 +117,7 @@ function usesOf(doc: ReturnType<typeof selectDoc>, id: string): number {
 
 export function ReflectorInspector({ fp, el }: { fp: FloorPlan; el: FloorReflector }) {
   const doc = useApp(selectDoc);
+  const { kit } = useKit();
   const mats = doc.settings.reflectors;
   const material = mats.find((x) => x.id === el.materialId) ?? null;
   const apply = (fn: (d: ReturnType<typeof selectDoc>) => ReturnType<typeof selectDoc>, msg?: string, key?: string) => {
@@ -145,9 +148,11 @@ export function ReflectorInspector({ fp, el }: { fp: FloorPlan; el: FloorReflect
         <Picker
           label="Matière du réflecteur"
           value={el.materialId}
-          {...materialGroups(mats)}
+          groups={[...materialGroups(mats).groups.slice(0, 1), kitGroup(kit, doc, 'reflectors'), ...materialGroups(mats).groups.slice(1)]}
+          actions={materialGroups(mats).actions}
           onPick={(v) => {
             if (v === NEW) create();
+            else if (v.startsWith(KIT_PICK)) addPickedFromKit(kit, 'reflectors', v, (d, id) => updateElement(d, fp.id, el.id, (x) => void (x.kind === 'reflector' && (x.materialId = id))));
             else if (v.startsWith(PRESET))
               apply((d) => {
                 const r = materialForPreset(d, v.slice(PRESET.length), () => newId('rm'));

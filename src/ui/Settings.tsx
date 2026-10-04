@@ -9,6 +9,7 @@ import { norm } from '../model/text';
 import { isComposing, focusGrid, useDialogFocus } from './focus';
 import { CamerasTab } from './CamerasTab';
 import { LensesTab } from './LensesTab';
+import { KitTab } from './KitTab';
 import { useTheme } from './theme';
 
 const CAT_LABEL: Record<TermCategory, string> = { size: 'Valeurs', axis: 'Axes', angle: 'Angles', movement: 'Mouvements', grip: 'Machinerie' };
@@ -16,7 +17,7 @@ const CAT_LABEL: Record<TermCategory, string> = { size: 'Valeurs', axis: 'Axes',
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const doc = useApp(selectDoc);
   const st = useApp.getState;
-  const [tab, setTab] = useState<'projet' | 'cameras' | 'optiques' | 'termes' | 'complet' | 'apparence'>('projet');
+  const [tab, setTab] = useState<'projet' | 'cameras' | 'optiques' | 'termes' | 'complet' | 'materiel' | 'apparence'>('projet');
   const dlg = useDialogFocus<HTMLDivElement>();
   const [theme, setTheme] = useTheme();
   const close = () => {
@@ -55,6 +56,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
                 ['optiques', 'Optiques'],
                 ['termes', 'Listes de termes'],
                 ['complet', 'Plan complet'],
+                ['materiel', 'Mon matériel'],
                 ['apparence', 'Apparence'],
               ] as const
             ).map(([k, l]) => (
@@ -121,6 +123,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
 
         {tab === 'cameras' && <CamerasTab />}
         {tab === 'optiques' && <LensesTab />}
+        {tab === 'materiel' && <KitTab />}
 
         {tab === 'termes' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, overflow: 'auto' }}>

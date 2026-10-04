@@ -21,6 +21,10 @@ import { MaterialFields, materialGroups, PRESET } from './ReflectorPanel';
 import { materialForPreset } from '../model/reflectorPresets';
 import { Explain } from '../ui/Explain';
 import { Picker } from '../ui/Picker';
+import { addPickedFromKit, kitGroup, KIT_PICK, SaveToKit } from '../ui/KitControls';
+import { useKit } from '../platform/kit';
+
+const BLANK = '__vierge';
 import { FIXTURE_KINDS as KINDS, usesOf } from './LightPanels';
 
 
@@ -56,6 +60,7 @@ export function ExposureFields() {
 /** Projecteurs du projet (la liste change à chaque projet). */
 export function FixtureCatalog() {
   const doc = useApp(selectDoc);
+  const { kit } = useKit();
   const st = useApp.getState;
   const updF = (id: string, fn: (f: Fixture) => void, key: string) =>
     st().updateDoc((d) => {
@@ -85,6 +90,7 @@ export function FixtureCatalog() {
               </select>
               <DecimalField label="Puissance en watts" unit="W" width={70} min={0} max={100000} value={f.watts} onChange={(v) => updF(f.id, (x) => void (x.watts = v), 'w')} />
               <span className="spacer" />
+              <SaveToKit kind="fixtures" item={f} />
               <button
                 type="button"
                 className="linkbtn danger"
@@ -150,14 +156,19 @@ export function FixtureCatalog() {
             </button>
           </div>
         ))}
-        <button
-          type="button"
-          className="btn"
-          style={{ alignSelf: 'flex-start' }}
-          onClick={() => st().updateDoc((d) => void d.settings.fixtures.push({ id: newId('fx'), name: '', watts: null, kind: 'led', modes: [{ label: '', lux: null, distanceM: null, beamDeg: null }] }))}
+        <Picker
+          label="Ajouter un projecteur"
+          variant="add"
+          groups={[kitGroup(kit, doc, 'fixtures')]}
+          actions={[{ id: BLANK, label: 'Projecteur à renseigner (d’après sa fiche)' }]}
+          onPick={(id) =>
+            id === BLANK
+              ? st().updateDoc((d) => void d.settings.fixtures.push({ id: newId('fx'), name: '', watts: null, kind: 'led', modes: [{ label: '', lux: null, distanceM: null, beamDeg: null }] }))
+              : addPickedFromKit(kit, 'fixtures', id)
+          }
         >
           + Projecteur
-        </button>
+        </Picker>
       </section>
     </div>
   );
@@ -166,6 +177,7 @@ export function FixtureCatalog() {
 /** Matières de réflecteurs du projet : préréglées (valeurs publiées, sourcées) ou mesurées. */
 export function ReflectorCatalog() {
   const doc = useApp(selectDoc);
+  const { kit } = useKit();
   const st = useApp.getState;
   return (
     <div className="lighting">
@@ -179,24 +191,28 @@ export function ReflectorCatalog() {
         {doc.settings.reflectors.map((mt) => (
           <div key={mt.id} className="fixture">
             <MaterialFields material={mt} />
+            <div className="row" style={{ gap: 12, alignItems: 'center' }}>
+            {mt.presetId === null && <SaveToKit kind="reflectors" item={mt} />}
             <button
               type="button"
               className="linkbtn danger"
-              style={{ alignSelf: 'flex-start' }}
               disabled={reflectorUses(doc, mt.id) > 0}
               title={reflectorUses(doc, mt.id) > 0 ? `Utilisée par ${plural(reflectorUses(doc, mt.id), 'réflecteur placé', 'réflecteurs placés')}` : undefined}
               onClick={() => st().updateDoc((d) => void (d.settings.reflectors = d.settings.reflectors.filter((x) => x.id !== mt.id)))}
             >
               Retirer
             </button>
+            </div>
           </div>
         ))}
         <Picker
           label="Ajouter une matière de réflecteur"
           variant="add"
-          {...materialGroups([])}
+          groups={[kitGroup(kit, doc, 'reflectors'), ...materialGroups([]).groups]}
+          actions={materialGroups([]).actions}
           onPick={(v) => {
-            if (v.startsWith(PRESET)) st().applyDoc(materialForPreset(selectDoc(st()), v.slice(PRESET.length), () => newId('rm')).doc);
+            if (v.startsWith(KIT_PICK)) addPickedFromKit(kit, 'reflectors', v);
+            else if (v.startsWith(PRESET)) st().applyDoc(materialForPreset(selectDoc(st()), v.slice(PRESET.length), () => newId('rm')).doc);
             else st().updateDoc((d) => void d.settings.reflectors.push({ id: newId('rm'), name: '', type: 'diffuse', reflectance: null, presetId: null }));
           }}
         >

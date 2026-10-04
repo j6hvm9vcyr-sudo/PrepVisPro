@@ -8,6 +8,8 @@
  * - en cas d'échec, l'état « erreur » reste affiché et un nouvel essai a lieu à la modification
  *   suivante ou sur demande (⌘S) ; rien n'est perdu tant que l'application est ouverte.
  */
+import { loadKit } from '../platform/kit';
+import { applyKitDefaults } from '../model/kit';
 import { create } from 'zustand';
 import type { ProjectDoc } from '../model/types';
 import { validateProject } from '../model/schema';
@@ -278,10 +280,15 @@ export async function newProjectWithDoc(doc: ProjectDoc, suggestedName: string):
   return newProjectAt(dir, doc);
 }
 
+/** Nouveau projet, avec le vocabulaire et l'exposition de départ de « Mon matériel » s'ils sont enregistrés. */
+export async function freshProject(title: string): Promise<ProjectDoc> {
+  return applyKitDefaults(newProject(title), await loadKit());
+}
+
 /** Crée un projet dans `dir` (dossier .prepvis) et l'ouvre. */
 export async function newProjectAt(dir: string, prepared?: ProjectDoc): Promise<boolean> {
   backend ??= await getBackend();
-  const doc = prepared ?? newProject(baseName(dir));
+  const doc = prepared ?? (await freshProject(baseName(dir)));
   try {
     // Créé d'abord sur disque : en cas d'échec, le projet en cours reste ouvert.
     const { dir: real, fp } = await backend.create(dir, serializeProject(doc));
@@ -327,7 +334,7 @@ export async function openSample(large = false): Promise<void> {
 export async function openBlankUnsaved(): Promise<void> {
   backend ??= await getBackend();
   if (!(await closeProject())) return;
-  openDoc(newProject('Sans titre'), 'unsaved', null);
+  openDoc(await freshProject('Sans titre'), 'unsaved', null);
 }
 
 /**

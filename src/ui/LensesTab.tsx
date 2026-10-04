@@ -7,11 +7,15 @@ import { formatNumber } from '../model/text';
 import { parseFocalList } from '../model/lenses';
 import type { LensSeries } from '../model/types';
 import { DecimalField } from './DecimalField';
+import { Picker } from './Picker';
+import { addPickedFromKit, kitGroup, SaveToKit } from './KitControls';
+import { useKit } from '../platform/kit';
 
 export function LensesTab() {
   const doc = useApp(selectDoc);
   const st = useApp.getState;
   const lenses = doc.settings.lenses;
+  const { kit } = useKit();
   const upd = (id: string, fn: (l: LensSeries) => void, key: string) =>
     st().updateDoc((d) => {
       const l = d.settings.lenses.find((x) => x.id === id);
@@ -38,12 +42,18 @@ export function LensesTab() {
               <DecimalField label="Focale maximale du zoom" unit="mm" width={64} min={1} max={2000} value={l.max} onChange={(v) => upd(l.id, (x) => void (x.max = v), 'max')} />
             </span>
           )}
+          <SaveToKit kind="lenses" item={l} />
           <button type="button" className="linkbtn danger" aria-label={`Retirer ${l.name || 'cette série'}`} onClick={() => st().updateDoc((d) => void (d.settings.lenses = d.settings.lenses.filter((x) => x.id !== l.id)))}>
             Retirer
           </button>
         </div>
       ))}
       <div className="row">
+        {kit.lenses.length > 0 && (
+          <Picker label="Ajouter depuis mon matériel" variant="add" groups={[kitGroup(kit, doc, 'lenses')]} onPick={(id) => addPickedFromKit(kit, 'lenses', id)}>
+            + Depuis mon matériel…
+          </Picker>
+        )}
         <button type="button" className="btn" onClick={() => add('primes')}>
           + Série de fixes
         </button>

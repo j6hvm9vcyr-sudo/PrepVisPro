@@ -2,8 +2,7 @@
 import { produce } from 'immer';
 import { getBackend } from '../platform/backend';
 import { useApp } from '../state/appStore';
-import { newProject } from '../model/defaults';
-import { newProjectWithDoc } from '../state/project';
+import { freshProject, newProjectWithDoc } from '../state/project';
 import { parseScriptFile, type ScriptFile } from './script';
 import { applyImport, planImport } from './merge';
 
@@ -41,7 +40,7 @@ export async function newProjectFromScript(): Promise<void> {
     return;
   }
   const title = r.title || picked.name.replace(/\.[a-z0-9]+$/i, '');
-  const empty = produce(newProject(title), (d) => {
+  const empty = produce(await freshProject(title), (d) => {
     d.sequences = [];
   });
   const plan = planImport(empty, r.scenes);

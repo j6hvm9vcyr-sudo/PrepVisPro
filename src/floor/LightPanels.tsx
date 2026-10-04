@@ -11,6 +11,8 @@ import { newId } from '../model/defaults';
 import type { Fixture, ProjectDoc } from '../model/types';
 import { DecimalField } from '../ui/DecimalField';
 import { Picker } from '../ui/Picker';
+import { addPickedFromKit, kitGroup, KIT_PICK } from '../ui/KitControls';
+import { useKit } from '../platform/kit';
 import { produce } from 'immer';
 
 /** Lux arrondis à deux chiffres significatifs (la précision des données des fabricants). */
@@ -103,6 +105,7 @@ function FixtureData({ fixture, modeIndex, uses }: { fixture: Fixture; modeIndex
 
 export function LightInspector({ fp, el }: { fp: FloorPlan; el: FloorLight }) {
   const doc = useApp(selectDoc);
+  const { kit } = useKit();
   const fixtures = doc.settings.fixtures;
   const fixture = fixtures.find((f) => f.id === el.fixtureId);
   const upd = (fn: (x: FloorLight) => void, key: string) => apply((d) => updateElement(d, fp.id, el.id, (x) => void (x.kind === 'light' && fn(x))), undefined, `${key}-${el.id}`);
@@ -137,9 +140,15 @@ export function LightInspector({ fp, el }: { fp: FloorPlan; el: FloorLight }) {
         <Picker
           label="Modèle de projecteur"
           value={el.fixtureId}
-          onPick={(id) => (id === NEW ? createFixture() : upd((x) => ((x.fixtureId = id), (x.mode = 0)), 'fix'))}
+          onPick={(id) =>
+            id === NEW
+              ? createFixture()
+              : id.startsWith(KIT_PICK)
+                ? addPickedFromKit(kit, 'fixtures', id, (d, fid) => updateElement(d, fp.id, el.id, (x) => void (x.kind === 'light' && ((x.fixtureId = fid), (x.mode = 0)))))
+                : upd((x) => ((x.fixtureId = id), (x.mode = 0)), 'fix')
+          }
           empty="Aucun modèle dans le projet"
-          groups={[{ items: fixtures.map((f) => ({ id: f.id, label: f.name || 'Sans nom', detail: FIXTURE_KINDS.find(([k]) => k === f.kind)?.[1], meta: f.watts !== null ? `${formatNumber(f.watts)} W` : undefined })) }]}
+          groups={[{ label: kit.fixtures.length ? 'Projecteurs du projet' : undefined, items: fixtures.map((f) => ({ id: f.id, label: f.name || 'Sans nom', detail: FIXTURE_KINDS.find(([k]) => k === f.kind)?.[1], meta: f.watts !== null ? `${formatNumber(f.watts)} W` : undefined })) }, kitGroup(kit, doc, 'fixtures')]}
           actions={[{ id: NEW, label: '+ Nouveau projecteur…' }]}
         >
           {fixture ? fixture.name || 'Sans nom' : <span className="ph">Choisir un modèle…</span>}
