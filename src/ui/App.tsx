@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useApp } from '../state/appStore';
-import { selectCursor } from '../state/store';
+import { anyOverlay, selectCursor } from '../state/store';
 import { DecoupageTable } from './Table';
 import { CardsView } from './Cards';
 import { Inspector } from './Inspector';
@@ -17,6 +17,7 @@ import { useProject, saveNow, newProjectDialog, openDialog } from '../state/proj
 import { focusGrid, installFocusRescue, isTypingTarget } from './focus';
 import { isMenuShortcut, isTauri } from '../platform/menu';
 import { ErrorBoundary } from './ErrorBoundary';
+import { VersionsDialog } from './VersionsDialog';
 
 /** Raccourcis valables partout dans la fenêtre (hors saisie de texte). */
 function useGlobalShortcuts(settingsOpen: boolean) {
@@ -57,6 +58,7 @@ function useGlobalShortcuts(settingsOpen: boolean) {
       if (settingsOpen && e.key === 'Escape' && !(e.target instanceof Element && e.target.closest('.overlay'))) {
         e.preventDefault();
         if (st.showExport) st.setShowExport(false);
+        else if (st.showVersions) st.setShowVersions(false);
         else if (st.showSettings) st.setShowSettings(false);
         else if (st.importing) st.setImporting(null);
         focusGrid();
@@ -72,6 +74,11 @@ function useGlobalShortcuts(settingsOpen: boolean) {
         e.preventDefault();
         if (e.shiftKey) st.redo();
         else st.undo();
+        return;
+      }
+      if (meta && e.shiftKey && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        st.setShowVersions(true);
         return;
       }
       if (meta && !e.shiftKey && e.key.toLowerCase() === 's') {
@@ -193,15 +200,16 @@ function Workspace() {
   const inspector = useApp((s) => s.inspector);
   const settings = useApp((s) => s.showSettings);
   const exporting = useApp((s) => s.showExport);
+  const versions = useApp((s) => s.showVersions);
   const importing = useApp((s) => !!s.importing);
-  useGlobalShortcuts(settings || exporting || importing);
+  useGlobalShortcuts(settings || exporting || importing || versions);
 
   // Le clavier ne doit jamais « disparaître » après un clic sur un bouton (Safari).
   useEffect(
     () =>
       installFocusRescue(() => {
         const st = useApp.getState();
-        return st.view === 'table' && !st.editing && !st.preview && !st.showShortcuts && !st.pendingDrop && !st.editingSequenceId && !st.showSettings && !st.showExport && !st.importing && !st.contextMenu;
+        return st.view === 'table' && !st.editing && !anyOverlay(st);
       }),
     [],
   );
@@ -253,6 +261,7 @@ function Workspace() {
         {settings && <SettingsDialog onClose={() => useApp.getState().setShowSettings(false)} />}
         {exporting && <ExportDialog onClose={() => useApp.getState().setShowExport(false)} />}
         <ImportDialog />
+        <VersionsDialog />
       </ErrorBoundary>
       <ContextMenu />
     </div>

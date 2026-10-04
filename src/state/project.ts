@@ -431,3 +431,68 @@ export function resetForTests(b: Backend) {
   unsubscribe = null;
   useProject.setState({ mode: 'none', dir: null, status: 'saved', savedAt: null, error: null, openError: null });
 }
+
+// ------------------------------------------------------------------ versions
+
+export interface ProjectVersion {
+  file: string;
+  name: string;
+  note: string;
+  createdAt: number;
+}
+
+/** Dossier où ranger les versions ; null si le projet n'est pas encore enregistré (app Mac). */
+async function versionsHome(): Promise<string | null> {
+  backend ??= await getBackend();
+  const p = useProject.getState();
+  if (p.mode === 'file' && p.dir) return p.dir;
+  // Navigateur (démonstration, tests) : versions gardées en mémoire.
+  return backend.kind === 'memory' && p.mode === 'unsaved' ? 'non-enregistre' : null;
+}
+
+export const VERSIONS_NEED_SAVE = 'Enregistrez d’abord le projet (Fichier › Nouveau projet ou « Enregistrer… ») pour garder des versions.';
+
+function stampOf(t: number): string {
+  const d = new Date(t);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
+
+/** Fige l'état actuel du projet sous un nom. */
+export async function createVersion(name: string, note = '', doc: ProjectDoc = selectDoc(useApp.getState())): Promise<ProjectVersion> {
+  const home = await versionsHome();
+  if (!home) throw new Error(VERSIONS_NEED_SAVE);
+  await flushSave();
+  const createdAt = Date.now();
+  const clean = name.trim() || `Version du ${new Date(createdAt).toLocaleString('fr-FR')}`;
+  const file = await backend!.versionCreate(home, stampOf(createdAt), JSON.stringify({ prepvisVersion: 1, name: clean, note: note.trim(), createdAt, doc }));
+  return { file, name: clean, note: note.trim(), createdAt };
+}
+
+export async function listVersions(): Promise<ProjectVersion[]> {
+  const home = await versionsHome();
+  if (!home) return [];
+  return backend!.versionList(home);
+}
+
+/** Document d'une version, vérifié comme un projet (format mis à niveau si besoin). */
+export async function readVersion(file: string): Promise<ProjectDoc> {
+  const home = await versionsHome();
+  if (!home) throw new Error(VERSIONS_NEED_SAVE);
+  let raw: { doc?: unknown };
+  try {
+    raw = JSON.parse(await backend!.versionRead(home, file));
+  } catch {
+    throw new Error('Cette version est illisible.');
+  }
+  const r = parseProject(JSON.stringify(raw.doc ?? null));
+  if (!r.ok) throw new Error(`Cette version est illisible : ${r.error}`);
+  return r.doc;
+}
+
+/** Revient à une version. L'état actuel est d'abord gardé comme version : rien n'est perdu. */
+export async function restoreVersion(v: ProjectVersion): Promise<void> {
+  const doc = await readVersion(v.file);
+  await createVersion(`Avant le retour à « ${v.name} »`, 'Créée automatiquement');
+  useApp.getState().replaceDoc(doc, `Projet revenu à la version « ${v.name} » · l’état d’avant est gardé dans les versions · ⌘Z pour annuler`);
+}

@@ -124,6 +124,16 @@ try {
   wf(join(work, 'scenario.fdx'), '<?xml version="1.0"?><FinalDraft><Content><Paragraph Type="Scene Heading" Number="1"><Text>INT. CHAMBRE - NUIT</Text></Paragraph></Content></FinalDraft>');
   ok(String(await exec(`return await window.__prepvis.readScript(${JSON.stringify(join(work, 'scenario.fdx'))});`)).includes('CHAMBRE'), 'scénario .fdx lu');
 
+  // Versions : écrites dans le dossier versions/ du projet, relues et vérifiées.
+  {
+    const v = await exec(`return await window.__prepvis.createVersion('V1 réalisation', 'envoyée à Victor');`);
+    ok(v && !v.__error && existsSync(join(projectDir, 'versions', v.file)), `version écrite (${JSON.stringify(v)})`);
+    const list = await exec('return await window.__prepvis.listVersions();');
+    ok(Array.isArray(list) && list[0]?.name === 'V1 réalisation' && list[0]?.note === 'envoyée à Victor', 'versions listées');
+    const back = await exec(`return (await window.__prepvis.readVersion(${JSON.stringify(v?.file ?? '')})).sequences.length;`);
+    ok(back >= 1, 'version relue et validée');
+  }
+
   // Bibliothèque d'icônes : dossier aux noms accentués, réduction, stockage, affichage.
   {
     const { mkdirSync: md } = await import('node:fs');

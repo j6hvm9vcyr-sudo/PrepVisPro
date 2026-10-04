@@ -35,6 +35,17 @@ export interface Backend {
   alert(title: string, text: string): Promise<void>;
   confirm(title: string, text: string, ok: string, cancel: string): Promise<boolean>;
   quitNow(): Promise<void>;
+  /** Versions nommées (dossier versions/ du projet). */
+  versionCreate(dir: string, stamp: string, json: string): Promise<string>;
+  versionList(dir: string): Promise<VersionInfo[]>;
+  versionRead(dir: string, file: string): Promise<string>;
+}
+
+export interface VersionInfo {
+  file: string;
+  name: string;
+  note: string;
+  createdAt: number;
 }
 
 export const PROJECT_EXT = '.prepvis';
@@ -171,6 +182,19 @@ class TauriBackend implements Backend {
     const { invoke } = await this.core();
     await invoke('quit_now');
   }
+
+  async versionCreate(dir: string, stamp: string, json: string) {
+    const { invoke } = await this.core();
+    return invoke<string>('version_create', { dir, stamp, json });
+  }
+  async versionList(dir: string) {
+    const { invoke } = await this.core();
+    return invoke<VersionInfo[]>('version_list', { dir });
+  }
+  async versionRead(dir: string, file: string) {
+    const { invoke } = await this.core();
+    return invoke<string>('version_read', { dir, file });
+  }
 }
 
 // ------------------------------------------------------------------ mémoire
@@ -183,6 +207,28 @@ export class MemoryBackend implements Backend {
   nextPick: string | null = null;
   failNextSave: string | null = null;
   saves = 0;
+  versions = new Map<string, Map<string, string>>();
+  async versionCreate(dir: string, stamp: string, json: string) {
+    const m = this.versions.get(dir) ?? new Map<string, string>();
+    let file = `v-${stamp}.json`;
+    for (let n = 2; m.has(file); n++) file = `v-${stamp}-${n}.json`;
+    m.set(file, json);
+    this.versions.set(dir, m);
+    return file;
+  }
+  async versionList(dir: string) {
+    return [...(this.versions.get(dir) ?? new Map<string, string>()).entries()]
+      .map(([file, json]) => {
+        const v = JSON.parse(json) as { name: string; note?: string; createdAt?: number };
+        return { file, name: v.name, note: v.note ?? '', createdAt: v.createdAt ?? 0 };
+      })
+      .sort((a, b) => b.createdAt - a.createdAt || b.file.localeCompare(a.file));
+  }
+  async versionRead(dir: string, file: string) {
+    const j = this.versions.get(dir)?.get(file);
+    if (!j) throw new Error(`Version introuvable : ${file}`);
+    return j;
+  }
 
   async pickNew() {
     return this.nextPick ? withProjectExt(this.nextPick) : null;

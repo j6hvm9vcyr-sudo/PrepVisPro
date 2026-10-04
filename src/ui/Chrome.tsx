@@ -76,6 +76,9 @@ export function Toolbar() {
       <button type="button" className={`btn ${inspector ? 'on' : ''}`} aria-pressed={inspector} onClick={() => st().toggleInspector()} title="⌘I">
         Détails
       </button>
+      <button type="button" className="btn" onClick={() => st().setShowVersions(true)} title="Enregistrer, comparer, revenir à une version (⇧⌘S)">
+        Versions
+      </button>
       <button type="button" className="btn" onClick={() => st().setShowSettings(true)} title="⌘,">
         Réglages
       </button>

@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import { useApp } from '../state/appStore';
-import { rangeOf, selectCursor, selectDoc } from '../state/store';
+import { anyOverlay, rangeOf, selectCursor, selectDoc } from '../state/store';
 import { COLUMNS } from '../state/lines';
 import type { Column } from '../state/lines';
 import type { Plan, ProjectSettings, Sequence } from '../model/types';
@@ -68,7 +68,7 @@ export function DecoupageTable() {
     const mine = () => {
       const st = useApp.getState();
       if (st.editing || st.view !== 'table') return false;
-      if (st.preview || st.showShortcuts || st.pendingDrop || st.editingSequenceId || st.showSettings || st.showExport || st.importing || st.contextMenu) return false;
+      if (anyOverlay(st)) return false;
       const a = document.activeElement;
       return a === gridRef.current || a === document.body || a === null;
     };
@@ -158,7 +158,7 @@ export function DecoupageTable() {
       return;
     }
     // Une fenêtre superposée (aperçu, aide…) a la main sur le clavier.
-    if (st.preview || st.showShortcuts || st.pendingDrop || st.editingSequenceId || st.showSettings || st.showExport || st.importing || st.contextMenu) return;
+    if (anyOverlay(st)) return;
     if (e.nativeEvent.isComposing) return;
     const meta = e.metaKey || e.ctrlKey;
     const ext = e.shiftKey;

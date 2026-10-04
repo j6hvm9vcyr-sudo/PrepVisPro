@@ -1,6 +1,6 @@
 /** Accès direct aux fonctions, pour piloter l'application réelle sans boîtes de dialogue natives. */
 import { useApp } from './state/appStore';
-import { closeProject, flushSave, newProjectAt, openPath, openSample, quitApp, useProject } from './state/project';
+import { closeProject, createVersion, flushSave, listVersions, newProjectAt, openPath, openSample, quitApp, readVersion, useProject } from './state/project';
 import { selectDoc } from './state/store';
 import { imageStore } from './platform/images';
 import { coverImage } from './model/images';
@@ -47,6 +47,9 @@ export async function install() {
       return { r, items, url: items[0] ? lib.useIcons.getState().url(items[0]) : null };
     },
     newProjectAt,
+    createVersion,
+    listVersions,
+    readVersion,
     openPath,
     closeProject,
     quitApp,

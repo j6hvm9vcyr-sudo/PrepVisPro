@@ -87,6 +87,7 @@ const SHORTCUTS: { title: string; items: [string, string][] }[] = [
     items: [
       ['Nouveau projet / ouvrir', '⌘N / ⌘O'],
       ['Enregistrer (automatique)', '⌘S'],
+      ['Versions : enregistrer, comparer, revenir', '⇧⌘S'],
       ['Exporter (PDF, Excel, CSV)', '⌘E'],
       ['Importer un scénario', '⇧⌘I'],
       ['Réglages du projet', '⌘,'],

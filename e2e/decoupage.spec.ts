@@ -307,3 +307,32 @@ test('saisie groupée sur une sélection de plusieurs colonnes : la colonne acti
   await expect(cell(page, 1, 'axis')).toHaveText('Profil');
   await expect(cell(page, 0, 'size')).toHaveText('Ensemble');
 });
+
+test('versions : enregistrer, voir ce qui a changé, revenir en arrière sans rien perdre', async ({ page }) => {
+  await page.getByRole('button', { name: 'Versions' }).click();
+  const dlg = page.getByRole('dialog', { name: 'Versions du projet' });
+  await dlg.getByLabel('Nom de la version').fill('V1 réalisation');
+  await dlg.getByRole('button', { name: 'Enregistrer cette version' }).click();
+  await expect(dlg.locator('.version-item')).toHaveCount(1);
+  await page.keyboard.press('Escape');
+  await expect(dlg).toHaveCount(0);
+  // Modifier : focale du 1/1 et nouveau plan.
+  await cell(page, 0, 'focal').click();
+  await page.keyboard.type('40');
+  await page.keyboard.press('Enter');
+  await expect(cell(page, 0, 'focal')).toHaveText('40 mm');
+  // Comparer.
+  await page.keyboard.press('ControlOrMeta+Shift+s');
+  await dlg.locator('.version-item', { hasText: 'V1 réalisation' }).click();
+  await expect(dlg.locator('.diff-sum')).toHaveText('0 plan ajouté · 0 retiré · 1 modifié');
+  await expect(dlg.locator('.diff-change', { hasText: 'Focale' })).toContainText('32 mm');
+  await expect(dlg.locator('.diff-change', { hasText: 'Focale' })).toContainText('40 mm');
+  await page.screenshot({ path: 'test-results/18-versions.png' });
+  // Revenir : l'état actuel est d'abord gardé comme version.
+  await dlg.getByRole('button', { name: 'Revenir à cette version…' }).click();
+  await expect(dlg).toHaveCount(0);
+  await expect(cell(page, 0, 'focal')).toHaveText('32 mm');
+  await page.keyboard.press('ControlOrMeta+Shift+s');
+  await expect(dlg.locator('.version-item')).toHaveCount(2);
+  await expect(dlg.locator('.version-item').first()).toContainText('Avant le retour à « V1 réalisation »');
+});

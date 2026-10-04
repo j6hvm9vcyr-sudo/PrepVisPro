@@ -45,6 +45,7 @@ export interface AppState {
   editingSequenceId: Id | null;
   showSettings: boolean;
   showExport: boolean;
+  showVersions: boolean;
   importing: { name: string; scenes: import('../import/fdx').ScriptScene[] } | null;
   contextMenu: { x: number; y: number; planId: Id; setupId: Id } | null;
 }
@@ -69,6 +70,7 @@ export function initialState(doc: ProjectDoc): AppState {
     editingSequenceId: null,
     showSettings: false,
     showExport: false,
+    showVersions: false,
     importing: null,
     contextMenu: null,
   };
@@ -116,6 +118,11 @@ export function suggestSequenceNumber(doc: ProjectDoc, afterSeqId: Id | null): s
     if (!used.has(v) && v !== base) return v;
   }
   return '';
+}
+
+/** Une fenêtre superposée a la main sur le clavier (le tableau ne doit pas réagir). */
+export function anyOverlay(s: AppState): boolean {
+  return !!(s.preview || s.showShortcuts || s.pendingDrop || s.editingSequenceId || s.showSettings || s.showExport || s.showVersions || s.importing || s.contextMenu);
 }
 
 /** Rectangle sélectionné (une seule cellule s'il n'y a pas de sélection étendue). */
@@ -246,6 +253,7 @@ interface Actions {
   setEditingSequence(id: Id | null): void;
   setShowSettings(v: boolean): void;
   setShowExport(v: boolean): void;
+  setShowVersions(v: boolean): void;
   setImporting(v: AppState['importing']): void;
   setContextMenu(v: AppState['contextMenu']): void;
   /** Change la caméra du projet utilisée par une caméra du plan. */
@@ -776,6 +784,10 @@ export function createAppStore(doc: ProjectDoc) {
 
       setShowExport(v) {
         set({ showExport: v, editing: null });
+      },
+
+      setShowVersions(v) {
+        set({ showVersions: v, editing: null });
       },
 
       setImporting(v) {
