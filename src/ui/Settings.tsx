@@ -4,8 +4,9 @@ import { selectDoc } from '../state/store';
 import { REQUIRED_LABEL } from '../model/completeness';
 import { REQUIRED_FIELDS, TERM_CATEGORIES, type TermCategory } from '../model/types';
 import { newId, newProjectCamera } from '../model/defaults';
-import { norm, parseDecimal } from '../model/text';
-import { focusGrid } from './focus';
+import { norm } from '../model/text';
+import { isComposing, focusGrid, useDialogFocus } from './focus';
+import { DecimalField } from './DecimalField';
 import { useTheme } from './theme';
 
 const CAT_LABEL: Record<TermCategory, string> = { size: 'Valeurs', axis: 'Axes', angle: 'Angles', movement: 'Mouvements', grip: 'Machinerie' };
@@ -14,6 +15,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const doc = useApp(selectDoc);
   const st = useApp.getState;
   const [tab, setTab] = useState<'projet' | 'cameras' | 'termes' | 'complet' | 'apparence'>('projet');
+  const dlg = useDialogFocus<HTMLDivElement>();
   const [theme, setTheme] = useTheme();
   const close = () => {
     onClose();
@@ -23,6 +25,8 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <div
+      ref={dlg}
+      tabIndex={-1}
       className="overlay"
       role="dialog"
       aria-modal="true"
@@ -224,31 +228,8 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
-function NumberInput({ label, value, onChange, min, max, required }: { label: string; value: number | null; onChange: (v: number | null) => void; min: number; max: number; required?: boolean }) {
-  const [text, setText] = useState(value === null ? '' : String(value).replace('.', ','));
-  const [err, setErr] = useState(false);
-  return (
-    <input
-      aria-label={label}
-      aria-invalid={err}
-      value={text}
-      style={err ? { borderColor: 'var(--danger)' } : undefined}
-      onChange={(e) => {
-        const t = e.target.value;
-        setText(t);
-        if (!t.trim()) {
-          setErr(!!required);
-          if (!required) onChange(null);
-          return;
-        }
-        const v = parseDecimal(t);
-        const ok = v !== null && v >= min && v <= max;
-        setErr(!ok);
-        if (ok) onChange(v);
-      }}
-      title={`Entre ${min} et ${max}`}
-    />
-  );
+function NumberInput(props: { label: string; value: number | null; onChange: (v: number | null) => void; min: number; max: number; required?: boolean }) {
+  return <DecimalField {...props} />;
 }
 
 function TermEditor({ cat }: { cat: TermCategory }) {
@@ -256,9 +237,10 @@ function TermEditor({ cat }: { cat: TermCategory }) {
   const st = useApp.getState;
   const [draft, setDraft] = useState('');
   const exists = draft.trim() !== '' && terms.some((t) => norm(t) === norm(draft));
-  const add = () => {
-    const t = draft.trim();
-    if (!t || exists) return;
+  const add = (raw: string) => {
+    const t = raw.trim();
+    const current = st().hist.present.doc.settings.terms[cat];
+    if (!t || current.some((x) => norm(x) === norm(t))) return;
     st().updateDoc((d) => void d.settings.terms[cat].push(t));
     setDraft('');
   };
@@ -282,7 +264,12 @@ function TermEditor({ cat }: { cat: TermCategory }) {
           aria-invalid={exists}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') add();
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            const input = e.currentTarget;
+            // Pendant une composition (accent…), la valeur finale arrive juste après.
+            if (isComposing(e)) setTimeout(() => add(input.value), 60);
+            else add(input.value);
           }}
           aria-label={`Ajouter à ${CAT_LABEL[cat]}`}
         />

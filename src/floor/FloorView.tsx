@@ -9,6 +9,8 @@ import { ACTOR_COLORS, useFloor, type FloorTool } from './floorStore';
 import { FloorCanvas } from './FloorCanvas';
 import { importBackground } from './background';
 import { stripColors } from '../ui/strip';
+import { useLateFocus } from '../ui/focus';
+import { DecimalField } from '../ui/DecimalField';
 
 const TOOLS: { id: FloorTool; label: string; key: string }[] = [
   { id: 'select', label: 'Sélection', key: 'V' },
@@ -249,7 +251,7 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
             {el.kind === 'text' && (
               <label className="field">
                 Texte
-                <input autoFocus value={el.text} onChange={(e) => upd((x) => void (x.kind === 'text' && (x.text = e.target.value)), 'text')} />
+                <TextField id={el.id} value={el.text} onChange={(v) => upd((x) => void (x.kind === 'text' && (x.text = v)), 'text')} />
               </label>
             )}
             {el.kind === 'icon' && (
@@ -259,10 +261,10 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
               </label>
             )}
             {el.kind !== 'text' && (
-              <label className="field">
-                Orientation (°)
-                <input type="number" min={0} max={359} value={Math.round(el.rotation)} onChange={(e) => upd((x) => void (x.rotation = ((Number(e.target.value) % 360) + 360) % 360), 'rot')} />
-              </label>
+              <div className="field">
+                Orientation
+                <DecimalField label="Orientation en degrés" unit="°" width={80} required min={-360} max={360} value={Math.round(el.rotation)} onChange={(v) => v !== null && upd((x) => void (x.rotation = ((v % 360) + 360) % 360), 'rot')} />
+              </div>
             )}
             {(el.kind === 'camera' || el.kind === 'actor') && (
               <div className="row">
@@ -299,10 +301,10 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
               </label>
             )}
             {fp.scale && (
-              <label className="field">
-                Longueur des champs caméra (m)
-                <input type="number" min={0.5} max={200} step={0.5} value={fp.fovLengthM} onChange={(e) => Number(e.target.value) > 0 && apply((d) => updateFloorPlan(d, fp.id, (x) => void (x.fovLengthM = Number(e.target.value))), undefined, `fovlen-${fp.id}`)} />
-              </label>
+              <div className="field">
+                Longueur des champs caméra
+                <DecimalField label="Longueur des champs caméra en mètres" unit="m" width={80} required min={0.5} max={200} value={fp.fovLengthM} onChange={(v) => v !== null && apply((d) => updateFloorPlan(d, fp.id, (x) => void (x.fovLengthM = v)), undefined, `fovlen-${fp.id}`)} />
+              </div>
             )}
             <button type="button" className="btn danger" onClick={() => (apply((d) => deleteFloorPlan(d, fp.id), 'Plan au sol supprimé · ⌘Z pour annuler'), useFloor.getState().set({ currentId: null }))}>
               Supprimer ce plan au sol
@@ -340,4 +342,9 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
       </div>
     </aside>
   );
+}
+
+function TextField({ id, value, onChange }: { id: string; value: string; onChange: (v: string) => void }) {
+  const ref = useLateFocus<HTMLInputElement>(id, true);
+  return <input ref={ref} data-floor-text value={value} onChange={(e) => onChange(e.target.value)} />;
 }

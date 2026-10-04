@@ -42,7 +42,7 @@ export function ContextMenu() {
       { label: 'Descendre', keys: '⌥↓', disabled: loc.planIndex === loc.seq.plans.length - 1, run: () => st().movePlan(1) },
     ],
     [
-      { label: 'Copier la cellule', keys: '⌘C', run: () => void navigator.clipboard?.writeText(st().copyCell() ?? '') },
+      { label: 'Copier la cellule', keys: '⌘C', run: () => copyText(st().copyCell() ?? '') },
       { label: 'Recopier vers le bas', keys: '⌘D', run: () => st().fillDown() },
       { label: 'Aperçu de l’image', keys: 'espace', disabled: loc.plan.images.length === 0, run: () => st().openPreview(loc.plan.id) },
     ],
@@ -103,4 +103,24 @@ export function ContextMenu() {
         ))}
     </div>
   );
+}
+
+/** Copie un texte ; le résultat est toujours signalé (le presse-papiers peut être refusé). */
+function copyText(t: string) {
+  const ok = () => useApp.getState().setMessage('Copié');
+  const fallback = () => {
+    // Repli : sélection d'un champ caché + commande de copie du système.
+    const ta = document.createElement('textarea');
+    ta.value = t;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const done = document.execCommand('copy');
+    ta.remove();
+    if (done) ok();
+    else useApp.getState().setMessage('Copie impossible : utilisez ⌘C', 'warn');
+  };
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(t).then(ok, fallback);
+  else fallback();
 }

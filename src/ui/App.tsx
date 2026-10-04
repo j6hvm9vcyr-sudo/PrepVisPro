@@ -14,8 +14,9 @@ import { ContextMenu } from './ContextMenu';
 import { FloorView } from '../floor/FloorView';
 import { startScriptImport } from '../import/flow';
 import { useProject, saveNow, newProjectDialog, openDialog } from '../state/project';
-import { focusGrid, isTypingTarget } from './focus';
+import { focusGrid, installFocusRescue, isTypingTarget } from './focus';
 import { isMenuShortcut, isTauri } from '../platform/menu';
+import { ErrorBoundary } from './ErrorBoundary';
 
 /** Raccourcis valables partout dans la fenêtre (hors saisie de texte). */
 function useGlobalShortcuts(settingsOpen: boolean) {
@@ -50,6 +51,15 @@ function useGlobalShortcuts(settingsOpen: boolean) {
           st.setShowShortcuts(false);
           focusGrid();
         }
+        return;
+      }
+      // Fenêtre ouverte mais touche reçue hors d'elle (focus perdu) : Esc la ferme quand même.
+      if (settingsOpen && e.key === 'Escape' && !(e.target instanceof Element && e.target.closest('.overlay'))) {
+        e.preventDefault();
+        if (st.showExport) st.setShowExport(false);
+        else if (st.showSettings) st.setShowSettings(false);
+        else if (st.importing) st.setImporting(null);
+        focusGrid();
         return;
       }
       if (st.pendingDrop || st.editingSequenceId || settingsOpen) return;
@@ -121,6 +131,8 @@ function useGlobalShortcuts(settingsOpen: boolean) {
         st.newPlan(e.shiftKey);
         return;
       }
+      // En vue Plans au sol, ces touches agissent sur le plan au sol, jamais sur le découpage caché.
+      if (st.view === 'floor' && (e.key === 'Backspace' || e.altKey || (meta && e.shiftKey))) return;
       if (meta && e.key === 'Backspace') {
         e.preventDefault();
         st.deletePlan();
@@ -184,6 +196,16 @@ function Workspace() {
   const importing = useApp((s) => !!s.importing);
   useGlobalShortcuts(settings || exporting || importing);
 
+  // Le clavier ne doit jamais « disparaître » après un clic sur un bouton (Safari).
+  useEffect(
+    () =>
+      installFocusRescue(() => {
+        const st = useApp.getState();
+        return st.view === 'table' && !st.editing && !st.preview && !st.showShortcuts && !st.pendingDrop && !st.editingSequenceId && !st.showSettings && !st.showExport && !st.importing && !st.contextMenu;
+      }),
+    [],
+  );
+
   // Empêche le navigateur d'ouvrir une image lâchée hors d'une zone prévue.
   useEffect(() => {
     const stop = (e: DragEvent) => e.preventDefault();
@@ -201,17 +223,25 @@ function Workspace() {
       <div className="app-body">
         {view === 'floor' ? (
           <div className="center">
-            <FloorView />
+            <ErrorBoundary label="plans au sol" key="floor">
+              <FloorView />
+            </ErrorBoundary>
             <StatusBar />
           </div>
         ) : (
           <>
             <SequenceIndex />
             <main className="center">
-              {view === 'table' ? <DecoupageTable /> : <CardsView />}
+              <ErrorBoundary label={view === 'table' ? 'tableau' : 'fiches'} key={view}>
+                {view === 'table' ? <DecoupageTable /> : <CardsView />}
+              </ErrorBoundary>
               <StatusBar />
             </main>
-            {inspector && <Inspector />}
+            {inspector && (
+              <ErrorBoundary label="détails">
+                <Inspector />
+              </ErrorBoundary>
+            )}
           </>
         )}
       </div>
@@ -219,9 +249,11 @@ function Workspace() {
       <Shortcuts />
       <DropChoice />
       <SequenceDialog />
-      {settings && <SettingsDialog onClose={() => useApp.getState().setShowSettings(false)} />}
-      {exporting && <ExportDialog onClose={() => useApp.getState().setShowExport(false)} />}
-      <ImportDialog />
+      <ErrorBoundary label="fenêtre">
+        {settings && <SettingsDialog onClose={() => useApp.getState().setShowSettings(false)} />}
+        {exporting && <ExportDialog onClose={() => useApp.getState().setShowExport(false)} />}
+        <ImportDialog />
+      </ErrorBoundary>
       <ContextMenu />
     </div>
   );

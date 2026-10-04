@@ -87,6 +87,11 @@ export function runMenuCommand(id: string) {
     return;
   }
   if (typing || overlay || st.editing) return;
+  // Commandes du découpage invisibles depuis les plans au sol : elles ne s'appliquent pas en aveugle.
+  if (st.view === 'floor' && (id === 'plan_camera' || id === 'plan_up' || id === 'plan_down' || id === 'plan_delete')) {
+    st.setMessage('Commande du découpage : passez en vue Tableau (⌘1)', 'warn');
+    return;
+  }
   const c = selectCursor(st);
   switch (id) {
     case 'plan_new':

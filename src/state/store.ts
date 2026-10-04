@@ -373,7 +373,8 @@ export function createAppStore(doc: ProjectDoc) {
         }
         const msg = r.newTerms.length ? `Terme ajouté à la liste du projet : ${r.newTerms.join(', ')}` : null;
         set({ editing: null });
-        commit(next, c, msg);
+        // Valeur inchangée : pas d'étape d'annulation vide ni d'enregistrement inutile.
+        if (JSON.stringify(next) !== JSON.stringify(doc)) commit(next, c, msg);
         if (then === 'down') moveQuiet(1, 0);
         if (then === 'right') moveQuiet(0, 1, true);
         if (then === 'left') moveQuiet(0, -1, true);

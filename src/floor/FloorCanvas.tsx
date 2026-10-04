@@ -9,6 +9,7 @@ import { imageStore } from '../platform/images';
 import { formatNumber } from '../model/text';
 import { ACTOR_COLORS, useFloor, type Viewport } from './floorStore';
 import { FloorMarkers, FloorScene } from './FloorScene';
+import { useLateFocus } from '../ui/focus';
 
 
 type Drag =
@@ -207,8 +208,35 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
         setVp({ ...cur, x: cur.x + e.deltaX / cur.zoom, y: cur.y + e.deltaY / cur.zoom });
       }
     };
+    // Safari (app Mac) : le pincement du trackpad arrive en « gesture », pas en molette + ctrl.
+    let last = 1;
+    const onGestureStart = (e: Event) => {
+      e.preventDefault();
+      last = 1;
+    };
+    const onGestureChange = (e: Event) => {
+      e.preventDefault();
+      const g = e as Event & { scale: number; clientX: number; clientY: number };
+      const cur = useFloor.getState().viewports[fp.id] ?? vp;
+      const f = g.scale / last;
+      last = g.scale;
+      if (!(f > 0) || !Number.isFinite(f)) return;
+      const r = svg.current!.getBoundingClientRect();
+      const cx = g.clientX ?? r.left + r.width / 2;
+      const cy = g.clientY ?? r.top + r.height / 2;
+      const mx = cur.x + (cx - r.left) / cur.zoom;
+      const my = cur.y + (cy - r.top) / cur.zoom;
+      const zoom = Math.min(40, Math.max(0.02, cur.zoom * f));
+      setVp({ zoom, x: mx - (cx - r.left) / zoom, y: my - (cy - r.top) / zoom });
+    };
     el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
+    el.addEventListener('gesturestart', onGestureStart, { passive: false } as AddEventListenerOptions);
+    el.addEventListener('gesturechange', onGestureChange, { passive: false } as AddEventListenerOptions);
+    return () => {
+      el.removeEventListener('wheel', onWheel);
+      el.removeEventListener('gesturestart', onGestureStart);
+      el.removeEventListener('gesturechange', onGestureChange);
+    };
   }, [fp.id, vp, setVp]);
 
   const zoomBy = (f: number) => {
@@ -229,6 +257,21 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
       if (st.tool !== 'select' || st.placing || st.draft.length) st.set({ tool: 'select', placing: null, draft: [], pathFor: null });
       else st.set({ selection: [] });
       setScaleInput(null);
+      return;
+    }
+    // Texte sélectionné : la frappe va dans le texte (y compris juste après l'avoir posé).
+    const only = sel.length === 1 ? fp.elements.find((x) => x.id === sel[0]) : undefined;
+    if (only?.kind === 'text' && e.key.length === 1 && !meta && !e.altKey) {
+      e.preventDefault();
+      const base = only.text === 'Texte' ? '' : only.text;
+      apply(updateElement(docNow(), fp.id, only.id, (x) => void (x.kind === 'text' && (x.text = base + e.key))), undefined, `text-${only.id}`);
+      requestAnimationFrame(() => {
+        const input = document.querySelector<HTMLInputElement>('[data-floor-text]');
+        if (input) {
+          input.focus({ preventScroll: true });
+          input.setSelectionRange(input.value.length, input.value.length);
+        }
+      });
       return;
     }
     if (e.key === 'Enter' && st.tool === 'path') {
@@ -284,7 +327,8 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
       st.set({ tool: t, draft: [], placing: null });
       return;
     }
-    if (e.key === '0') {
+    // « 0 » : sur un clavier AZERTY la touche donne « à » sans Maj.
+    if (e.key === '0' || e.code === 'Digit0' || e.code === 'Numpad0') {
       e.preventDefault();
       setVp(fitViewport(fp, size.w, size.h));
     }
@@ -326,6 +370,8 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
         height="100%"
         viewBox={`${vp.x} ${vp.y} ${size.w / vp.zoom} ${size.h / vp.zoom}`}
         onPointerDown={onPointerDown}
+        // Le focus est déjà donné au plan (ou au champ qui vient d'apparaître) : le navigateur ne doit pas le reprendre.
+        onMouseDown={(e) => e.preventDefault()}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerLeave={() => setHover(null)}
@@ -335,11 +381,11 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
       >
         <defs>
           <pattern id="grid" width={50} height={50} patternUnits="userSpaceOnUse">
-            <path d="M 50 0 L 0 0 0 50" fill="none" stroke="var(--border-soft)" strokeWidth={1 * k} />
+            <path d="M 50 0 L 0 0 0 50" fill="none" style={{ stroke: 'var(--border-soft)' }} strokeWidth={1 * k} />
           </pattern>
           <FloorMarkers />
         </defs>
-        <rect x={vp.x} y={vp.y} width={size.w / vp.zoom} height={size.h / vp.zoom} fill={fp.background ? 'var(--thumb)' : 'url(#grid)'} />
+        <rect x={vp.x} y={vp.y} width={size.w / vp.zoom} height={size.h / vp.zoom} style={{ fill: fp.background ? 'var(--thumb)' : 'url(#grid)' }} />
         {fp.background && bgUrl && <image href={bgUrl} x={0} y={0} width={fp.background.width} height={fp.background.height} opacity={fp.background.opacity} />}
         <FloorScene doc={doc} fp={fp} k={k} numbers={numbers} selection={ui.selection} urlFor={(f) => imageStore.url(f)} />
         {draftLine}
@@ -380,7 +426,7 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
           <label>
             Distance réelle entre les deux points
             <span className="row" style={{ alignItems: 'center', gap: 6 }}>
-              <input autoFocus value={scaleInput} onChange={(e) => setScaleInput(e.target.value)} inputMode="decimal" aria-label="Distance en mètres" style={{ width: 90 }} />
+              <ScaleField value={scaleInput} onChange={setScaleInput} />
               m
             </span>
           </label>
@@ -396,4 +442,9 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
       )}
     </div>
   );
+}
+
+function ScaleField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const ref = useLateFocus<HTMLInputElement>(null, true);
+  return <input ref={ref} value={value} onChange={(e) => onChange(e.target.value)} inputMode="decimal" aria-label="Distance en mètres" style={{ width: 90 }} />;
 }

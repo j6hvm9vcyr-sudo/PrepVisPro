@@ -6,10 +6,14 @@ import { forgetRecent, newProjectDialog, openBlankUnsaved, openDialog, openPath,
 
 export function Welcome() {
   const openError = useProject((s) => s.openError);
-  const [kind, setKind] = useState<'tauri' | 'memory' | null>(null);
+  const [kind, setKind] = useState<'tauri' | 'memory' | null>(isTauri() ? 'tauri' : null);
   const [recent, setRecent] = useState<string[]>(recentProjects);
   useEffect(() => {
-    void getBackend().then((b) => setKind(b.kind));
+    void getBackend().then((b) => {
+      setKind(b.kind);
+      // Le démarrage a pu retirer des projets introuvables entre-temps.
+      setRecent(recentProjects());
+    });
     document.title = 'PrepVisPro';
     if (isTauri()) void import('@tauri-apps/api/window').then(({ getCurrentWindow }) => getCurrentWindow().setTitle('PrepVisPro')).catch(() => {});
   }, []);

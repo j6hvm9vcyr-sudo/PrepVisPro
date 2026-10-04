@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from 'react';
+import { memo, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import { useApp } from '../state/appStore';
 import { rangeOf, selectCursor, selectDoc } from '../state/store';
 import { COLUMNS } from '../state/lines';
@@ -12,7 +12,7 @@ import { coverImage } from '../model/images';
 import { imageStore } from '../platform/images';
 import { norm } from '../model/text';
 import { CellEditor } from './CellEditor';
-import { registerGrid } from './focus';
+import { focusGrid, registerGrid } from './focus';
 import { sequenceTitle, stripColors } from './strip';
 
 const TECH: { col: Exclude<EditableField, 'action'>; label: string }[] = [
@@ -62,15 +62,64 @@ export function DecoupageTable() {
   const gridRef = useRef<HTMLDivElement>(null);
   // Safari / app Mac : Copier, Couper et Coller (menu Édition, ⌘C ⌘X ⌘V) restent grisés sur un élément
   // non éditable sans texte sélectionné, sauf si la page annonce qu'elle s'en charge (« before… »).
+  // WebKit envoie ces événements à la sélection (ou à <body>), pas à l'élément qui a le focus :
+  // on les écoute donc sur tout le document, et on n'agit que si le tableau a la main.
   useEffect(() => {
-    const el = gridRef.current;
-    if (!el) return;
-    const enable = (e: Event) => {
-      if (!useApp.getState().editing) e.preventDefault();
+    const mine = () => {
+      const st = useApp.getState();
+      if (st.editing || st.view !== 'table') return false;
+      if (st.preview || st.showShortcuts || st.pendingDrop || st.editingSequenceId || st.showSettings || st.showExport || st.importing || st.contextMenu) return false;
+      const a = document.activeElement;
+      return a === gridRef.current || a === document.body || a === null;
     };
-    const types = ['beforecopy', 'beforecut', 'beforepaste'];
-    types.forEach((t) => el.addEventListener(t, enable));
-    return () => types.forEach((t) => el.removeEventListener(t, enable));
+    const enable = (e: Event) => {
+      if (mine()) e.preventDefault();
+    };
+    const onCopy = (e: ClipboardEvent) => {
+      if (!mine() || !e.clipboardData) return;
+      const st = useApp.getState();
+      const t = st.copyCell();
+      if (t === null) return;
+      e.preventDefault();
+      e.clipboardData.setData('text/plain', t);
+      st.setMessage('Copié');
+    };
+    const onCut = (e: ClipboardEvent) => {
+      if (!mine() || !e.clipboardData) return;
+      const st = useApp.getState();
+      const t = st.copyCell();
+      if (t === null) return;
+      e.preventDefault();
+      e.clipboardData.setData('text/plain', t);
+      st.clearCell();
+    };
+    const onPaste = (e: ClipboardEvent) => {
+      if (!mine() || !e.clipboardData) return;
+      const st = useApp.getState();
+      // Image copiée (capture d'écran, image d'un site, d'un film…) : ajoutée au plan.
+      const files = Array.from(e.clipboardData.files ?? []).filter((f) => f.type.startsWith('image/'));
+      const c = selectCursor(st);
+      if (files.length && c) {
+        e.preventDefault();
+        st.requestDrop(c.planId, files.map((f, i) => (f.name && f.name !== 'image.png' ? f : new File([f], `presse-papiers-${i + 1}.${f.type.split('/')[1] || 'png'}`, { type: f.type }))));
+        return;
+      }
+      const t = e.clipboardData.getData('text/plain');
+      if (!t) return;
+      e.preventDefault();
+      st.pasteText(t);
+    };
+    const before = ['beforecopy', 'beforecut', 'beforepaste'];
+    before.forEach((t) => document.addEventListener(t, enable));
+    document.addEventListener('copy', onCopy);
+    document.addEventListener('cut', onCut);
+    document.addEventListener('paste', onPaste);
+    return () => {
+      before.forEach((t) => document.removeEventListener(t, enable));
+      document.removeEventListener('copy', onCopy);
+      document.removeEventListener('cut', onCut);
+      document.removeEventListener('paste', onPaste);
+    };
   }, []);
 
   useEffect(() => {
@@ -109,7 +158,7 @@ export function DecoupageTable() {
       return;
     }
     // Une fenêtre superposée (aperçu, aide…) a la main sur le clavier.
-    if (st.preview || st.showShortcuts || st.pendingDrop || st.editingSequenceId) return;
+    if (st.preview || st.showShortcuts || st.pendingDrop || st.editingSequenceId || st.showSettings || st.showExport || st.importing || st.contextMenu) return;
     if (e.nativeEvent.isComposing) return;
     const meta = e.metaKey || e.ctrlKey;
     const ext = e.shiftKey;
@@ -212,40 +261,6 @@ export function DecoupageTable() {
         tabIndex={0}
         aria-activedescendant={cursor ? cellId(cursor.setupId, cursor.col) : undefined}
         onKeyDown={onKeyDown}
-        onCopy={(e) => {
-          const st = useApp.getState();
-          if (st.editing) return;
-          const t = st.copyCell();
-          if (t === null) return;
-          e.preventDefault();
-          e.clipboardData.setData('text/plain', t);
-          st.setMessage('Copié');
-        }}
-        onCut={(e) => {
-          const st = useApp.getState();
-          if (st.editing) return;
-          const t = st.copyCell();
-          if (t === null) return;
-          e.preventDefault();
-          e.clipboardData.setData('text/plain', t);
-          st.clearCell();
-        }}
-        onPaste={(e) => {
-          const st = useApp.getState();
-          if (st.editing) return;
-          // Image copiée (capture d'écran, image d'un site, d'un film…) : ajoutée au plan.
-          const files = Array.from(e.clipboardData.files ?? []).filter((f) => f.type.startsWith('image/'));
-          const c = selectCursor(st);
-          if (files.length && c) {
-            e.preventDefault();
-            st.requestDrop(c.planId, files.map((f, i) => (f.name && f.name !== 'image.png' ? f : new File([f], `presse-papiers-${i + 1}.${f.type.split('/')[1] || 'png'}`, { type: f.type }))));
-            return;
-          }
-          const t = e.clipboardData.getData('text/plain');
-          if (!t) return;
-          e.preventDefault();
-          st.pasteText(t);
-        }}
       >
         <div className="grid-cols grid-head" role="row">
           <span role="columnheader">N°</span>
@@ -372,8 +387,14 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
   const st = useApp.getState;
   const req = settings.required;
 
-  const select = (setupId: string, col: Column, shift = false) => {
+  const select = (e: ReactMouseEvent, setupId: string, col: Column) => {
+    // Clic droit (ou ctrl-clic sur Mac) : c'est le menu contextuel qui s'en charge.
+    if (e.button !== 0 || e.ctrlKey) return;
+    // Le focus reste au tableau (sinon le navigateur le déplace après coup et ferme la saisie).
+    e.preventDefault();
+    const shift = e.shiftKey;
     let s = st();
+    if (!s.editing) focusGrid();
     if (shift && !s.editing) {
       s.extendTo({ planId: plan.id, setupId, col });
       return;
@@ -381,10 +402,12 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
     if (s.editing) {
       // Clic ailleurs pendant une saisie : validation stricte (rien de deviné), puis on se déplace.
       if (!s.commitEdit('stay', undefined, true)) {
-        const err = st().editing?.error ?? '';
-        st().cancelEdit();
-        st().setMessage(`Saisie non appliquée : ${err}`, 'warn');
+        // Saisie incomplète : rien n'est perdu, la saisie reste ouverte avec son explication.
+        st().setMessage(`Saisie à terminer : ${st().editing?.error ?? ''} (↩ pour choisir la suggestion, esc pour annuler)`, 'warn');
+        document.querySelector<HTMLInputElement>('.editor input')?.focus();
+        return;
       }
+      focusGrid();
       s = st();
       s.setCursor({ planId: plan.id, setupId, col });
       return;
@@ -457,7 +480,7 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
               id={cellId(setup.id, 'image')}
               role="gridcell"
               className={cls('image', 'img')}
-              onMouseDown={(e) => select(setup.id, 'image', e.shiftKey)}
+              onMouseDown={(e) => select(e, setup.id, 'image')}
               onDoubleClick={() => st().openPreview(plan.id)}
               onDragOver={(e) => {
                 e.preventDefault();
@@ -477,7 +500,7 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
               id={cellId(setup.id, 'action')}
               role="gridcell"
               className={cls('action', `action ${first ? (plan.action ? '' : req.action ? 'missing' : 'empty') : 'dim'}`)}
-              onMouseDown={(e) => select(setup.id, 'action', e.shiftKey)}
+              onMouseDown={(e) => select(e, setup.id, 'action')}
               onDoubleClick={() => st().startEdit()}
               title={first ? plan.action : ''}
             >
@@ -498,7 +521,7 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
                   id={cellId(setup.id, col)}
                   role="gridcell"
                   className={cls(col, flags)}
-                  onMouseDown={(e) => select(setup.id, col, e.shiftKey)}
+                  onMouseDown={(e) => select(e, setup.id, col)}
                   onDoubleClick={() => st().startEdit()}
                   title={txt}
                 >

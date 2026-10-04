@@ -5,7 +5,7 @@ import { locatePlan } from '../model/ops';
 import { computeNumbers } from '../model/numbering';
 import { imageStore } from '../platform/images';
 import type { DayNight, IntExt } from '../model/types';
-import { focusGrid } from './focus';
+import { focusGrid, isComposing, useDialogFocus } from './focus';
 import { summarizeSequence } from '../model/summary';
 
 export function Preview() {
@@ -45,7 +45,7 @@ const SHORTCUTS: { title: string; items: [string, string][] }[] = [
       ['Premier / dernier plan', '⌘↑ / ⌘↓'],
       ['Début / fin de ligne', '⌘← / ⌘→'],
       ['Sélectionner plusieurs cellules', '⇧ + flèches, ⇧ + clic'],
-      ['Vue Tableau / Fiches', '⌘1 / ⌘2'],
+      ['Vue Tableau / Fiches / Plans au sol', '⌘1 / ⌘2 / ⌘3'],
       ['Afficher / masquer Détails', '⌘I'],
     ],
   },
@@ -79,6 +79,25 @@ const SHORTCUTS: { title: string; items: [string, string][] }[] = [
       ['Aperçu de l’image', 'espace'],
       ['Annuler / rétablir', '⌘Z / ⇧⌘Z'],
       ['Cette aide', '?'],
+    ],
+  },
+  {
+    title: 'Projet',
+    items: [
+      ['Nouveau projet / ouvrir', '⌘N / ⌘O'],
+      ['Enregistrer (automatique)', '⌘S'],
+      ['Exporter (PDF, Excel, CSV)', '⌘E'],
+      ['Importer un scénario', '⇧⌘I'],
+      ['Réglages du projet', '⌘,'],
+    ],
+  },
+  {
+    title: 'Plans au sol',
+    items: [
+      ['Outils : sélection, caméra, personnage, texte', 'V C P T'],
+      ['Échelle / mesure', 'E / M'],
+      ['Tout afficher / zoomer', '0 / + −'],
+      ['Supprimer l’élément', '⌫'],
     ],
   },
 ];
@@ -131,6 +150,7 @@ export function DropChoice() {
   useEffect(() => {
     first.current?.focus();
   }, [pending]);
+  const dlg = useDialogFocus<HTMLDivElement>(!!pending);
   if (!pending) return null;
   const code = computeNumbers(doc).get(pending.planId)?.code ?? '';
   const st = useApp.getState;
@@ -141,6 +161,8 @@ export function DropChoice() {
   const n = pending.files.length;
   return (
     <div
+      ref={dlg}
+      tabIndex={-1}
       className="overlay"
       role="dialog"
       aria-modal="true"
@@ -183,6 +205,7 @@ export function SequenceDialog() {
     firstField.current?.focus();
     firstField.current?.select();
   }, [id]);
+  const dlg = useDialogFocus<HTMLDivElement>(!!id);
   if (!id || !seq) return null;
   const st = useApp.getState;
   const idx = doc.sequences.indexOf(seq);
@@ -194,13 +217,19 @@ export function SequenceDialog() {
   const upd = (key: string, fn: Parameters<ReturnType<typeof st>['updateSequence']>[1]) => st().updateSequence(seq.id, fn, `seq:${seq.id}:${key}`);
   return (
     <div
+      ref={dlg}
+      tabIndex={-1}
       className="overlay"
       role="dialog"
       aria-modal="true"
       aria-label={`Séquence ${seq.number}`}
       onKeyDown={(e) => {
         e.stopPropagation();
-        if (e.key === 'Escape' || (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT')) close();
+        if (e.key === 'Escape') close();
+        else if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
+          if (isComposing(e)) setTimeout(close, 60);
+          else close();
+        }
       }}
       onClick={close}
     >

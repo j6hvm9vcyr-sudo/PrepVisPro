@@ -92,3 +92,38 @@ test('plan au sol : fond, mise à l’échelle, caméra du découpage avec son c
   await expect(page.getByText('Exporté :', { exact: true })).toBeVisible();
   copyFileSync(await (await dl3).path(), 'test-results/15-decoupage-avec-plan.pdf');
 });
+
+test('plan au sol : fond PDF (plan d’architecte), texte saisi au clavier, champs décimaux à la française', async ({ page }) => {
+  await page.goto('/?exemple');
+  await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
+  await page.keyboard.press('ControlOrMeta+3');
+  await page.getByLabel('Créer un plan au sol pour la séquence').selectOption({ label: '1 — Quai de gare' });
+  const chooser = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Importer le plan du décor…' }).click();
+  await (await chooser).setFiles(resolve('e2e/plan-decor.pdf'));
+  await expect(page.locator('.floor-canvas image')).toHaveCount(1, { timeout: 15000 });
+  await expect(page.getByText(/Import du fond impossible/)).toHaveCount(0);
+  const img = (await page.locator('.floor-canvas image').boundingBox())!;
+  expect(img.width / img.height).toBeCloseTo(1.5, 1);
+
+  // Échelle : le champ de distance prend le focus tout seul.
+  await page.mouse.click(img.x + img.width * 0.1, img.y + img.height * 0.2);
+  await page.mouse.click(img.x + img.width * 0.9, img.y + img.height * 0.2);
+  await expect(page.getByLabel('Distance en mètres')).toBeFocused();
+  await page.keyboard.type('8,5');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.floor-scalebar')).toBeVisible();
+
+  // Texte : placé puis tapé directement.
+  const canvas = page.getByRole('application', { name: 'Plan au sol' });
+  await canvas.press('t');
+  await page.mouse.click(img.x + img.width * 0.5, img.y + img.height * 0.5);
+  await page.keyboard.type('Camion');
+  await expect(page.locator('.floor-canvas text', { hasText: 'Camion' })).toBeVisible();
+
+  // Longueur des champs (réglage du plan, sans élément sélectionné) : « 2,5 » accepté.
+  await canvas.press('Escape');
+  await page.getByLabel('Longueur des champs caméra en mètres').fill('2,5');
+  await page.keyboard.press('Enter');
+  await expect(page.getByLabel('Longueur des champs caméra en mètres')).toHaveValue('2,5');
+});

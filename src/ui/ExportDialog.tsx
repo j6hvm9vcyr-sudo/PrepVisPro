@@ -5,7 +5,7 @@ import { ALL_COLUMNS, BUILTIN_PRESETS, COLUMN_DEFS, type ColumnId, type ExportOp
 import { allPresets, deleteUserPreset, lastUsed, rememberLast, sameOptions, saveUserPreset } from '../export/presets';
 import { buildExport, floorPlansFor, saveExport, type ExportFormat } from '../export/service';
 import { getBackend } from '../platform/backend';
-import { focusGrid } from './focus';
+import { focusGrid, useDialogFocus } from './focus';
 
 type Busy = { format: ExportFormat; progress: string } | null;
 type Done = { path: string; format: ExportFormat; failedImages: number; failedFloors: string[] } | null;
@@ -20,6 +20,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   const [done, setDone] = useState<Done>(null);
   const [error, setError] = useState<string | null>(null);
   const [naming, setNaming] = useState<string | null>(null);
+  const dlg = useDialogFocus<HTMLDivElement>();
   const preset = presets.find((p) => p.id === presetId);
   const modified = !preset || !sameOptions(preset.options, opts);
   const presetName = modified ? 'personnalisé' : preset!.name;
@@ -78,6 +79,8 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <div
+      ref={dlg}
+      tabIndex={-1}
       className="overlay"
       role="dialog"
       aria-modal="true"

@@ -3,7 +3,7 @@ import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
 import { applyImport, planImport, type SceneStatus } from '../import/merge';
 import { stripColors } from './strip';
-import { focusGrid } from './focus';
+import { focusGrid, useDialogFocus } from './focus';
 
 const STATUS_LABEL: Record<SceneStatus, string> = { new: 'Nouvelle', changed: 'Modifiée', same: 'Identique' };
 
@@ -13,6 +13,7 @@ export function ImportDialog() {
   const plan = useMemo(() => (importing ? planImport(doc, importing.scenes) : null), [doc, importing]);
   const [include, setInclude] = useState<Set<string> | null>(null);
   const [headings, setHeadings] = useState(false);
+  const dlg = useDialogFocus<HTMLDivElement>(!!importing);
   if (!importing || !plan) return null;
   const actionable = plan.changes.filter((c) => c.status !== 'same');
   const selected = include ?? new Set(actionable.map((c) => c.scene.number));
@@ -37,6 +38,8 @@ export function ImportDialog() {
 
   return (
     <div
+      ref={dlg}
+      tabIndex={-1}
       className="overlay"
       role="dialog"
       aria-modal="true"

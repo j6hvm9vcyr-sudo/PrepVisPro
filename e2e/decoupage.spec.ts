@@ -170,3 +170,65 @@ test('menu contextuel : supprimer un plan, puis annuler', async ({ page }) => {
   await page.keyboard.press('ControlOrMeta+z');
   await expect(page.locator('.line.first')).toHaveCount(before);
 });
+
+test('Entrée valide aussi pendant une composition (accents, texte prédictif de macOS)', async ({ page }) => {
+  // Première lettre : ouvre la saisie.
+  await page.keyboard.type('p');
+  const input = page.getByLabel('Saisie');
+  await expect(input).toBeFocused();
+  // Suite tapée en « composition » (texte marqué), puis Entrée avant la fin de composition.
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Input.imeSetComposition', { text: 'oi', selectionStart: 2, selectionEnd: 2 });
+  await expect(input).toHaveValue('poi');
+  await page.keyboard.press('Enter');
+  await expect(cell(page, 0, 'size')).toHaveText('Poitrine');
+  await expect(cell(page, 1, 'size')).toHaveClass(/active/);
+  await expect(input).toHaveCount(0);
+});
+
+test('clic sur la cellule active : la saisie s’ouvre et reste ouverte ; clic droit n’édite pas', async ({ page }) => {
+  await cell(page, 0, 'size').click();
+  await cell(page, 0, 'size').click();
+  const input = page.getByLabel('Saisie');
+  await expect(input).toBeFocused();
+  await expect(input).toHaveValue('Ensemble');
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('po');
+  await page.keyboard.press('Enter');
+  await expect(cell(page, 0, 'size')).toHaveText('Poitrine');
+  // Valeur identique validée : pas d'étape d'annulation fantôme.
+  await cell(page, 1, 'axis').click({ button: 'right' });
+  await expect(page.getByRole('menu')).toBeVisible();
+  await expect(input).toHaveCount(0);
+  await page.keyboard.press('Escape');
+});
+
+test('saisie incomplète puis clic ailleurs : rien n’est perdu', async ({ page }) => {
+  await page.keyboard.type('pa');
+  await expect(page.getByLabel('Saisie')).toHaveValue('pa');
+  await cell(page, 2, 'axis').click();
+  // « pa » ne correspond à aucun terme exact : la saisie reste ouverte.
+  await expect(page.getByLabel('Saisie')).toHaveValue('pa');
+  await expect(page.getByText(/Saisie à terminer/)).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByLabel('Saisie')).toHaveCount(0);
+});
+
+test('fenêtres Réglages et Export : Esc ferme, et le clavier ne touche pas au tableau derrière', async ({ page }) => {
+  await page.keyboard.press('ControlOrMeta+e');
+  await expect(page.getByRole('dialog', { name: 'Exporter' })).toBeVisible();
+  await page.keyboard.press('Backspace');
+  await page.keyboard.type('x');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Exporter' })).toHaveCount(0);
+  await expect(cell(page, 0, 'size')).toHaveText('Ensemble');
+  await expect(page.getByLabel('Saisie')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Réglages' }).click();
+  await expect(page.getByRole('dialog', { name: 'Réglages du projet' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Réglages du projet' })).toHaveCount(0);
+  // Le clavier revient au tableau.
+  await page.keyboard.press('ArrowRight');
+  await expect(cell(page, 0, 'axis')).toHaveClass(/active/);
+});
