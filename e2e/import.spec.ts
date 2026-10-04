@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 const FDX = `<?xml version="1.0" encoding="UTF-8"?>
 <FinalDraft DocumentType="Script" Template="No" Version="5"><Content>
@@ -35,4 +37,25 @@ test('importer un scénario dans le projet : aperçu, ajout dans l’ordre, text
   await expect(page.getByLabel('Texte de la scène 1')).toHaveValue(/Le train arrive/);
   await page.keyboard.press('ControlOrMeta+z');
   await expect(page.locator('.band .num')).toHaveCount(4);
+});
+
+test('nouveau projet depuis un scénario en texte (Fountain) ou en PDF', async ({ page }) => {
+  await page.goto('/');
+  const open = async (file: { name: string; mimeType: string; buffer: Buffer }) => {
+    const chooser = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: 'Nouveau projet depuis un scénario…' }).click();
+    await (await chooser).setFiles(file);
+  };
+  const txt = `Title: Le Quai\n\n1. INT. CHAMBRE D'AXEL - NUIT\n\nAxel ne dort pas.\n\n2. EXT. QUAI DE GARE - JOUR\n\nLe train entre en gare.\n`;
+  await open({ name: 'Le Quai.fountain', mimeType: 'text/plain', buffer: Buffer.from(txt) });
+  await expect(page.locator('.band .num')).toHaveText(['SÉQ. 1', 'SÉQ. 2']);
+  await expect(page.locator('.band .ttl')).toHaveText(["INT. CHAMBRE D'AXEL — NUIT", 'EXT. QUAI DE GARE — JOUR']);
+  await expect(page.locator('.toolbar .title b')).toHaveText('Le Quai');
+
+  // PDF de scénario (numéros dans les deux marges, deux pages).
+  await page.goto('/');
+  await open({ name: 'scenario.pdf', mimeType: 'application/pdf', buffer: readFileSync(resolve('e2e/scenario.pdf')) });
+  await expect(page.locator('.band .num')).toHaveText(['SÉQ. 1', 'SÉQ. 2', 'SÉQ. 3A']);
+  await expect(page.locator('.band .ttl').nth(2)).toHaveText('INT. CUISINE — JOUR');
+  await expect(page.locator('.toolbar .title b')).toHaveText('scenario');
 });

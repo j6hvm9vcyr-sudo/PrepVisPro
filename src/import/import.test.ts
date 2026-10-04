@@ -105,3 +105,102 @@ describe('intégration dans un projet', () => {
     expect(planImport(doc(() => []), s).duplicates).toEqual(['1']);
   });
 });
+
+// ------------------------------------------------------------------ formats texte, Word, PDF
+import { matchHeading, parsePlainScript } from './plain';
+import { parseScriptFile, decodeText } from './script';
+import JSZip from 'jszip';
+
+describe('en-têtes de scène dans un texte', () => {
+  it('formats courants, français et anglais', () => {
+    expect(matchHeading('12. INT. CUISINE - JOUR')).toEqual({ number: '12', heading: 'INT. CUISINE - JOUR' });
+    expect(matchHeading('12A INT. CUISINE - JOUR 12A')).toEqual({ number: '12A', heading: 'INT. CUISINE - JOUR' });
+    expect(matchHeading('SÉQ. 3 – EXT. RUE – NUIT')).toEqual({ number: '3', heading: 'EXT. RUE – NUIT' });
+    expect(matchHeading('INT./EXT. VOITURE - NUIT #7#')).toEqual({ number: '7', heading: 'INT./EXT. VOITURE - NUIT' });
+    expect(matchHeading('.CAVE DU CHÂTEAU')).toEqual({ number: null, heading: 'CAVE DU CHÂTEAU' });
+    expect(matchHeading('EXTÉRIEUR JOUR - PLAGE')).toEqual({ number: null, heading: 'EXTÉRIEUR JOUR - PLAGE' });
+  });
+  it('jamais une phrase du récit', () => {
+    expect(matchHeading('Intérieurement, elle sait qu’il ment.')).toBeNull();
+    expect(matchHeading('Int. il fait nuit dans la cuisine')).toBeNull();
+    expect(matchHeading('EXTRA : il sort.')).toBeNull();
+    expect(matchHeading('')).toBeNull();
+  });
+  it('effet avant le décor, à la française', () => {
+    expect(parseHeading('INT. JOUR - CUISINE')).toMatchObject({ intExt: 'INT', dayNight: 'JOUR', location: 'CUISINE', doubts: [] });
+    expect(parseHeading('EXT NUIT PARKING')).toMatchObject({ intExt: 'EXT', dayNight: 'NUIT', location: 'PARKING', doubts: [] });
+    expect(parseHeading('INT. CUISINE. NUIT')).toMatchObject({ dayNight: 'NUIT', location: 'CUISINE', doubts: [] });
+    expect(parseHeading('EST. QUAI DE GARE - AUBE')).toMatchObject({ intExt: 'EXT', dayNight: 'JOUR', effect: 'AUBE', location: 'QUAI DE GARE' });
+    expect(parseHeading('INT. CUISINE - SALLE')).toMatchObject({ location: 'CUISINE - SALLE', doubts: ['jour/nuit non précisé'] });
+  });
+});
+
+const SCRIPT_TXT = `Title: Le Quai
+Author: X
+
+1. INT. CHAMBRE D'AXEL - NUIT
+
+Axel ne dort pas.
+
+AXEL
+(bas)
+Encore elle.
+
+2. EXT. QUAI DE GARE - JOUR
+
+Le train entre en gare.
+`;
+
+describe('scénario en texte (Fountain, texte brut)', () => {
+  it('scènes, numéros, texte, titre', () => {
+    const r = parsePlainScript(SCRIPT_TXT);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.title).toBe('Le Quai');
+    expect(r.scenes.map((s) => [s.number, s.parsed.intExt, s.location, s.parsed.dayNight])).toEqual([
+      ['1', 'INT', "CHAMBRE D'AXEL", 'NUIT'],
+      ['2', 'EXT', 'QUAI DE GARE', 'JOUR'],
+    ]);
+    expect(r.scenes[0]!.text).toBe('Axel ne dort pas.\n\nAXEL\n(bas)\nEncore elle.');
+  });
+  it('scènes non numérotées : numéro d’ordre ; texte sans en-tête : refusé', () => {
+    const r = parsePlainScript('INT. A - JOUR\nx\nEXT. B - NUIT\ny');
+    expect(r.ok && r.scenes.map((s) => [s.number, s.numbered])).toEqual([
+      ['1', false],
+      ['2', false],
+    ]);
+    expect(parsePlainScript('Une lettre, pas un scénario.').ok).toBe(false);
+  });
+  it('PDF : suites de page et numéros de page retirés', () => {
+    const r = parsePlainScript('3 INT. SALON - SOIR 3\nIls dînent.\n(SUITE)\n12.\nElle se lève.', { pdf: true });
+    expect(r.ok && r.scenes[0]).toMatchObject({ number: '3', location: 'SALON', text: 'Ils dînent.\nElle se lève.' });
+  });
+  it('encodage : UTF-8, sinon Windows-1252', () => {
+    expect(decodeText(new TextEncoder().encode('Été'))).toBe('Été');
+    expect(decodeText(Uint8Array.from([0x45, 0x74, 0xe9]))).toBe('Eté');
+  });
+});
+
+describe('scénario Word et reconnaissance du format', () => {
+  it('Word (.docx) : paragraphes lus, révisions supprimées ignorées', async () => {
+    const zip = new JSZip();
+    const p = (t: string) => `<w:p><w:r><w:t xml:space="preserve">${t}</w:t></w:r></w:p>`;
+    zip.file(
+      'word/document.xml',
+      `<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${p('1. INT. CUISINE - JOUR')}${p('Elle coupe du pain.')}<w:p><w:del><w:r><w:t>BIFFÉ</w:t></w:r></w:del></w:p>${p('2. EXT. JARDIN - NUIT')}${p('Il fume.')}</w:body></w:document>`,
+    );
+    const bytes = await zip.generateAsync({ type: 'uint8array' });
+    const r = await parseScriptFile({ name: 'scenario.docx', bytes });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.scenes.map((s) => s.location)).toEqual(['CUISINE', 'JARDIN']);
+    expect(r.scenes[0]!.text).toBe('Elle coupe du pain.');
+  });
+  it('Final Draft reconnu au contenu ; faux PDF et faux Word refusés', async () => {
+    const enc = (t: string) => new TextEncoder().encode(t);
+    expect((await parseScriptFile({ name: 'scenario.fdx', bytes: enc(FDX) })).ok).toBe(true);
+    expect((await parseScriptFile({ name: 'scenario.pdf', bytes: enc('pas un pdf') })).ok).toBe(false);
+    expect((await parseScriptFile({ name: 'scenario.docx', bytes: enc('pas un docx') })).ok).toBe(false);
+    expect((await parseScriptFile({ name: 'scenario.txt', bytes: enc(SCRIPT_TXT) })).ok).toBe(true);
+  });
+});

@@ -203,8 +203,8 @@ fn export_write(request: Request<'_>) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn script_read(path: String) -> Result<String, String> {
-    storage::read_script(Path::new(&path))
+fn script_read(path: String) -> Result<tauri::ipc::Response, String> {
+    storage::read_script(Path::new(&path)).map(tauri::ipc::Response::new)
 }
 
 /// Ouvre un fichier avec l'application par défaut (Aperçu, Excel…).
@@ -289,7 +289,7 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
         .item(&item("file_save", "Enregistrer", "CmdOrCtrl+S")?)
         .item(&plain("file_reveal", "Afficher dans le Finder")?)
         .separator()
-        .item(&item("file_import_script", "Importer un scénario (Final Draft)…", "CmdOrCtrl+Shift+I")?)
+        .item(&item("file_import_script", "Importer un scénario…", "CmdOrCtrl+Shift+I")?)
         .item(&item("file_versions", "Versions…", "CmdOrCtrl+Shift+S")?)
         .item(&item("file_export", "Exporter…", "CmdOrCtrl+E")?)
         .separator()

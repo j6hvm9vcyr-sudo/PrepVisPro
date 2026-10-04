@@ -61,7 +61,7 @@ export function ImportDialog() {
 
         {blocked && (
           <div className="welcome-error" role="alert">
-            Numéros de scène en double dans le scénario : {plan.duplicates.join(', ')}. Corrigez la numérotation dans Final Draft avant d’importer : sinon les séquences ne
+            Numéros de scène en double dans le scénario : {plan.duplicates.join(', ')}. Corrigez la numérotation du scénario avant d’importer : sinon les séquences ne
             peuvent pas être rapprochées sans risque.
           </div>
         )}
@@ -82,7 +82,7 @@ export function ImportDialog() {
                 <span className="mono" style={{ fontWeight: 600 }}>
                   {c.scene.number}
                   {!c.scene.numbered && (
-                    <small className="note" title="Scène non numérotée dans Final Draft : numéro d’ordre">
+                    <small className="note" title="Scène non numérotée dans le scénario : numéro d’ordre">
                       {' '}
                       (ordre)
                     </small>

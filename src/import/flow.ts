@@ -4,13 +4,13 @@ import { getBackend } from '../platform/backend';
 import { useApp } from '../state/appStore';
 import { newProject } from '../model/defaults';
 import { newProjectWithDoc } from '../state/project';
-import { parseFdx } from './fdx';
+import { parseScriptFile, type ScriptFile } from './script';
 import { applyImport, planImport } from './merge';
 
 /** Importer dans le projet ouvert : ouvre l'aperçu, rien n'est modifié avant validation. */
 export async function startScriptImport(): Promise<void> {
   const b = await getBackend();
-  let picked: { name: string; text: string } | null;
+  let picked: ScriptFile | null;
   try {
     picked = await b.pickScript();
   } catch (e) {
@@ -18,7 +18,7 @@ export async function startScriptImport(): Promise<void> {
     return;
   }
   if (!picked) return;
-  const r = parseFdx(picked.text);
+  const r = await parseScriptFile(picked);
   if (!r.ok) {
     await b.alert('Import impossible', `« ${picked.name} » : ${r.error}`);
     useApp.getState().setMessage(`Import impossible : ${r.error}`, 'warn');
@@ -35,12 +35,12 @@ export async function newProjectFromScript(): Promise<void> {
     return null;
   });
   if (!picked) return;
-  const r = parseFdx(picked.text);
+  const r = await parseScriptFile(picked);
   if (!r.ok) {
     await b.alert('Import impossible', `« ${picked.name} » : ${r.error}`);
     return;
   }
-  const title = r.title || picked.name.replace(/\.fdx$/i, '');
+  const title = r.title || picked.name.replace(/\.[a-z0-9]+$/i, '');
   const empty = produce(newProject(title), (d) => {
     d.sequences = [];
   });

@@ -3,6 +3,7 @@
  * - Tauri (application Mac) : vrais fichiers, via les commandes Rust (src-tauri/src/lib.rs) ;
  * - mémoire : navigateur et tests (rien n'est écrit sur disque).
  */
+import { SCRIPT_EXTENSIONS, SCRIPT_FORMATS, type ScriptFile } from '../import/script';
 import { isTauri } from './env';
 
 export interface Backend {
@@ -30,8 +31,8 @@ export interface Backend {
   pickExportPath(defaultName: string, ext: 'pdf' | 'xlsx' | 'csv' | 'png'): Promise<string | null>;
   writeExport(path: string, bytes: Uint8Array): Promise<void>;
   openFile(path: string): Promise<void>;
-  /** Choisit et lit un scénario Final Draft ; null si annulé. */
-  pickScript(): Promise<{ name: string; text: string } | null>;
+  /** Choisit et lit un scénario (Final Draft, Fountain, texte, Word, PDF) ; null si annulé. */
+  pickScript(): Promise<ScriptFile | null>;
   alert(title: string, text: string): Promise<void>;
   confirm(title: string, text: string, ok: string, cancel: string): Promise<boolean>;
   quitNow(): Promise<void>;
@@ -161,11 +162,11 @@ class TauriBackend implements Backend {
 
   async pickScript() {
     const { open } = await this.dialog();
-    const p = await open({ title: 'Importer un scénario', multiple: false, directory: false, filters: [{ name: 'Final Draft', extensions: ['fdx'] }] });
+    const p = await open({ title: 'Importer un scénario', multiple: false, directory: false, filters: [{ name: `Scénario (${SCRIPT_FORMATS})`, extensions: SCRIPT_EXTENSIONS }] });
     if (typeof p !== 'string') return null;
     const { invoke } = await this.core();
-    const text = await invoke<string>('script_read', { path: p });
-    return { name: p.split('/').pop() ?? p, text };
+    const bytes = new Uint8Array(await invoke<ArrayBuffer>('script_read', { path: p }));
+    return { name: p.split('/').pop() ?? p, bytes };
   }
 
   async alert(title: string, text: string) {
@@ -309,16 +310,16 @@ export class MemoryBackend implements Backend {
   async openFile() {}
   /** Pour les tests : prochain scénario « choisi ». */
   nextScript: { name: string; text: string } | null = null;
-  async pickScript() {
-    if (this.nextScript) return this.nextScript;
+  async pickScript(): Promise<ScriptFile | null> {
+    if (this.nextScript) return { name: this.nextScript.name, bytes: new TextEncoder().encode(this.nextScript.text) };
     // Navigateur : sélecteur de fichier classique.
-    return new Promise<{ name: string; text: string } | null>((resolve) => {
+    return new Promise<ScriptFile | null>((resolve) => {
       const input = document.createElement('input');
       input.type = 'file';
-      input.accept = '.fdx';
+      input.accept = SCRIPT_EXTENSIONS.map((e) => `.${e}`).join(',');
       input.onchange = async () => {
         const f = input.files?.[0];
-        resolve(f ? { name: f.name, text: await f.text() } : null);
+        resolve(f ? { name: f.name, bytes: new Uint8Array(await f.arrayBuffer()) } : null);
       };
       input.click();
     });

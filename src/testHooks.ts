@@ -35,7 +35,7 @@ export async function install() {
     },
     async readScript(path: string) {
       const { invoke } = await import('@tauri-apps/api/core');
-      return invoke<string>('script_read', { path });
+      return new TextDecoder().decode(new Uint8Array(await invoke<ArrayBuffer>('script_read', { path })));
     },
     /** Importe un dossier d'icônes sans boîte de dialogue ; renvoie la bibliothèque et l'URL de la 1re icône. */
     async importIconsFrom(path: string) {

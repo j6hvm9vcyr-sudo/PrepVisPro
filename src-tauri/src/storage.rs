@@ -257,18 +257,21 @@ pub fn write_export(path: &Path, bytes: &[u8]) -> Result<()> {
     atomic_write(path, bytes)
 }
 
-/// Lit un scénario (Final Draft .fdx) choisi par l'utilisateur. Taille limitée à 20 Mo.
-pub fn read_script(path: &Path) -> Result<String> {
+/// Formats de scénario acceptés à l'import.
+pub const SCRIPT_EXTENSIONS: [&str; 7] = ["fdx", "xml", "fountain", "txt", "md", "docx", "pdf"];
+
+/// Lit un scénario choisi par l'utilisateur (octets bruts, décodés côté interface selon le format).
+/// Taille limitée à 50 Mo (un PDF de scénario avec images reste bien en dessous).
+pub fn read_script(path: &Path) -> Result<Vec<u8>> {
     let ext = path.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
-    if !["fdx", "xml"].contains(&ext.as_str()) {
-        return Err("Format de scénario non pris en charge (attendu : Final Draft .fdx)".into());
+    if !SCRIPT_EXTENSIONS.contains(&ext.as_str()) {
+        return Err("Format de scénario non pris en charge (Final Draft, Fountain, texte, Word ou PDF)".into());
     }
     let meta = fs::metadata(path).map_err(err("Scénario introuvable"))?;
-    if meta.len() > 20 * 1024 * 1024 {
+    if meta.len() > 50 * 1024 * 1024 {
         return Err("Fichier trop lourd pour un scénario".into());
     }
-    let bytes = fs::read(path).map_err(err("Lecture du scénario impossible"))?;
-    String::from_utf8(bytes).map_err(|_| "Le scénario n'est pas encodé en UTF-8".into())
+    fs::read(path).map_err(err("Lecture du scénario impossible"))
 }
 
 /// Normalise le chemin choisi : un fichier project.json désigne son dossier.

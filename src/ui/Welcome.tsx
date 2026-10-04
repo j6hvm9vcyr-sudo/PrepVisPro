@@ -88,7 +88,7 @@ export function Welcome() {
 
         <div className="welcome-foot">
           <button type="button" className="linkbtn" onClick={() => void newProjectFromScript()} style={{ display: 'block', marginBottom: 6 }}>
-            Nouveau projet depuis un scénario Final Draft…
+            Nouveau projet depuis un scénario…
           </button>
           {mac ? (
             <button type="button" className="linkbtn" onClick={() => void openSample()}>
