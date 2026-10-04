@@ -74,7 +74,28 @@ export function DecoupageTable() {
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const st = useApp.getState();
-    if (st.editing) return;
+    if (st.editing) {
+      // Frappe rapide : les touches arrivées avant que le champ de saisie n'ait le focus
+      // ne doivent pas être perdues.
+      if (e.target !== e.currentTarget || e.metaKey || e.ctrlKey || e.altKey || e.nativeEvent.isComposing) return;
+      if (e.key.length === 1) {
+        e.preventDefault();
+        st.setEditText(st.editing.text + e.key);
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        st.setEditText(st.editing.text.slice(0, -1));
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        st.commitEdit('down');
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        st.commitEdit(e.shiftKey ? 'left' : 'right');
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        st.cancelEdit();
+      }
+      return;
+    }
     // Une fenêtre superposée (aperçu, aide…) a la main sur le clavier.
     if (st.preview || st.showShortcuts || st.pendingDrop || st.editingSequenceId) return;
     if (e.nativeEvent.isComposing) return;

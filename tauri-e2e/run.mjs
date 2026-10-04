@@ -14,10 +14,26 @@ const work = mkdtempSync(join(tmpdir(), 'prepvis-e2e-'));
 const projectDir = join(work, 'Film test.prepvis');
 
 let failures = 0;
+const CI = !!process.env.GITHUB_ACTIONS;
 const ok = (cond, label) => {
   console.log(`${cond ? '✓' : '✘'} ${label}`);
+  // En CI, chaque échec devient une annotation lisible via l'API GitHub.
+  if (!cond && CI) console.log(`::error title=Application réelle::${label.replace(/\n/g, ' ')}`);
   if (!cond) failures++;
 };
+/** Attend qu'une condition soit vraie (au lieu de délais fixes, fragiles sur une machine lente). */
+async function waitFor(fn, timeoutMs = 10000, step = 100) {
+  const t0 = Date.now();
+  for (;;) {
+    try {
+      if (await fn()) return true;
+    } catch {
+      /* on réessaie */
+    }
+    if (Date.now() - t0 > timeoutMs) return false;
+    await new Promise((r) => setTimeout(r, step));
+  }
+}
 
 async function wd(method, path, body) {
   const r = await fetch(BASE + path, { method, headers: { 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
@@ -57,20 +73,20 @@ try {
   ok(created === true, 'nouveau projet créé');
   ok(existsSync(join(projectDir, 'project.json')), 'project.json écrit sur disque');
   ok(existsSync(join(projectDir, 'images')) && existsSync(join(projectDir, 'backups')), 'dossiers images et backups créés');
-  await sleep(300);
+  await waitFor(async () => (await exec('return !!document.querySelector("[role=grid]");')) === true);
 
   // Saisie au clavier réelle dans la cellule Valeur.
   await exec('document.querySelector("[role=grid]").focus(); return true;');
   await keys('poi');
   await keys(''); // Entrée
-  await sleep(200);
+  await waitFor(async () => (await exec('return window.__prepvis.doc().sequences[0].plans[0].cameras[0].start.size;')) === 'Poitrine', 5000);
   const size = await exec('return window.__prepvis.doc().sequences[0].plans[0].cameras[0].start.size;');
   ok(size === 'Poitrine', `saisie clavier appliquée (${size})`);
 
   // Enregistrement automatique.
-  await sleep(1500);
-  const onDisk = JSON.parse(readFileSync(join(projectDir, 'project.json'), 'utf8'));
-  ok(onDisk.sequences[0].plans[0].cameras[0].start.size === 'Poitrine', 'enregistrement automatique sur disque');
+  const saved = await waitFor(() => JSON.parse(readFileSync(join(projectDir, 'project.json'), 'utf8')).sequences[0].plans[0].cameras[0].start.size === 'Poitrine');
+  ok(saved, 'enregistrement automatique sur disque');
+  await waitFor(async () => (await exec('return window.__prepvis.project().status;')) === 'saved');
   ok((await exec('return window.__prepvis.project().status;')) === 'saved', 'état « Enregistré »');
 
   // Image : écriture via IPC binaire, affichage via le protocole asset.
@@ -135,7 +151,7 @@ try {
   await exec('const st = window.__prepvis.app(); st.startEdit(""); st.setEditText("GP"); st.commitEdit("stay"); return true;');
   // Comme un clic sur le bouton rouge de la fenêtre.
   await exec('window.__prepvis.closeWindow().catch((e) => console.error(e)); return true;').catch(() => {});
-  await sleep(2500);
+  await waitFor(() => JSON.parse(readFileSync(join(projectDir, 'project.json'), 'utf8')).sequences[0].plans.some((p) => p.cameras[0].start.size === 'GP'), 15000);
   const final = JSON.parse(readFileSync(join(projectDir, 'project.json'), 'utf8'));
   const sizes = final.sequences[0].plans.map((p) => p.cameras[0].start.size);
   ok(sizes.includes('GP'), `modification enregistrée à la fermeture (${sizes.join(', ')})`);
