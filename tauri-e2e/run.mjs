@@ -56,6 +56,8 @@ try {
   }
   const session = await wd('POST', '/session', { capabilities: { alwaysMatch: { 'tauri:options': { application: APP } } } });
   const sid = session.sessionId;
+  // Machines d'intégration parfois lentes : délai généreux pour les scripts asynchrones.
+  await wd('POST', `/session/${sid}/timeouts`, { script: 120000 }).catch(() => {});
   const exec = (script, args = []) => wd('POST', `/session/${sid}/execute/async`, { script: `const done = arguments[arguments.length - 1]; (async () => { ${script} })().then(done, (e) => done({ __error: String(e && e.message || e) }));`, args });
   const keys = (text) => wd('POST', `/session/${sid}/actions`, { actions: [{ type: 'key', id: 'k', actions: [...text].flatMap((c) => [{ type: 'keyDown', value: c }, { type: 'keyUp', value: c }]) }] });
 
@@ -202,6 +204,7 @@ try {
   }
 } catch (e) {
   console.error('✘ erreur :', e.message);
+  if (CI) console.log(`::error title=Application réelle (exception)::${String(e.message).replace(/\n/g, ' ').slice(0, 900)}`);
   failures++;
 } finally {
   driver.kill();
