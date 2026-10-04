@@ -14,6 +14,8 @@ const work = mkdtempSync(join(tmpdir(), 'prepvis-e2e-'));
 const projectDir = join(work, 'Film test.prepvis');
 
 let failures = 0;
+/** Dernier script envoyé à l'application (pour situer un blocage). */
+let lastScript = '';
 const CI = !!process.env.GITHUB_ACTIONS;
 const ok = (cond, label) => {
   console.log(`${cond ? '✓' : '✘'} ${label}`);
@@ -58,7 +60,7 @@ try {
   const sid = session.sessionId;
   // Machines d'intégration parfois lentes : délai généreux pour les scripts asynchrones.
   await wd('POST', `/session/${sid}/timeouts`, { script: 120000 }).catch(() => {});
-  const exec = (script, args = []) => wd('POST', `/session/${sid}/execute/async`, { script: `const done = arguments[arguments.length - 1]; (async () => { ${script} })().then(done, (e) => done({ __error: String(e && e.message || e) }));`, args });
+  const exec = (script, args = []) => ((lastScript = script.replace(/\s+/g, ' ').slice(0, 160)), wd('POST', `/session/${sid}/execute/async`, { script: `const done = arguments[arguments.length - 1]; (async () => { ${script} })().then(done, (e) => done({ __error: String(e && e.message || e) }));`, args }));
   const keys = (text) => wd('POST', `/session/${sid}/actions`, { actions: [{ type: 'key', id: 'k', actions: [...text].flatMap((c) => [{ type: 'keyDown', value: c }, { type: 'keyUp', value: c }]) }] });
 
   // Attendre l'interface.
@@ -204,7 +206,7 @@ try {
   }
 } catch (e) {
   console.error('✘ erreur :', e.message);
-  if (CI) console.log(`::error title=Application réelle (exception)::${String(e.message).replace(/\n/g, ' ').slice(0, 900)}`);
+  if (CI) console.log(`::error title=Application réelle (exception)::${String(e.message).replace(/\n/g, ' ').slice(0, 600)} — dernier script : ${lastScript}`);
   failures++;
 } finally {
   driver.kill();

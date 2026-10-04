@@ -312,7 +312,11 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
 
 function DoneBox({ done }: { done: NonNullable<Done> }) {
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => ref.current?.scrollIntoView({ block: 'nearest' }), []);
+  // Accolades indispensables : dans les navigateurs récents, scrollIntoView renvoie une promesse,
+  // que React prendrait pour une fonction de nettoyage.
+  useEffect(() => {
+    ref.current?.scrollIntoView({ block: 'nearest' });
+  }, []);
   const name = done.path.split('/').pop();
   return (
     <div className="export-done" role="status" ref={ref}>
