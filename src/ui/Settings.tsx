@@ -37,9 +37,9 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         if (e.key === 'Escape') close();
       }}
     >
-      <div className="dialog" style={{ width: 720, height: 560 }} onClick={(e) => e.stopPropagation()}>
+      <div className="dialog" style={{ width: 800, maxWidth: 'calc(100vw - 32px)', height: 560 }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <h3>Réglages du projet</h3>
+          <h3 style={{ whiteSpace: 'nowrap' }}>Réglages</h3>
           <div className="seg" role="tablist">
             {(
               [

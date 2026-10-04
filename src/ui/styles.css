@@ -337,3 +337,4 @@ table.cams input { width: 100%; border: 1px solid var(--border); border-radius: 
 .crash-detail { font-size: 12px; white-space: pre-wrap; word-break: break-word; }
 /* Le défilement suit la cellule active : elle ne passe pas sous l’en-tête collant. */
 .grid [role="gridcell"] { scroll-margin-top: 64px; scroll-margin-bottom: 8px; scroll-margin-left: 8px; }
+.seg button { white-space: nowrap; }
