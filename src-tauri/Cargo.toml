@@ -1,6 +1,6 @@
 [package]
 name = "prepvispro"
-version = "0.7.0"
+version = "0.8.0"
 license = "MIT"
 description = "PrepVisPro — préparation image"
 authors = ["Adrien Rousseau"]

@@ -154,6 +154,12 @@ try {
     ok(w > 0 && w <= 512, `icône affichée depuis la bibliothèque, réduite (${w} px)`);
   }
 
+  // Mon matériel : écrit dans le dossier de l'application, relu à l'identique (accents compris).
+  {
+    const k = await exec('return await window.__prepvis.kitRoundTrip();');
+    ok(k?.w?.ok === true && k?.body === 'Caméra d’essai é', `Mon matériel enregistré et relu (${JSON.stringify(k).slice(0, 200)})`);
+  }
+
   // Fermer puis rouvrir : le projet revient à l'identique.
   await exec('await window.__prepvis.flushSave(); return true;');
   const before = await exec('return JSON.stringify(window.__prepvis.doc());');

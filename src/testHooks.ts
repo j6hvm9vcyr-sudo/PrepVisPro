@@ -38,6 +38,17 @@ export async function install() {
       return new TextDecoder().decode(new Uint8Array(await invoke<ArrayBuffer>('script_read', { path })));
     },
     /** Importe un dossier d'icônes sans boîte de dialogue ; renvoie la bibliothèque et l'URL de la 1re icône. */
+    /** Mon matériel : enregistre une caméra, puis relit le fichier materiel.json écrit sur disque. */
+    async kitRoundTrip() {
+      const { updateKit } = await import('./platform/kit');
+      const { saveToKit, parseKit } = await import('./model/kit');
+      const cam = { id: 'c', label: 'A', body: 'Caméra d’essai é', mode: '4K', sensorWidthMm: 24.9, sensorHeightMm: 14, squeeze: 1 };
+      const w = await updateKit((k) => saveToKit(k, 'cameras', cam).kit);
+      const { invoke } = await import('@tauri-apps/api/core');
+      const raw = await invoke<string | null>('kit_read');
+      const r = raw ? parseKit(JSON.parse(raw)) : null;
+      return { w, body: r && r.ok ? r.kit.cameras.find((c) => c.mode === '4K')?.body : null };
+    },
     async importIconsFrom(path: string) {
       const lib = await import('./platform/iconLibrary');
       const b = lib.iconBackend() as unknown as { scan(p: string): Promise<unknown> };
