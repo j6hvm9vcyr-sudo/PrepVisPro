@@ -457,6 +457,9 @@ table.cams input { width: 100%; border: 1px solid var(--border); border-radius: 
 .reading b { font-variant-numeric: tabular-nums; }
 .reading small { color: var(--warn-text); font-size: 11px; }
 .reading.total { border-top: 1px solid var(--border-soft); padding-top: 4px; }
+/* Projecteur : données du modèle saisies sur le plan */
+.fixture-data { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--border-soft); border-radius: 8px; padding: 8px; background: color-mix(in srgb, #E8A33D 6%, transparent); }
+.photometry { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
 /* Réglages › Lumière */
 .lighting { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
 .lighting .decimal-field input, .fixture select { border: 1px solid var(--border); border-radius: 6px; padding: 5px 7px; font-size: 13px; background: var(--field); }

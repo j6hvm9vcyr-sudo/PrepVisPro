@@ -150,7 +150,7 @@ export function lightLegend(doc: ProjectDoc, fp: FloorPlan): { lights: { name: s
     if (el.kind !== 'light') return [];
     const f = doc.settings.fixtures.find((x) => x.id === el.fixtureId);
     const mode = f?.modes[el.mode];
-    const detail = [f ? `${formatNumber(f.watts)} W` : 'modèle non défini', mode?.label, el.dimmer < 1 ? `gradateur ${Math.round(el.dimmer * 100)} %` : '', el.lossStops ? `−${formatNumber(el.lossStops)} diaph` : '', el.circuit ? `circuit ${el.circuit}` : '']
+    const detail = [!f ? 'modèle non défini' : f.watts !== null ? `${formatNumber(f.watts)} W` : 'puissance non renseignée', mode?.label, el.dimmer < 1 ? `gradateur ${Math.round(el.dimmer * 100)} %` : '', el.lossStops ? `−${formatNumber(el.lossStops)} diaph` : '', el.circuit ? `circuit ${el.circuit}` : '']
       .filter(Boolean)
       .join(' · ');
     return [{ name: el.label || f?.name || 'Projecteur', detail }];
@@ -158,7 +158,7 @@ export function lightLegend(doc: ProjectDoc, fp: FloorPlan): { lights: { name: s
   if (!lights.length) return { lights, power: null };
   const p = powerTotals(doc, fp);
   const circuits = p.circuits.filter((c) => c.circuit !== '—').map((c) => `${c.circuit} : ${formatNumber(c.watts)} W`).join(' · ');
-  return { lights, power: `Puissance totale ${formatNumber(p.total.watts)} W (${formatNumber(Math.round(p.total.amps * 10) / 10)} A à 230 V)${circuits ? ` — ${circuits}` : ''}` };
+  return { lights, power: `Puissance totale ${formatNumber(p.total.watts)} W (${formatNumber(Math.round(p.total.amps * 10) / 10)} A à 230 V)${circuits ? ` — ${circuits}` : ''}${p.unknown ? ` — ${p.unknown} projecteur(s) sans puissance renseignée, non compté(s)` : ''}` };
 }
 
 // ------------------------------------------------------------------ navigateur

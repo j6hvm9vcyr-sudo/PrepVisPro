@@ -23,6 +23,7 @@ export function migrate(raw: unknown): MigrateResult {
   if (v <= 5) doc = from5to6(doc);
   if (v <= 6) doc = from6to7(doc);
   if (v <= 7) doc = from7to8(doc);
+  if (v <= 8) doc = { ...doc, schemaVersion: 9 }; // 8 → 9 : données des projecteurs facultatives (rien à convertir)
   return { ok: true, raw: doc };
 }
 

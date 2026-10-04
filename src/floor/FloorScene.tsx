@@ -7,6 +7,7 @@ import type { ProjectDoc } from '../model/types';
 import { fovCone, fovLengthUnits, project, setupFov, type FloorPlan } from '../model/floor';
 import { cameraLabel } from '../model/floorOps';
 import { locatePlan } from '../model/ops';
+import { modeData } from '../model/light';
 import type { computeNumbers } from '../model/numbering';
 import { ACTOR_COLORS } from './floorStore';
 
@@ -130,7 +131,7 @@ export function FloorScene({ doc, fp, k, numbers, selection = [], urlFor }: Scen
       if (el.label) labels.push(<text key={`l-${el.id}`} x={el.at.x} y={el.at.y + (el.size / 2 + 14) * k} fontSize={11 * k} textAnchor="middle" fill="#13161B" stroke="#fff" strokeWidth={3 * k} paintOrder="stroke" pointerEvents="none">{el.label}</text>);
     } else if (el.kind === 'light') {
       const fixture = doc.settings.fixtures.find((f) => f.id === el.fixtureId);
-      const mode = fixture?.modes[el.mode];
+      const mode = modeData(fixture?.modes[el.mode]);
       if (mode) {
         const c = fovCone(el.at, el.rotation, mode.beamDeg, fovLen * LIGHT_BEAM_RATIO);
         if (c) cones.push(<polygon key={`b-${el.id}`} points={`${el.at.x},${el.at.y} ${c.left.x},${c.left.y} ${c.right.x},${c.right.y}`} fill={LIGHT_COLOR} fillOpacity={isSel ? 0.22 : 0.13} stroke={LIGHT_COLOR} strokeOpacity={0.6} strokeWidth={1 * k} strokeDasharray={`${3 * k} ${3 * k}`} />);
@@ -156,7 +157,7 @@ export function FloorScene({ doc, fp, k, numbers, selection = [], urlFor }: Scen
         bodies.push(<circle key={`h-${el.id}`} data-rotate={el.id} cx={h.x} cy={h.y} r={6 * k} fill="#fff" stroke={LIGHT_COLOR} strokeWidth={2 * k} style={{ cursor: 'grab' }} />);
       }
       const name = el.label || fixture?.name || 'Projecteur ?';
-      const detail = [mode?.label, el.circuit ? `circ. ${el.circuit}` : '', el.dimmer < 1 ? `${Math.round(el.dimmer * 100)} %` : ''].filter(Boolean).join(' · ');
+      const detail = [fixture?.modes[el.mode]?.label, el.circuit ? `circ. ${el.circuit}` : '', el.dimmer < 1 ? `${Math.round(el.dimmer * 100)} %` : ''].filter(Boolean).join(' · ');
       labels.push(
         <g key={`l-${el.id}`} transform={`translate(${el.at.x} ${el.at.y}) scale(${k})`} pointerEvents="none">
           <g transform={`translate(${el.size / 2 + 6} 6)`}>

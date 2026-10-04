@@ -9,7 +9,7 @@
  * Diaph : formule du posemètre en lumière incidente, N² = E × S × t / C, avec C = 340
  * (calotte d'un posemètre incident courant) et t = (angle d'obturation / 360) / cadence.
  */
-import type { Exposure, Fixture, ProjectDoc } from './types';
+import type { Exposure, Fixture, FixtureMode, ProjectDoc } from './types';
 import { bearing, metersBetween, normalizeDeg, type FloorLight, type FloorPlan, type Point } from './floor';
 
 export const INCIDENT_C = 340;
@@ -45,6 +45,13 @@ export function formatStop(n: number | null): string {
   return `T${String(STOPS[whole]).replace('.', ',')}${frac ? ` ${THIRDS[frac]}` : ''}`;
 }
 
+/** Données d'un mode complètes (éclairement, distance et faisceau renseignés) : seul cas où l'on calcule. */
+export function modeData(mode: FixtureMode | undefined): { lux: number; distanceM: number; beamDeg: number } | null {
+  if (!mode || mode.lux === null || mode.distanceM === null || mode.beamDeg === null) return null;
+  if (!(mode.lux > 0) || !(mode.distanceM > 0) || !(mode.beamDeg > 0)) return null;
+  return { lux: mode.lux, distanceM: mode.distanceM, beamDeg: mode.beamDeg };
+}
+
 export interface LightReading {
   light: FloorLight;
   fixture: Fixture;
@@ -61,7 +68,7 @@ export interface LightReading {
 export function readingAt(doc: ProjectDoc, fp: FloorPlan, light: FloorLight, target: Point): LightReading | null {
   if (!fp.scale) return null;
   const fixture = doc.settings.fixtures.find((f) => f.id === light.fixtureId);
-  const mode = fixture?.modes[light.mode];
+  const mode = modeData(fixture?.modes[light.mode]);
   if (!fixture || !mode) return null;
   const distanceM = metersBetween(fp, light.at, target)!;
   if (!(distanceM > 0)) return null;
@@ -98,16 +105,17 @@ export function powerTotals(doc: ProjectDoc, fp: FloorPlan): { circuits: PowerTo
   for (const el of fp.elements) {
     if (el.kind !== 'light') continue;
     const f = doc.settings.fixtures.find((x) => x.id === el.fixtureId);
-    if (!f) {
+    if (!f || f.watts === null) {
       unknown++;
       continue;
     }
     const key = el.circuit.trim() || '—';
     const t = map.get(key) ?? { circuit: key, watts: 0, amps: 0, count: 0 };
-    t.watts += f.watts;
+    const w = f.watts;
+    t.watts += w;
     t.count++;
     map.set(key, t);
-    total.watts += f.watts;
+    total.watts += w;
     total.count++;
   }
   const circuits = [...map.values()].sort((a, b) => a.circuit.localeCompare(b.circuit, 'fr'));

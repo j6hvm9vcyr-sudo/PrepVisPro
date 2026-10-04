@@ -147,9 +147,9 @@ export const projectSchema = z.object({
       z.object({
         id,
         name: z.string(),
-        watts: z.number().finite().min(0).max(100000),
+        watts: z.number().finite().min(0).max(100000).nullable(),
         kind: z.enum(['led', 'tungsten', 'hmi', 'other']),
-        modes: z.array(z.object({ label: z.string(), lux: z.number().finite().positive(), distanceM: z.number().finite().positive(), beamDeg: z.number().finite().positive().max(180) })),
+        modes: z.array(z.object({ label: z.string(), lux: z.number().finite().positive().nullable(), distanceM: z.number().finite().positive().nullable(), beamDeg: z.number().finite().positive().max(180).nullable() })),
       }),
     ),
     exposure: z.object({ iso: z.number().finite().positive(), fps: z.number().finite().positive(), shutterDeg: z.number().finite().positive().max(360) }),

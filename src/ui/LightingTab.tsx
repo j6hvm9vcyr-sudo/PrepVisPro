@@ -51,11 +51,13 @@ export function LightingTab() {
       </section>
 
       <section className="sec">
-        <div className="sec-h">Projecteurs du projet</div>
+        <div className="sec-h">Projecteurs de ce projet</div>
         <p className="note" style={{ margin: 0 }}>
-          Recopiez les données photométriques de la fiche du fabricant : éclairement au centre du faisceau à une distance donnée, et angle du faisceau, pour chaque mode
-          (spot, flood, optique ou réflecteur). Sans ces données, aucun chiffre n’est calculé.
+          Liste propre à ce projet. Pour chaque projecteur, recopiez de sa fiche technique l’éclairement « x lx à X m » au centre du faisceau et l’angle du faisceau, pour
+          chaque mode (spot, flood, optique ou réflecteur). Sans ces valeurs, aucun chiffre n’est calculé. Vous pouvez aussi créer et renseigner un projecteur directement
+          sur le plan au sol (outil Projecteur, L).
         </p>
+        {doc.settings.fixtures.length === 0 && <p className="note" style={{ margin: 0 }}>Aucun projecteur pour l’instant.</p>}
         {doc.settings.fixtures.map((f) => (
           <div key={f.id} className="fixture">
             <div className="row" style={{ gap: 8, alignItems: 'center' }}>
@@ -67,7 +69,7 @@ export function LightingTab() {
                   </option>
                 ))}
               </select>
-              <DecimalField label="Puissance en watts" unit="W" width={70} min={0} max={100000} required value={f.watts} onChange={(v) => v !== null && updF(f.id, (x) => void (x.watts = v), 'w')} />
+              <DecimalField label="Puissance en watts" unit="W" width={70} min={0} max={100000} value={f.watts} onChange={(v) => updF(f.id, (x) => void (x.watts = v), 'w')} />
               <button type="button" className="linkbtn danger" onClick={() => st().updateDoc((d) => void (d.settings.fixtures = d.settings.fixtures.filter((x) => x.id !== f.id)))}>
                 Retirer
               </button>
@@ -76,37 +78,53 @@ export function LightingTab() {
               <thead>
                 <tr>
                   <th>Mode</th>
-                  <th>Éclairement</th>
-                  <th>à</th>
-                  <th>Faisceau</th>
+                  <th>Éclairement (lx)</th>
+                  <th>à (m)</th>
+                  <th>Faisceau (°)</th>
                   <th />
                 </tr>
               </thead>
               <tbody>
-                {f.modes.map((md, i) => (
+                {f.modes.map((md, i) => {
+                  const used = doc.floorPlans.reduce((n, fp) => n + fp.elements.filter((x) => x.kind === 'light' && x.fixtureId === f.id && x.mode === i).length, 0);
+                  return (
                   <tr key={i}>
                     <td>
                       <input aria-label="Nom du mode" placeholder="Spot, Flood, 30°…" value={md.label} onChange={(ev) => updF(f.id, (x) => void (x.modes[i]!.label = ev.target.value), `ml${i}`)} />
                     </td>
                     <td>
-                      <DecimalField label="Éclairement en lux" unit="lx" width={76} min={0.1} max={10000000} required value={md.lux} onChange={(v) => v !== null && updF(f.id, (x) => void (x.modes[i]!.lux = v), `mx${i}`)} />
+                      <DecimalField label="Éclairement en lux" unit="lx" width={76} min={0.1} max={10000000} value={md.lux} onChange={(v) => updF(f.id, (x) => void (x.modes[i]!.lux = v), `mx${i}`)} />
                     </td>
                     <td>
-                      <DecimalField label="Distance de référence en mètres" unit="m" width={50} min={0.1} max={100} required value={md.distanceM} onChange={(v) => v !== null && updF(f.id, (x) => void (x.modes[i]!.distanceM = v), `md${i}`)} />
+                      <DecimalField label="Distance de référence en mètres" unit="m" width={50} min={0.1} max={100} value={md.distanceM} onChange={(v) => updF(f.id, (x) => void (x.modes[i]!.distanceM = v), `md${i}`)} />
                     </td>
                     <td>
-                      <DecimalField label="Angle du faisceau en degrés" unit="°" width={50} min={1} max={180} required value={md.beamDeg} onChange={(v) => v !== null && updF(f.id, (x) => void (x.modes[i]!.beamDeg = v), `mb${i}`)} />
+                      <DecimalField label="Angle du faisceau en degrés" unit="°" width={50} min={1} max={180} value={md.beamDeg} onChange={(v) => updF(f.id, (x) => void (x.modes[i]!.beamDeg = v), `mb${i}`)} />
                     </td>
                     <td>
-                      <button type="button" className="linkbtn danger" aria-label="Retirer ce mode" onClick={() => updF(f.id, (x) => void x.modes.splice(i, 1), `mr${i}`)}>
+                      <button
+                        type="button"
+                        className="linkbtn danger"
+                        aria-label="Retirer ce mode"
+                        disabled={used > 0 || f.modes.length === 1}
+                        title={used > 0 ? `Utilisé par ${used} projecteur(s) placé(s)` : f.modes.length === 1 ? 'Un projecteur a au moins un mode' : undefined}
+                        onClick={() =>
+                          st().updateDoc((d) => {
+                            d.settings.fixtures.find((x) => x.id === f.id)?.modes.splice(i, 1);
+                            // Les modes suivants remontent d'un rang : les projecteurs qui les utilisent suivent.
+                            for (const fp of d.floorPlans) for (const x of fp.elements) if (x.kind === 'light' && x.fixtureId === f.id && x.mode > i) x.mode--;
+                          })
+                        }
+                      >
                         ×
                       </button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
-            <button type="button" className="linkbtn" style={{ alignSelf: 'flex-start' }} onClick={() => updF(f.id, (x) => void x.modes.push({ label: '', lux: 1000, distanceM: 5, beamDeg: 30 }), 'ma')}>
+            <button type="button" className="linkbtn" style={{ alignSelf: 'flex-start' }} onClick={() => updF(f.id, (x) => void x.modes.push({ label: '', lux: null, distanceM: null, beamDeg: null }), 'ma')}>
               + Mode
             </button>
           </div>
@@ -115,7 +133,7 @@ export function LightingTab() {
           type="button"
           className="btn"
           style={{ alignSelf: 'flex-start' }}
-          onClick={() => st().updateDoc((d) => void d.settings.fixtures.push({ id: newId('fx'), name: '', watts: 0, kind: 'led', modes: [{ label: 'Spot', lux: 1000, distanceM: 5, beamDeg: 30 }] }))}
+          onClick={() => st().updateDoc((d) => void d.settings.fixtures.push({ id: newId('fx'), name: '', watts: null, kind: 'led', modes: [{ label: '', lux: null, distanceM: null, beamDeg: null }] }))}
         >
           + Projecteur
         </button>

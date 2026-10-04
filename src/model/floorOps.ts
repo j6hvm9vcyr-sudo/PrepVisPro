@@ -102,7 +102,9 @@ export function unplacedSetups(doc: ProjectDoc, fp: FloorPlan): { planId: Id; se
 export function cleanupFloorRefs(doc: ProjectDoc): ProjectDoc {
   const seqIds = new Set(doc.sequences.map((s) => s.id));
   const setups = new Set(doc.sequences.flatMap((s) => s.plans.flatMap((p) => p.cameras.map((c) => `${p.id}|${c.id}`))));
-  const needs = doc.floorPlans.some((fp) => fp.sequenceIds.some((id) => !seqIds.has(id)) || fp.elements.some((e) => e.kind === 'camera' && e.planId && !setups.has(`${e.planId}|${e.setupId}`)));
+  const modes = new Map(doc.settings.fixtures.map((f) => [f.id, f.modes.length]));
+  const badLight = (e: FloorElement) => e.kind === 'light' && e.fixtureId !== null && (!modes.has(e.fixtureId) || e.mode >= modes.get(e.fixtureId)!);
+  const needs = doc.floorPlans.some((fp) => fp.sequenceIds.some((id) => !seqIds.has(id)) || fp.elements.some((e) => (e.kind === 'camera' && e.planId && !setups.has(`${e.planId}|${e.setupId}`)) || badLight(e)));
   if (!needs) return doc;
   return produce(doc, (d) => {
     for (const fp of d.floorPlans) {
@@ -111,6 +113,14 @@ export function cleanupFloorRefs(doc: ProjectDoc): ProjectDoc {
         if (e.kind === 'camera' && e.planId && !setups.has(`${e.planId}|${e.setupId}`)) {
           e.planId = null;
           e.setupId = null;
+        }
+      for (const e of fp.elements)
+        if (e.kind === 'light' && e.fixtureId !== null) {
+          // Modèle retiré du projet : le projecteur redevient « non défini » (aucun chiffre).
+          if (!modes.has(e.fixtureId)) {
+            e.fixtureId = null;
+            e.mode = 0;
+          } else if (e.mode >= modes.get(e.fixtureId)!) e.mode = 0;
         }
     }
   });

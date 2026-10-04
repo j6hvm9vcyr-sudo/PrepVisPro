@@ -269,22 +269,10 @@ test('tournage : installations proposées d’après le plan au sol, réorganis�
   expect(vals).toContain('À ranger');
 });
 
-test('plan feux : projecteur du projet, éclairement et diaph sur le personnage, puissance', async ({ page }) => {
+test('plan feux : projecteur créé et renseigné sur le plan, éclairement et diaph sur le personnage, puissance', async ({ page }) => {
   await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
-  // Projecteur du projet, d'après sa fiche : 1000 lx à 5 m, faisceau 60°, 2000 W.
-  await page.getByRole('button', { name: 'Réglages' }).click();
-  await page.getByRole('tab', { name: 'Lumière' }).click();
-  await page.getByRole('button', { name: '+ Projecteur' }).click();
-  await page.getByLabel('Nom du projecteur').fill('Fresnel 2K');
-  await page.getByLabel('Type de projecteur').selectOption('tungsten');
-  await page.getByLabel('Puissance en watts').fill('2000');
-  await page.getByLabel('Nom du mode').fill('Flood');
-  await page.getByLabel('Angle du faisceau en degrés').fill('60');
-  await page.screenshot({ path: 'test-results/20-lumiere-reglages.png' });
-  await page.getByRole('button', { name: 'Terminé' }).click();
-
-  await page.keyboard.press('ControlOrMeta+3');
+await page.keyboard.press('ControlOrMeta+3');
   await page.getByLabel('Créer un plan au sol pour la séquence').selectOption({ label: '2 — Wagon' });
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Importer un fond…' }).click();
@@ -308,6 +296,19 @@ test('plan feux : projecteur du projet, éclairement et diaph sur le personnage,
   await page.mouse.click(l.x, l.y);
   await page.getByLabel('Orientation en degrés').fill('90');
   await page.keyboard.press('Enter');
+  // Aucun projecteur dans ce projet : on le crée sur place, d'après sa fiche (1000 lx à 5 m, 60°, 2000 W).
+  await page.getByLabel('Modèle de projecteur').selectOption({ label: '+ Nouveau projecteur…' });
+  await expect(page.getByLabel('Nom du projecteur')).toBeFocused();
+  await page.keyboard.type('Fresnel 2K');
+  await page.getByLabel('Type de projecteur').selectOption('tungsten');
+  await page.getByLabel('Puissance en watts').fill('2000');
+  // Tant que la fiche n'est pas complète, aucun chiffre.
+  await page.getByLabel('Éclairement en lux').fill('1000');
+  await expect(page.getByRole('group', { name: 'Données du projecteur' }).or(page.getByLabel('Données du projecteur'))).toContainText(/sans ces trois valeurs/);
+  await expect(page.locator('.light-readings')).not.toContainText(/lx/);
+  await page.getByLabel('Distance de la mesure en mètres').fill('5');
+  await page.getByLabel('Angle du faisceau en degrés').fill('60');
+  await page.screenshot({ path: 'test-results/20-projecteur-sur-plan.png' });
   await expect(page.locator('.light-readings')).toContainText(/Personnage 1 à 2,5 m/);
   // 1000 lx × (5 / 2,5)² = 4000 lx ; ISO 800, 1/48 s : N = √(4000 × 800 / 48 / 340) ≈ 14 → T11 ⅔.
   await expect(page.locator('.light-readings')).toContainText(/4\s?000 lx · T11 ⅔/);
@@ -322,4 +323,10 @@ test('plan feux : projecteur du projet, éclairement et diaph sur le personnage,
   await page.mouse.click(who.x, who.y);
   await expect(page.getByRole('region', { name: 'Lumière reçue' })).toContainText(/Fresnel 2K à 2,5 m/);
   await page.screenshot({ path: 'test-results/21-plan-feux.png' });
+  // La liste du projet (Réglages › Lumière) contient le projecteur saisi sur le plan.
+  await page.getByRole('button', { name: 'Réglages' }).click();
+  await page.getByRole('tab', { name: 'Lumière' }).click();
+  await expect(page.getByLabel('Nom du projecteur')).toHaveValue('Fresnel 2K');
+  await expect(page.getByLabel('Éclairement en lux')).toHaveValue('1000');
+  await expect(page.getByLabel('Retirer ce mode')).toBeDisabled();
 });

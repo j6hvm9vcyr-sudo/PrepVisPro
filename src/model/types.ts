@@ -150,19 +150,19 @@ export interface ProjectSettings {
 export interface FixtureMode {
   /** « Spot », « Flood », « 30° »… */
   label: string;
-  /** Éclairement au centre du faisceau (lux) à la distance de référence. */
-  lux: number;
-  /** Distance de référence de la mesure du fabricant (m). */
-  distanceM: number;
-  /** Angle du faisceau (degrés, angle total). */
-  beamDeg: number;
+  /** Éclairement au centre du faisceau (lux) à la distance de référence. null : pas encore renseigné. */
+  lux: number | null;
+  /** Distance de référence de la mesure du fabricant (m). null : pas encore renseignée. */
+  distanceM: number | null;
+  /** Angle du faisceau (degrés, angle total). null : pas encore renseigné. */
+  beamDeg: number | null;
 }
 
 export interface Fixture {
   id: Id;
   name: string;
-  /** Puissance consommée (W). */
-  watts: number;
+  /** Puissance consommée (W). null : pas encore renseignée. */
+  watts: number | null;
   kind: 'led' | 'tungsten' | 'hmi' | 'other';
   modes: FixtureMode[];
 }
@@ -194,7 +194,7 @@ export interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 8 as const;
+export const SCHEMA_VERSION = 9 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;

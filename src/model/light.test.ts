@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { produce } from 'immer';
 import { formatStop, luxForStop, powerTotals, readingAt, stopFromLux } from './light';
 import { computeScale, type FloorLight } from './floor';
-import { addElements, addFloorPlan, newFloorPlan } from './floorOps';
+import { addElements, addFloorPlan, cleanupFloorRefs, newFloorPlan } from './floorOps';
 import { doc, plan, seq } from './testkit';
 
 const E = { iso: 800, fps: 24, shutterDeg: 180 };
@@ -58,5 +58,23 @@ describe('éclairement sur le plan', () => {
     expect(p.total.watts).toBe(2000);
     expect(p.total.amps).toBeCloseTo(8.7, 1);
     expect(p.circuits).toEqual([expect.objectContaining({ circuit: 'A', watts: 2000, count: 1 })]);
+  });
+  it('données incomplètes : aucun chiffre, aucune puissance inventée', () => {
+    const { d, fp, light } = build();
+    const partial = produce(d, (x) => {
+      x.settings.fixtures[0]!.modes[1]!.distanceM = null;
+      x.settings.fixtures[0]!.watts = null;
+    });
+    expect(readingAt(partial, fp, light, { x: 250, y: 0 })).toBeNull();
+    const p = powerTotals(partial, fp);
+    expect(p.total.watts).toBe(0);
+    expect(p.unknown).toBe(1);
+  });
+  it('modèle retiré : le projecteur redevient non défini ; mode disparu : premier mode', () => {
+    const { d } = build();
+    const noMode = cleanupFloorRefs(produce(d, (x) => void x.settings.fixtures[0]!.modes.splice(1, 1)));
+    expect(noMode.floorPlans[0]!.elements[0]).toMatchObject({ fixtureId: 'f2k', mode: 0 });
+    const gone = cleanupFloorRefs(produce(d, (x) => void (x.settings.fixtures = [])));
+    expect(gone.floorPlans[0]!.elements[0]).toMatchObject({ fixtureId: null, mode: 0 });
   });
 });
