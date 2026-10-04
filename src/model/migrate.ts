@@ -29,7 +29,7 @@ export function migrate(raw: unknown): MigrateResult {
   if (v <= 11) doc = { ...doc, schemaVersion: 12, shootingDays: [] }; // 11 → 12 : jours de tournage (aucun)
   if (v <= 12) doc = from12to13(doc);
   if (v <= 13) doc = from13to14(doc);
-  if (v <= 14) doc = { ...doc, schemaVersion: 15, stamps: [] }; // 14 → 15 : tampons entre séquences (aucun)
+  if (v <= 14) doc = from14to15(doc);
   return { ok: true, raw: doc };
 }
 
@@ -169,4 +169,27 @@ function from13to14(doc: Record<string, unknown>): Record<string, unknown> {
       };
     }),
   };
+}
+
+/**
+ * Format 14 → 15 : tampons entre séquences (aucun) ; bibliothèque d'images, constituée des
+ * images déjà présentes dans les plans et des fonds de plans au sol (sans doublon de fichier).
+ */
+function from14to15(doc: Record<string, unknown>): Record<string, unknown> {
+  const library: { id: string; file: string; originalName: string; caption: string; hash: null }[] = [];
+  const seen = new Set<string>();
+  const add = (file: unknown, name: unknown) => {
+    if (typeof file !== 'string' || !file || seen.has(file)) return;
+    seen.add(file);
+    library.push({ id: `lib-${library.length + 1}`, file, originalName: typeof name === 'string' ? name : '', caption: '', hash: null });
+  };
+  for (const s of Array.isArray(doc.sequences) ? doc.sequences : [])
+    for (const p of s && typeof s === 'object' && Array.isArray((s as { plans?: unknown }).plans) ? (s as { plans: unknown[] }).plans : [])
+      for (const i of p && typeof p === 'object' && Array.isArray((p as { images?: unknown }).images) ? (p as { images: unknown[] }).images : [])
+        if (i && typeof i === 'object') add((i as { file?: unknown }).file, (i as { originalName?: unknown }).originalName);
+  for (const f of Array.isArray(doc.floorPlans) ? doc.floorPlans : []) {
+    const bg = f && typeof f === 'object' ? (f as { background?: unknown }).background : null;
+    if (bg && typeof bg === 'object') add((bg as { file?: unknown }).file, (bg as { originalName?: unknown }).originalName);
+  }
+  return { ...doc, schemaVersion: 15, stamps: [], library };
 }

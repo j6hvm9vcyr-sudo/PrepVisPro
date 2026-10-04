@@ -82,6 +82,7 @@ export function sampleProject(): ProjectDoc {
       s('4', 'EXT', 'NUIT', 'Rue', [p('', 'Ils marchent sans parler.', [cs(f('', '', '', null, null), [], [])])]),
     ],
     stamps: [],
+    library: [],
     floorPlans: [],
     shootingDays: [],
   };

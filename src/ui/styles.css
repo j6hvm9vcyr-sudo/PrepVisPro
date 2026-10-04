@@ -568,3 +568,42 @@ table.modes input:not(.decimal-field input) { border: 1px solid var(--border); b
 .index-actions { display: flex; gap: 2px; margin-top: 6px; }
 .index-actions .btn { justify-content: flex-start; color: var(--accent); font-weight: 600; }
 .cards .stamp-band { margin: 4px 0 14px; border-radius: 8px; border: 1px solid var(--border); }
+
+/* ---------------------------------------------------------------- bibliothèque d'images */
+.sec-acts { display: inline-flex; gap: 10px; }
+.library { position: relative; flex: 1; min-height: 0; overflow: auto; padding: 20px 24px 40px; background: var(--bg); }
+.library-head { display: flex; align-items: flex-end; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.library-head h2 { margin: 0 0 4px; font-size: 17px; }
+.library-head .note { margin: 0; max-width: 560px; font-size: 12.5px; }
+.library-empty { border: 1.5px dashed var(--border); border-radius: 10px; padding: 48px 24px; text-align: center; color: var(--text2); background: var(--panel); }
+.library-empty p { margin: 4px 0; }
+.library-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.libcard { background: var(--panel); border: 1px solid var(--border); border-radius: 9px; overflow: hidden; display: flex; flex-direction: column; }
+.libcard .pic { border: 0; padding: 0; aspect-ratio: 16 / 10; background: var(--thumb); cursor: zoom-in; display: block; }
+.libcard .pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.libcard-body { padding: 8px 10px 8px; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.libcard .name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.libcard .caption { border: 1px solid transparent; background: transparent; border-radius: 5px; padding: 3px 5px; margin: 0 -5px; font-size: 12px; color: var(--text); }
+.libcard .caption:hover { border-color: var(--border-soft); }
+.libcard .caption:focus { border-color: var(--accent); background: var(--field); outline: none; }
+.libcard .usage { font-size: 11.5px; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.libcard .usage.none { color: var(--text3); }
+.libcard .acts { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; }
+.libcard .acts button { border: 0; background: transparent; padding: 2px 4px; font-size: 11.5px; color: var(--accent); font-weight: 600; border-radius: 4px; }
+.libcard .acts button:hover:not(:disabled) { background: var(--accent-soft); }
+.libcard .acts button.danger { color: var(--danger); font-weight: 500; }
+.libcard .acts button:disabled { color: var(--text3); opacity: 0.6; }
+.library-foot { margin-top: 14px; font-size: 12px; }
+.library.over { outline: 2px dashed var(--accent); outline-offset: -8px; }
+.library-drop { position: fixed; left: 50%; bottom: 60px; transform: translateX(-50%); background: var(--accent); color: var(--on-accent); padding: 8px 14px; border-radius: 8px; font-weight: 600; pointer-events: none; }
+.library .overlay img { max-width: 90vw; max-height: 82vh; object-fit: contain; }
+.libpick.over { outline: 2px dashed var(--accent); }
+.libpick-grid { list-style: none; margin: 0; padding: 2px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; max-height: 52vh; overflow: auto; }
+.libpick-grid li { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.libpick-grid .pic { position: relative; border: 2px solid transparent; padding: 0; border-radius: 7px; overflow: hidden; aspect-ratio: 16 / 10; background: var(--thumb); }
+.libpick-grid .pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.libpick-grid .pic.on { border-color: var(--accent); }
+.libpick-grid .pic:disabled { opacity: 0.45; }
+.libpick-grid .check { position: absolute; right: 5px; top: 5px; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+.libpick-grid .badge { position: absolute; left: 5px; top: 5px; font-size: 9px; font-weight: 700; padding: 1px 4px; border-radius: 3px; background: var(--text2); color: var(--panel); }
+.libpick-grid .name { font-size: 11.5px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

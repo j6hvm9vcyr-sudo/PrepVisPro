@@ -8,6 +8,7 @@ import type { FloorElement, FloorPlan } from '../model/floor';
 import { ACTOR_COLORS, useFloor, type FloorTool } from './floorStore';
 import { FloorCanvas } from './FloorCanvas';
 import { importBackground } from './background';
+import { addToLibrary, knownHashes } from '../model/library';
 import { stripColors } from '../ui/strip';
 import { useLateFocus } from '../ui/focus';
 import { DecimalField } from '../ui/DecimalField';
@@ -148,9 +149,10 @@ function BackgroundButton({ fp }: { fp: FloorPlan }) {
     if (!f) return;
     setBusy(true);
     try {
-      const bg = await importBackground(f);
       const st = useApp.getState();
-      st.applyDoc(updateFloorPlan(selectDoc(st), fp.id, (x) => void (x.background = bg)), fp.scale ? 'Fond remplacé — vérifiez l’échelle (E)' : 'Fond importé — mettez-le à l’échelle (E)');
+      const { bg, stored } = await importBackground(f, knownHashes(selectDoc(st)));
+      const withLib = addToLibrary(selectDoc(useApp.getState()), [stored]).doc;
+      st.applyDoc(updateFloorPlan(withLib, fp.id, (x) => void (x.background = bg)), fp.scale ? 'Fond remplacé — vérifiez l’échelle (E)' : 'Fond importé — mettez-le à l’échelle (E)');
       const vps = { ...useFloor.getState().viewports };
       delete vps[fp.id];
       useFloor.getState().set({ viewports: vps, tool: fp.scale ? 'select' : 'scale', draft: [] });
@@ -166,6 +168,9 @@ function BackgroundButton({ fp }: { fp: FloorPlan }) {
         {busy ? 'Import…' : fp.background ? 'Changer le fond…' : 'Importer un fond…'}
       </button>
       <input ref={file} type="file" accept="image/*,application/pdf,.pdf" className="sr-only" tabIndex={-1} onChange={(e) => (void onFile(e.target.files?.[0]), (e.target.value = ''))} />
+      <button type="button" className="btn" disabled={busy} title="Choisir le fond parmi les images du projet" onClick={() => useApp.getState().setLibraryPick({ mode: 'background', floorPlanId: fp.id })}>
+        Bibliothèque…
+      </button>
     </>
   );
 }

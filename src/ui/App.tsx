@@ -20,6 +20,7 @@ import { isMenuShortcut, isTauri } from '../platform/menu';
 import { ErrorBoundary } from './ErrorBoundary';
 import { VersionsDialog } from './VersionsDialog';
 import { ShootingView } from './ShootingView';
+import { LibraryPicker, LibraryView } from './Library';
 
 /** Raccourcis valables partout dans la fenêtre (hors saisie de texte). */
 function useGlobalShortcuts(settingsOpen: boolean) {
@@ -66,7 +67,7 @@ function useGlobalShortcuts(settingsOpen: boolean) {
         focusGrid();
         return;
       }
-      if (st.pendingDrop || st.editingSequenceId || settingsOpen) return;
+      if (st.pendingDrop || st.editingSequenceId || st.editingStampId || st.libraryPick || settingsOpen) return;
       if (st.editing) return;
       // Dans l'application Mac, ces raccourcis appartiennent au menu natif : ne pas les traiter deux fois.
       if (isTauri() && meta && isMenuShortcut(e)) return;
@@ -138,6 +139,11 @@ function useGlobalShortcuts(settingsOpen: boolean) {
         st.setView('days');
         return;
       }
+      if (meta && e.code === 'Digit6') {
+        e.preventDefault();
+        st.setView('library');
+        return;
+      }
       if (meta && e.key.toLowerCase() === 'i' && !e.shiftKey) {
         e.preventDefault();
         st.toggleInspector();
@@ -151,7 +157,7 @@ function useGlobalShortcuts(settingsOpen: boolean) {
         return;
       }
       // En vue Plans au sol, ces touches agissent sur le plan au sol, jamais sur le découpage caché.
-      if ((st.view === 'floor' || st.view === 'shooting' || st.view === 'days') && (e.key === 'Backspace' || e.altKey || (meta && e.shiftKey))) return;
+      if ((st.view === 'floor' || st.view === 'shooting' || st.view === 'days' || st.view === 'library') && (e.key === 'Backspace' || e.altKey || (meta && e.shiftKey))) return;
       if (meta && e.key === 'Backspace') {
         e.preventDefault();
         st.deletePlan();
@@ -255,6 +261,13 @@ function Workspace() {
             </ErrorBoundary>
             <StatusBar />
           </div>
+        ) : view === 'library' ? (
+          <div className="center">
+            <ErrorBoundary label="bibliothèque d’images" key="library">
+              <LibraryView />
+            </ErrorBoundary>
+            <StatusBar />
+          </div>
         ) : view === 'shooting' ? (
           <div className="center">
             <ErrorBoundary label="tournage" key="shooting">
@@ -284,6 +297,7 @@ function Workspace() {
       <DropChoice />
       <SequenceDialog />
       <StampDialog />
+      <LibraryPicker />
       <ErrorBoundary label="fenêtre">
         {settings && <SettingsDialog onClose={() => useApp.getState().setShowSettings(false)} />}
         {exporting && <ExportDialog onClose={() => useApp.getState().setShowExport(false)} />}

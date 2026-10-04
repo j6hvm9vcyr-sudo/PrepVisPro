@@ -9,6 +9,7 @@ import { cleanupFloorRefs } from '../model/floorOps';
 import { cleanupShooting } from '../model/shooting';
 import { cleanupDays } from '../model/days';
 import * as stamps from '../model/stamps';
+import * as library from '../model/library';
 import { newId } from '../model/defaults';
 import { createHistory, pushHistory, redoHistory, undoHistory, type History } from './history';
 import { allLines, COLUMNS, moveCursor, visibleLines, type Column, type Cursor, type Line } from './lines';
@@ -44,7 +45,7 @@ export interface AppState {
   /** Début d'une sélection de plusieurs cellules (⇧ + flèches, ⇧ + clic). */
   anchor: Cursor | null;
   editing: EditState | null;
-  view: 'table' | 'cards' | 'floor' | 'shooting' | 'days';
+  view: 'table' | 'cards' | 'floor' | 'shooting' | 'days' | 'library';
   inspector: boolean;
   collapsed: Record<Id, boolean>;
   onlyIncomplete: boolean;
@@ -55,6 +56,8 @@ export interface AppState {
   editingSequenceId: Id | null;
   /** Tampon ouvert en modification (TITRE, GÉNÉRIQUE…). */
   editingStampId: Id | null;
+  /** Choix dans la bibliothèque d'images : pour un plan (repérage / référence) ou un fond de plan au sol. */
+  libraryPick: { mode: 'plan'; planId: Id; kind: ImageKind } | { mode: 'background'; floorPlanId: Id } | null;
   showSettings: boolean;
   showExport: boolean;
   showVersions: boolean;
@@ -81,6 +84,7 @@ export function initialState(doc: ProjectDoc): AppState {
     pendingDrop: null,
     editingSequenceId: null,
     editingStampId: null,
+    libraryPick: null,
     showSettings: false,
     showExport: false,
     showVersions: false,
@@ -135,7 +139,7 @@ export function suggestSequenceNumber(doc: ProjectDoc, afterSeqId: Id | null): s
 
 /** Une fenêtre superposée a la main sur le clavier (le tableau ne doit pas réagir). */
 export function anyOverlay(s: AppState): boolean {
-  return !!(s.preview || s.showShortcuts || s.pendingDrop || s.editingSequenceId || s.editingStampId || s.showSettings || s.showExport || s.showVersions || s.importing || s.contextMenu);
+  return !!(s.preview || s.showShortcuts || s.pendingDrop || s.editingSequenceId || s.editingStampId || s.libraryPick || s.showSettings || s.showExport || s.showVersions || s.importing || s.contextMenu);
 }
 
 /** Rectangle sélectionné (une seule cellule s'il n'y a pas de sélection étendue). */
@@ -255,12 +259,19 @@ interface Actions {
   removeStamp(id: Id): void;
   moveStamp(id: Id, delta: -1 | 1): void;
   setEditingStamp(id: Id | null): void;
+  /** Importe des images dans la bibliothèque du projet (sans les placer). */
+  importToLibrary(files: File[]): Promise<void>;
+  /** Ajoute au plan des images de la bibliothèque. */
+  addFromLibrary(planId: Id, ids: Id[], kind: ImageKind): void;
+  removeLibraryImage(id: Id): void;
+  setLibraryCaption(id: Id, caption: string): void;
+  setLibraryPick(v: AppState['libraryPick']): void;
   undo(): void;
   redo(): void;
   toggleCollapsed(seqId: Id): void;
   expandAndGo(seqId: Id): void;
   toggleOnlyIncomplete(): void;
-  setView(v: 'table' | 'cards' | 'floor' | 'shooting' | 'days'): void;
+  setView(v: 'table' | 'cards' | 'floor' | 'shooting' | 'days' | 'library'): void;
   /** Enregistre une nouvelle version du document (plan au sol…), annulable. */
   applyDoc(next: ProjectDoc, message?: string, mergeKey?: string): void;
   toggleInspector(): void;
@@ -298,7 +309,7 @@ export function createAppStore(doc: ProjectDoc) {
     const commit = (raw: ProjectDoc, at: Cursor | null, message?: string | null, mergeKey: string | null = null, after?: Cursor) => {
       // Plans au sol : une caméra dont le plan a disparu est déliée (jamais effacée).
       // Ordre de tournage : un plan supprimé en sort ; un plan ajouté y apparaît « à ranger ».
-      const doc = stamps.cleanupStamps(cleanupDays(cleanupShooting(cleanupFloorRefs(raw))));
+      const doc = library.syncLibrary(stamps.cleanupStamps(cleanupDays(cleanupShooting(cleanupFloorRefs(raw)))));
       set((s) => ({
         hist: pushHistory(s.hist, { doc, at }, mergeKey),
         cursor: after ?? at ?? s.cursor,
@@ -644,17 +655,63 @@ export function createAppStore(doc: ProjectDoc) {
       },
 
       async addImages(planId, kind, files) {
-        const stored = await imageStore.importFiles(files);
+        const stored = await imageStore.importFiles(files, library.knownHashes(docNow()));
         if (!stored.length) {
           warn('Aucune image reconnue (JPEG, PNG, HEIC, TIFF, WebP).');
           return;
         }
-        const next = ops.addImages(
-          docNow(),
-          planId,
-          stored.map((x) => ({ id: newId('img'), kind, file: x.file, originalName: x.originalName, caption: '' })),
-        );
-        commit(next, cur(), `${stored.length} image${stored.length > 1 ? 's' : ''} ajoutée${stored.length > 1 ? 's' : ''} en ${kind === 'scouting' ? 'repérage' : 'référence'}`);
+        // Toute image importée entre dans la bibliothèque du projet ; une image déjà connue n'est pas dupliquée.
+        const lib = library.addToLibrary(docNow(), stored);
+        const r = library.addLibraryImagesToPlan(lib.doc, planId, lib.entries.map((e) => e.id), kind);
+        const where = kind === 'scouting' ? 'repérage' : 'référence';
+        if (!r.added) {
+          commit(lib.doc, cur(), 'Déjà dans ce plan : aucune image ajoutée');
+          return;
+        }
+        commit(r.doc, cur(), `${r.added} image${r.added > 1 ? 's' : ''} ajoutée${r.added > 1 ? 's' : ''} en ${where}${lib.reused ? ` (${lib.reused} déjà dans la bibliothèque, réutilisée${lib.reused > 1 ? 's' : ''})` : ''}`);
+      },
+
+      async importToLibrary(files) {
+        const stored = await imageStore.importFiles(files, library.knownHashes(docNow()));
+        if (!stored.length) {
+          warn('Aucune image reconnue (JPEG, PNG, HEIC, TIFF, WebP).');
+          return;
+        }
+        const before = docNow().library.length;
+        const lib = library.addToLibrary(docNow(), stored);
+        const added = lib.doc.library.length - before;
+        if (!added) {
+          get().setMessage(stored.length > 1 ? 'Ces images sont déjà dans la bibliothèque' : 'Cette image est déjà dans la bibliothèque');
+          return;
+        }
+        commit(lib.doc, cur(), `${added} image${added > 1 ? 's' : ''} ajoutée${added > 1 ? 's' : ''} à la bibliothèque${lib.reused ? ` · ${lib.reused} déjà présente${lib.reused > 1 ? 's' : ''}` : ''}`);
+      },
+
+      addFromLibrary(planId, ids, kind) {
+        const r = library.addLibraryImagesToPlan(docNow(), planId, ids, kind);
+        if (!r.added) {
+          get().setMessage('Déjà dans ce plan : aucune image ajoutée');
+          return;
+        }
+        const code = computeNumbers(r.doc).get(planId)?.code ?? '';
+        commit(r.doc, cur(), `${r.added} image${r.added > 1 ? 's' : ''} ajoutée${r.added > 1 ? 's' : ''} au plan ${code} en ${kind === 'scouting' ? 'repérage' : 'référence'}`);
+      },
+
+      removeLibraryImage(id) {
+        const r = library.removeFromLibrary(docNow(), id);
+        if (!r.ok) {
+          warn(r.error);
+          return;
+        }
+        commit(r.doc, cur(), 'Image retirée de la bibliothèque · ⌘Z pour annuler');
+      },
+
+      setLibraryCaption(id, caption) {
+        commit(library.setLibraryCaption(docNow(), id, caption), cur(), undefined, `lib:${id}:caption`);
+      },
+
+      setLibraryPick(v) {
+        set({ libraryPick: v });
       },
 
       removeImage(planId, imageId) {

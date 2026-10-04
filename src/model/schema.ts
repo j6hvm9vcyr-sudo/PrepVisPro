@@ -174,6 +174,7 @@ export const projectSchema = z.object({
   }),
   sequences: z.array(sequence),
   stamps: z.array(z.object({ id, text: z.string(), note: z.string(), beforeSequenceId: id.nullable() })),
+  library: z.array(z.object({ id, file: z.string().min(1), originalName: z.string(), caption: z.string(), hash: z.string().regex(/^[0-9a-f]{64}$/).nullable() })),
   floorPlans: z.array(floorPlan),
   shootingDays: z.array(z.object({ id, date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(), sequenceIds: z.array(id), note: z.string() })),
 });
@@ -231,6 +232,12 @@ export function checkIntegrity(doc: ProjectDoc): string | null {
     for (const e of fp.elements) if (dup(e.id)) return `élément de plan au sol en double (${e.id}).`;
   }
   const seqIds = new Set(doc.sequences.map((x) => x.id));
+  const libFiles = new Set<string>();
+  for (const l of doc.library) {
+    if (dup(l.id)) return `identifiant d’image de bibliothèque en double (${l.id}).`;
+    if (libFiles.has(l.file)) return `image en double dans la bibliothèque (${l.file}).`;
+    libFiles.add(l.file);
+  }
   for (const t of doc.stamps) {
     if (dup(t.id)) return `identifiant de tampon en double (${t.id}).`;
     if (t.beforeSequenceId && !seqIds.has(t.beforeSequenceId)) return `un tampon renvoie à une séquence absente (${t.id}).`;

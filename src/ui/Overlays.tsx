@@ -51,6 +51,7 @@ const SHORTCUTS: { title: string; items: [string, string][] }[] = [
       ['Sélectionner plusieurs cellules', '⇧ + flèches, ⇧ + clic'],
       ['Tableau / Fiches / Plans au sol', '⌘1 / ⌘2 / ⌘3'],
       ['Tournage / Jours de tournage', '⌘4 / ⌘5'],
+      ['Bibliothèque d’images', '⌘6'],
       ['Afficher / masquer Détails', '⌘I'],
     ],
   },

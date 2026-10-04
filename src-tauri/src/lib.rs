@@ -325,6 +325,7 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
         .item(&item("view_floor", "Plans au sol", "CmdOrCtrl+3")?)
         .item(&item("view_shooting", "Tournage (installations)", "CmdOrCtrl+4")?)
         .item(&item("view_days", "Jours de tournage et matériel", "CmdOrCtrl+5")?)
+        .item(&item("view_library", "Bibliothèque d’images", "CmdOrCtrl+6")?)
         .separator()
         .item(&item("view_inspector", "Afficher / masquer Détails", "CmdOrCtrl+I")?)
         .item(&item("view_settings", "Réglages du projet…", "CmdOrCtrl+,")?)

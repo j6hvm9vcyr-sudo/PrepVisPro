@@ -11,6 +11,19 @@ export interface StoredImage {
   /** Chemin relatif dans le projet, ex. « images/ab12cd.jpg ». */
   file: string;
   originalName: string;
+  /** Empreinte SHA-256 du contenu (null si le calcul n'est pas disponible). */
+  hash: string | null;
+}
+
+/** Empreinte SHA-256 (hexadécimal) ; null si l'API de chiffrement n'est pas disponible. */
+export async function sha256Hex(bytes: Uint8Array): Promise<string | null> {
+  try {
+    if (typeof crypto === 'undefined' || !crypto.subtle) return null;
+    const d = await crypto.subtle.digest('SHA-256', bytes as BufferSource);
+    return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  } catch {
+    return null;
+  }
 }
 
 const EXT_OK = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif', 'tif', 'tiff'];
@@ -64,20 +77,30 @@ class ProjectImageStore {
     return this.dir;
   }
 
-  async importFiles(files: File[]): Promise<StoredImage[]> {
+  /**
+   * Importe des images dans le projet. `known` : empreintes des images déjà importées ; une image
+   * identique n'est pas réécrite, on renvoie le fichier existant.
+   */
+  async importFiles(files: File[], known: Map<string, { file: string; originalName: string }> = new Map()): Promise<StoredImage[]> {
     const out: StoredImage[] = [];
     for (const f of files) {
       const ext = imageExt(f);
       if (!ext) continue;
+      const bytes = new Uint8Array(await f.arrayBuffer());
+      const hash = await sha256Hex(bytes);
+      const already = hash ? (known.get(hash) ?? out.find((o) => o.hash === hash)) : undefined;
+      if (already) {
+        out.push({ file: already.file, originalName: already.originalName, hash });
+        continue;
+      }
       const name = newImageName(ext);
       if (this.backend && this.dir) {
-        const bytes = new Uint8Array(await f.arrayBuffer());
         const file = await this.backend.writeImage(this.dir, name, bytes);
-        out.push({ file, originalName: f.name });
+        out.push({ file, originalName: f.name, hash });
       } else {
         const file = `images/${name}`;
         this.pending.set(file, { blob: f, url: URL.createObjectURL(f) });
-        out.push({ file, originalName: f.name });
+        out.push({ file, originalName: f.name, hash });
       }
     }
     return out;

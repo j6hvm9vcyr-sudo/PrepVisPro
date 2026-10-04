@@ -2,7 +2,7 @@
  * Fond de plan : image (vue satellite, photo) ou PDF (plan d'architecte, converti en image
  * haute définition à l'import pour un affichage fluide et un export fiable).
  */
-import { imageStore } from '../platform/images';
+import { imageStore, type StoredImage } from '../platform/images';
 import type { FloorBackground } from '../model/floor';
 
 /** Largeur maximale de l'image produite à partir d'un PDF. */
@@ -58,11 +58,21 @@ export function isPdf(f: File): boolean {
   return f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
 }
 
-/** Importe un fond de plan dans le projet. Lève une erreur lisible en cas d'échec. */
-export async function importBackground(file: File): Promise<FloorBackground> {
+/**
+ * Importe un fond de plan dans le projet (et sa bibliothèque d'images). Lève une erreur lisible
+ * en cas d'échec.
+ */
+export async function importBackground(file: File, known?: Map<string, { file: string; originalName: string }>): Promise<{ bg: FloorBackground; stored: StoredImage }> {
   const img = isPdf(file) ? await pdfToPng(file) : file;
-  const [stored] = await imageStore.importFiles([img]);
+  const [stored] = await imageStore.importFiles([img], known);
   if (!stored) throw new Error('Format non reconnu (images JPEG, PNG, HEIC, TIFF ou PDF).');
   const { width, height } = await imageSize(img);
-  return { file: stored.file, width, height, opacity: 0.85, originalName: file.name };
+  return { bg: { file: stored.file, width, height, opacity: 0.85, originalName: file.name }, stored: { ...stored, originalName: file.name } };
+}
+
+/** Fond de plan à partir d'une image déjà dans la bibliothèque du projet. */
+export async function backgroundFromLibrary(file: string, originalName: string): Promise<FloorBackground> {
+  const bytes = await imageStore.readBytes(file);
+  const { width, height } = await imageSize(new Blob([bytes as BlobPart]));
+  return { file, width, height, opacity: 0.85, originalName };
 }

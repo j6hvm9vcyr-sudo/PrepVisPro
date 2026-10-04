@@ -224,6 +224,11 @@ export interface ProjectDoc {
   sequences: Sequence[];
   /** Tampons entre les séquences (TITRE, GÉNÉRIQUE DE FIN…), voir stamps.ts. */
   stamps: Stamp[];
+  /**
+   * Bibliothèque d'images du projet : chaque image n'est importée qu'une fois, puis réutilisée
+   * dans les plans (repérage, références) et comme fond de plan au sol (voir library.ts).
+   */
+  library: LibraryImage[];
   /** Plans au sol (voir floor.ts). */
   floorPlans: import('./floor').FloorPlan[];
   /** Jours de tournage, dans l'ordre (J1, J2… : numéros calculés, jamais stockés). */
@@ -239,6 +244,18 @@ export interface Stamp {
   note: string;
   /** Séquence qui suit le tampon ; null = en fin de film. */
   beforeSequenceId: Id | null;
+}
+
+/** Image de la bibliothèque du projet. */
+export interface LibraryImage {
+  id: Id;
+  /** Chemin relatif dans le dossier projet (« images/ab12.jpg »), unique dans la bibliothèque. */
+  file: string;
+  originalName: string;
+  /** Légende libre (« Lumière de Roger Deakins, Skyfall »). */
+  caption: string;
+  /** Empreinte SHA-256 du contenu, pour ne jamais importer deux fois la même image ; null si inconnue. */
+  hash: string | null;
 }
 
 /** Jour de tournage : ses séquences, dans l'ordre de la journée. */

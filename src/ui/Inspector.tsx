@@ -101,9 +101,14 @@ function ImageGroup({ plan, kind }: { plan: Plan; kind: ImageKind }) {
           {label}
           <span className="count">{items.length}</span>
         </span>
-        <button type="button" className="linkbtn" onClick={() => input.current?.click()}>
-          Ajouter…
-        </button>
+        <span className="sec-acts">
+          <button type="button" className="linkbtn" onClick={() => st().setLibraryPick({ mode: 'plan', planId: plan.id, kind })} title="Réutiliser une image déjà importée dans le projet">
+            Bibliothèque…
+          </button>
+          <button type="button" className="linkbtn" onClick={() => input.current?.click()} title="Importer depuis le disque">
+            Importer…
+          </button>
+        </span>
         <input
           ref={input}
           type="file"
