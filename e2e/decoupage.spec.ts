@@ -145,3 +145,12 @@ test('enchaîner les plans sans quitter le clavier : action, ⌘↩, action…',
   await expect(cell(page, 2, 'action')).toHaveText('Second nouveau plan');
   await expect(page.locator('.line.first .code b').nth(2)).toHaveText('1/3');
 });
+
+test('copier-coller d’une cellule au clavier', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.keyboard.press('ControlOrMeta+c');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ControlOrMeta+v');
+  await expect(cell(page, 1, 'size')).toHaveText('Ensemble');
+  await expect(page.locator('.status .msg')).toContainText('1 cellule collée');
+});

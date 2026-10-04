@@ -138,3 +138,39 @@ describe('flux de saisie au clavier', () => {
     expect(locatePlan(selectDoc(st()), pid)!.plan.notes).toBe('');
   });
 });
+
+describe('copier-coller', () => {
+  it('copie une cellule et la colle sur un autre plan', () => {
+    const { st, curSetup } = setup();
+    const t = st().copyCell();
+    expect(t).toBe('Ensemble');
+    st().move(1, 0);
+    expect(st().pasteText(t!)).toBe(true);
+    expect(curSetup().start.size).toBe('Ensemble');
+  });
+
+  it('colle un bloc copié depuis Excel (lignes × colonnes), en une seule étape d’annulation', () => {
+    const { st } = setup();
+    const before = selectDoc(st());
+    expect(st().pasteText('GP\tProfil\nTaille\t3/4\r\n')).toBe(true);
+    const plans = selectDoc(st()).sequences[0]!.plans;
+    expect(plans[0]!.cameras[0]!.start).toMatchObject({ size: 'GP', axis: 'Profil' });
+    expect(plans[1]!.cameras[0]!.start).toMatchObject({ size: 'Taille', axis: '3/4' });
+    st().undo();
+    expect(selectDoc(st())).toBe(before);
+  });
+
+  it('tout ou rien : une valeur inconnue annule tout le collage, avec un message', () => {
+    const { st } = setup();
+    const before = selectDoc(st());
+    expect(st().pasteText('GP\nPied')).toBe(false);
+    expect(selectDoc(st())).toBe(before);
+    expect(st().message?.text).toMatch(/Pied/);
+  });
+
+  it('refuse un collage qui dépasse le tableau', () => {
+    const { st } = setup();
+    expect(st().pasteText(Array(50).fill('GP').join('\n'))).toBe(false);
+    expect(st().message?.kind).toBe('warn');
+  });
+});

@@ -8,7 +8,7 @@ import { isTypingTarget } from '../ui/focus';
 
 export { isTauri } from './env';
 import { isTauri } from './env';
-import { closeProject, newProjectDialog, openDialog, quitApp, revealProject, saveNow, useProject } from '../state/project';
+import { closeProject, newProjectDialog, openDialog, openPath, quitApp, revealProject, saveNow, useProject } from '../state/project';
 
 /** Raccourcis portés par le menu natif (voir src-tauri/src/lib.rs). */
 export function isMenuShortcut(e: Pick<KeyboardEvent, 'key' | 'code' | 'shiftKey' | 'altKey'>): boolean {
@@ -108,6 +108,11 @@ export async function installMenuBridge(): Promise<void> {
   await listen<string>('menu', (e) => runMenuCommand(e.payload));
   // Fermeture de la fenêtre ou « Quitter » depuis le Dock : enregistrer d'abord.
   const { invoke } = await import('@tauri-apps/api/core');
+  // Double-clic sur un projet dans le Finder pendant que l'application est ouverte.
+  await listen<string>('open-path', (e) => {
+    void invoke('take_pending_open');
+    void openPath(e.payload);
+  });
   await listen('quit-requested', () => {
     void invoke('quit_ack');
     void quitApp();

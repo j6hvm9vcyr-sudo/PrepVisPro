@@ -46,6 +46,25 @@
     "macOS": {
       "minimumSystemVersion": "12.0",
       "signingIdentity": "-"
-    }
+    },
+    "fileAssociations": [
+      {
+        "ext": [
+          "prepvis"
+        ],
+        "name": "Projet PrepVisPro",
+        "role": "Editor",
+        "contentTypes": [
+          "fr.adrienrousseau.prepvispro.project"
+        ],
+        "exportedType": {
+          "identifier": "fr.adrienrousseau.prepvispro.project",
+          "conformsTo": [
+            "com.apple.package",
+            "public.composite-content"
+          ]
+        }
+      }
+    ]
   }
 }

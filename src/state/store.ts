@@ -5,7 +5,7 @@ import { applyValue, categoryOf, editText as fieldEditText, FIELD_LABEL, parseEn
 import * as ops from '../model/ops';
 import { newId } from '../model/defaults';
 import { createHistory, pushHistory, redoHistory, undoHistory, type History } from './history';
-import { allLines, moveCursor, visibleLines, type Column, type Cursor, type Line } from './lines';
+import { allLines, COLUMNS, moveCursor, visibleLines, type Column, type Cursor, type Line } from './lines';
 import { imageStore } from '../platform/images';
 import { produce, type Draft } from 'immer';
 
@@ -85,6 +85,10 @@ interface Actions {
   commitEdit(then?: 'down' | 'right' | 'left' | 'stay', pick?: number, strict?: boolean): boolean;
   cancelEdit(): void;
   clearCell(): void;
+  /** Texte de la cellule courante, pour ⌘C. */
+  copyCell(): string | null;
+  /** Colle un texte (une valeur, ou un bloc copié depuis Excel : lignes et tabulations). */
+  pasteText(text: string): boolean;
   newPlan(reprise: boolean): void;
   deletePlan(): void;
   movePlan(delta: -1 | 1): void;
@@ -227,6 +231,79 @@ export function createAppStore(doc: ProjectDoc) {
 
       cancelEdit() {
         set({ editing: null });
+      },
+
+      copyCell() {
+        const c = cur();
+        if (!c || c.col === 'image') return null;
+        const loc = ops.locatePlan(docNow(), c.planId);
+        const setup = loc?.plan.cameras.find((x) => x.id === c.setupId);
+        if (!loc || !setup) return null;
+        if (c.col === 'action') return loc.plan.cameras[0]!.id === setup.id ? loc.plan.action : null;
+        return fieldEditText(c.col, setup);
+      },
+
+      pasteText(text) {
+        const c = cur();
+        if (!c) return false;
+        const rows = text.replace(/\r\n?/g, '\n').replace(/\n+$/, '').split('\n').map((r) => r.split('\t'));
+        const lines = linesOf(get());
+        const i0 = lines.findIndex((l) => l.planId === c.planId && l.setupId === c.setupId);
+        const c0 = COLUMNS.indexOf(c.col);
+        if (i0 < 0) return false;
+        const width = Math.max(...rows.map((r) => r.length));
+        if (i0 + rows.length > lines.length) {
+          warn(`Collage impossible : ${rows.length} lignes à coller, mais seulement ${lines.length - i0} plans à partir d’ici. Créez d’abord les plans manquants (⌘↩).`);
+          return false;
+        }
+        if (c0 + width > COLUMNS.length) {
+          warn(`Collage impossible : ${width} colonnes à coller, le tableau n’en a que ${COLUMNS.length - c0} à partir d’ici.`);
+          return false;
+        }
+        let doc = docNow();
+        const errors: string[] = [];
+        let count = 0;
+        rows.forEach((row, r) => {
+          const line = lines[i0 + r]!;
+          row.forEach((value, k) => {
+            const col = COLUMNS[c0 + k]!;
+            const where = `ligne ${r + 1}, ${col === 'image' ? 'image' : FIELD_LABEL[col].toLowerCase()}`;
+            if (col === 'image') {
+              if (value.trim()) errors.push(`${where} : une image ne se colle pas comme du texte`);
+              return;
+            }
+            const loc = ops.locatePlan(doc, line.planId)!;
+            const setup = loc.plan.cameras.find((x) => x.id === line.setupId)!;
+            if (col === 'action') {
+              if (line.setupIndex > 0) {
+                if (value.trim()) errors.push(`${where} : l’action se colle sur la ligne de la première caméra`);
+                return;
+              }
+              doc = ops.updatePlan(doc, line.planId, (p) => {
+                p.action = value.trim();
+              });
+              count++;
+              return;
+            }
+            const terms = col === 'focal' ? [] : doc.settings.terms[categoryOf(col as TermField)];
+            // Collage : lecture stricte, aucun terme créé ni deviné.
+            const res = parseEntry(col, value, terms, { strict: true });
+            if (!res.ok) {
+              errors.push(`${where} : ${res.error}`);
+              return;
+            }
+            if (res.value.field === 'action') return;
+            doc = ops.replaceCameraSetup(doc, line.planId, applyValue(setup, res.value));
+            count++;
+          });
+        });
+        if (errors.length) {
+          warn(`Rien n’a été collé. ${errors.slice(0, 3).join(' · ')}${errors.length > 3 ? ` · et ${errors.length - 3} autre(s)` : ''}`);
+          return false;
+        }
+        if (doc === docNow()) return true;
+        commit(doc, c, `${count} cellule${count > 1 ? 's' : ''} collée${count > 1 ? 's' : ''} · ⌘Z pour annuler`);
+        return true;
       },
 
       clearCell() {

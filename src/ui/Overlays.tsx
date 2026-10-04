@@ -55,6 +55,7 @@ const SHORTCUTS: { title: string; items: [string, string][] }[] = [
       ['Choisir une suggestion', '↑ ↓'],
       ['Annuler la saisie', 'esc'],
       ['Effacer la cellule', '⌫'],
+      ['Copier / couper / coller', '⌘C / ⌘X / ⌘V'],
     ],
   },
   {
@@ -110,7 +111,7 @@ export function Shortcuts() {
         </div>
         <p className="note" style={{ margin: 0, fontSize: 12 }}>
           Dans une cellule : « &gt; » sépare le début et la fin d’un plan évolutif (« ens &gt; poi », « 75 &gt; 300 », « pl -10 &gt; cp 20 »). Mouvements : « trav lat &gt;
-          fixe ». Machinerie : « dolly, rail ». Un terme inconnu n’est jamais deviné : il faut choisir « Créer ».
+          fixe ». Machinerie : « dolly, rail ». Un terme inconnu n’est jamais deviné : il faut choisir « Créer ». On peut coller un bloc de cellules copié depuis Excel : tout est vérifié avant d’être appliqué.
         </p>
       </div>
     </div>

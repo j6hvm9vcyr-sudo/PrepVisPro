@@ -338,6 +338,13 @@ export async function startup(opts: { sample?: boolean } = {}): Promise<void> {
     return;
   }
   if (backend.kind !== 'tauri') return;
+  // Projet ouvert par double-clic dans le Finder : prioritaire sur le dernier projet.
+  const { invoke } = await import('@tauri-apps/api/core');
+  const requested = await invoke<string[]>('take_pending_open').catch(() => []);
+  if (requested[0]) {
+    await openPath(requested[0]);
+    return;
+  }
   const last = recentProjects()[0];
   if (last && !(await openPath(last))) {
     // Le projet a été déplacé ou supprimé : on le retire des récents, l'accueil explique pourquoi.

@@ -114,6 +114,32 @@ export function DecoupageTable() {
         tabIndex={0}
         aria-activedescendant={cursor ? cellId(cursor.setupId, cursor.col) : undefined}
         onKeyDown={onKeyDown}
+        onCopy={(e) => {
+          const st = useApp.getState();
+          if (st.editing) return;
+          const t = st.copyCell();
+          if (t === null) return;
+          e.preventDefault();
+          e.clipboardData.setData('text/plain', t);
+          st.setMessage('Copié');
+        }}
+        onCut={(e) => {
+          const st = useApp.getState();
+          if (st.editing) return;
+          const t = st.copyCell();
+          if (t === null) return;
+          e.preventDefault();
+          e.clipboardData.setData('text/plain', t);
+          st.clearCell();
+        }}
+        onPaste={(e) => {
+          const st = useApp.getState();
+          if (st.editing) return;
+          const t = e.clipboardData.getData('text/plain');
+          if (!t) return;
+          e.preventDefault();
+          st.pasteText(t);
+        }}
       >
         <div className="grid-cols grid-head" role="row">
           <span role="columnheader">N°</span>

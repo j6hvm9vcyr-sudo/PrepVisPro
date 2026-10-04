@@ -5,6 +5,7 @@ mod storage;
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 use std::time::Duration;
 
 use tauri::ipc::{InvokeBody, Request};
@@ -97,6 +98,17 @@ fn reveal_in_finder(path: String) -> Result<(), String> {
     #[cfg(not(target_os = "macos"))]
     let _ = path;
     Ok(())
+}
+
+/// Projets ouverts depuis le Finder (double-clic) avant que l'interface soit prête.
+static PENDING_OPEN: Mutex<Vec<String>> = Mutex::new(Vec::new());
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+const OPEN_EVENT: &str = "open-path";
+
+/// L'interface récupère, au démarrage, le projet demandé par le Finder.
+#[tauri::command]
+fn take_pending_open() -> Vec<String> {
+    PENDING_OPEN.lock().map(|mut v| std::mem::take(&mut *v)).unwrap_or_default()
 }
 
 /// L'interface accuse réception d'une demande de fermeture.
@@ -211,7 +223,7 @@ fn request_quit(app: &AppHandle) {
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![project_create, project_load, project_save, image_write, reveal_in_finder, quit_ack, quit_now])
+        .invoke_handler(tauri::generate_handler![project_create, project_load, project_save, image_write, reveal_in_finder, quit_ack, quit_now, take_pending_open])
         .setup(|app| {
             build_menu(app)?;
             Ok(())
@@ -220,6 +232,21 @@ pub fn run() {
         .expect("Erreur au lancement de PrepVisPro");
 
     app.run(|app, event| match event {
+        // Double-clic sur un projet .prepvis dans le Finder.
+        #[cfg(any(target_os = "macos", target_os = "ios"))]
+        RunEvent::Opened { urls } => {
+            let paths: Vec<String> = urls
+                .iter()
+                .filter_map(|u| u.to_file_path().ok())
+                .map(|p| p.to_string_lossy().into_owned())
+                .collect();
+            if let Ok(mut v) = PENDING_OPEN.lock() {
+                v.extend(paths.iter().cloned());
+            }
+            for p in paths {
+                let _ = app.emit(OPEN_EVENT, p);
+            }
+        }
         // Fermeture de la fenêtre : l'interface enregistre, puis appelle quit_now.
         RunEvent::WindowEvent { event: tauri::WindowEvent::CloseRequested { api, .. }, .. } => {
             if !READY_TO_QUIT.load(Ordering::SeqCst) {
