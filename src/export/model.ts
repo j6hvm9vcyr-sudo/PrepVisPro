@@ -136,6 +136,8 @@ export interface ExportModel {
   aspectRatio: string;
   crew: { role: string; name: string }[];
   multiCamera: boolean;
+  /** Version du projet exportée (« V2 envoyée à Victor », « V2 + modifications »), si des versions existent. */
+  version: string | null;
   totalPlans: number;
   sequences: ExportSequence[];
 }
@@ -193,6 +195,7 @@ export function buildExportModel(doc: ProjectDoc, opts: Pick<ExportOptions, 'seq
     aspectRatio: doc.meta.aspectRatio,
     crew: doc.meta.crew.filter((c) => c.role.trim() || c.name.trim()).map(({ role, name }) => ({ role, name })),
     multiCamera: doc.sequences.some((s) => s.plans.some((p) => p.cameras.length > 1)),
+    version: null,
     totalPlans: sequences.reduce((n, s) => n + s.plans.length, 0),
     sequences,
   };

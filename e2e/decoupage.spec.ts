@@ -1,4 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
+import ExcelJS from 'exceljs';
+import { readFileSync } from 'node:fs';
 import { PNG_160x90_B64 } from '../src/test/fixtures';
 
 const cell = (page: Page, row: number, col: string) => page.locator(`.line [id$="-${col}"]`).nth(row);
@@ -321,6 +323,14 @@ test('versions : enregistrer, voir ce qui a changé, revenir en arrière sans ri
   await page.keyboard.type('40');
   await page.keyboard.press('Enter');
   await expect(cell(page, 0, 'focal')).toHaveText('40 mm');
+  // Les exports disent de quelle version il s'agit.
+  await page.keyboard.press('ControlOrMeta+e');
+  const dl = page.waitForEvent('download');
+  await page.getByRole('dialog', { name: 'Exporter' }).getByRole('button', { name: 'Excel', exact: true }).click();
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(readFileSync(await (await dl).path()).buffer as ArrayBuffer);
+  expect(String(wb.getWorksheet('Page de garde')!.getCell('C7').value)).toMatch(/^V1 réalisation \(du .+\) \+ modifications$/);
+  await page.keyboard.press('Escape');
   // Comparer.
   await page.keyboard.press('ControlOrMeta+Shift+s');
   await dlg.locator('.version-item', { hasText: 'V1 réalisation' }).click();

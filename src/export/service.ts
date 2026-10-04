@@ -164,8 +164,27 @@ export async function saveFloorExport(doc: ProjectDoc, ext: 'png' | 'pdf', bytes
   return path;
 }
 
+/**
+ * Nom de la version exportée : la dernière version enregistrée, signalée « + modifications »
+ * si le projet a changé depuis. null s'il n'y a pas de version (ou si elles sont illisibles).
+ */
+export async function exportVersionLabel(doc: ProjectDoc): Promise<string | null> {
+  try {
+    const { listVersions, readVersion } = await import('../state/project');
+    const { compareDocs } = await import('../model/diff');
+    const v = (await listVersions()).find((x) => !x.name.startsWith('Avant le retour'));
+    if (!v) return null;
+    const d = compareDocs(await readVersion(v.file), doc);
+    const date = new Date(v.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+    return d.sequences.length || d.other.length ? `${v.name} (du ${date}) + modifications` : `${v.name} (du ${date})`;
+  } catch {
+    return null;
+  }
+}
+
 export async function buildExport(doc: ProjectDoc, format: ExportFormat, opts: ExportOptions, onProgress?: (done: number, total: number) => void): Promise<BuiltExport> {
   const m = buildExportModel(doc, opts);
+  m.version = await exportVersionLabel(doc);
   if (format === 'csv') return { bytes: new TextEncoder().encode(buildCsv(m, opts.columns, opts.showCamera)), failedImages: 0 };
   const withImages = opts.columns.includes('image');
   const { images, failed } = withImages ? await prepareImages(m, format === 'xlsx' ? 480 : MAX_WIDTH[opts.imageSize], onProgress) : { images: new Map<string, Resized>(), failed: [] };

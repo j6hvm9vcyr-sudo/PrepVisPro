@@ -46,6 +46,7 @@ export async function buildWorkbook(m: ExportModel, opts: ExportOptions, images:
     put('C4', m.title || 'Sans titre', 20, { bold: true, align: 'center' });
     ws.getRow(4).height = 28;
     if (m.director) put('C6', `de ${m.director}`, 12, { align: 'center' });
+    if (m.version) put('C7', m.version, 11, { bold: true, align: 'center' });
     let r = 9;
     if (m.aspectRatio) put(`B${r++}`, `RATIO : ${m.aspectRatio}`, 11);
     if (m.production) put(`B${r++}`, `PRODUCTION : ${m.production}`, 11);
@@ -110,7 +111,7 @@ function buildColumnsSheet(wb: ExcelJS.Workbook, m: ExportModel, opts: ExportOpt
       fitToHeight: 0,
       margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 },
     },
-    headerFooter: { oddFooter: `&L${(m.title || '').replace(/&/g, '&&')} — Découpage technique&RPage &P / &N` },
+    headerFooter: { oddFooter: `&L${(m.title || '').replace(/&/g, '&&')} — Découpage technique${m.version ? ` · ${m.version.replace(/&/g, '&&')}` : ''}&RPage &P / &N` },
   });
 
   const cols: (ColumnId | 'camera')[] = [];
@@ -238,7 +239,7 @@ function buildDtSheet(wb: ExcelJS.Workbook, m: ExportModel, opts: ExportOptions,
       fitToHeight: 0,
       margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 },
     },
-    headerFooter: { oddFooter: `&L${(m.title || '').replace(/&/g, '&&')} — Découpage technique&RPage &P / &N` },
+    headerFooter: { oddFooter: `&L${(m.title || '').replace(/&/g, '&&')} — Découpage technique${m.version ? ` · ${m.version.replace(/&/g, '&&')}` : ''}&RPage &P / &N` },
   });
   const cols = dtColumns(opts, m.multiCamera);
   const fields = descriptionFields(opts.columns);

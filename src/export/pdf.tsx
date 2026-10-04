@@ -365,6 +365,7 @@ export function DecoupagePdf({ m, opts, images, floors = [] }: { m: ExportModel;
             <Text style={s.coverTitle}>{m.title || 'Sans titre'}</Text>
             {m.director ? <Text style={s.coverBy}>de {m.director}</Text> : null}
             <View style={{ marginTop: 18 }}>
+              {m.version ? <Text style={[s.coverInfo, { fontWeight: 700, color: INK }]}>{m.version}</Text> : null}
               {m.aspectRatio ? <Text style={s.coverInfo}>Ratio : {m.aspectRatio}</Text> : null}
               {m.production ? <Text style={s.coverInfo}>Production : {m.production}</Text> : null}
               <Text style={s.coverInfo}>
@@ -387,7 +388,7 @@ export function DecoupagePdf({ m, opts, images, floors = [] }: { m: ExportModel;
       {opts.layout === 'dt' ? (
         <Page size="A4" orientation={opts.orientation} style={s.page}>
           <View style={s.head} fixed>
-            <Text>{m.title} — Découpage technique</Text>
+            <Text>{m.title} — Découpage technique{m.version ? ` · ${m.version}` : ''}</Text>
             <Text>{date}</Text>
           </View>
           <View style={dt.head} fixed>
@@ -408,7 +409,7 @@ export function DecoupagePdf({ m, opts, images, floors = [] }: { m: ExportModel;
       ) : (
       <Page size="A4" orientation={opts.orientation} style={s.page}>
           <View style={s.head} fixed>
-            <Text>{m.title} — Découpage technique</Text>
+            <Text>{m.title} — Découpage technique{m.version ? ` · ${m.version}` : ''}</Text>
             <Text>{date}</Text>
           </View>
           <View style={s.thead} fixed>
