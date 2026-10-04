@@ -15,6 +15,26 @@ describe('mise à niveau des fichiers', () => {
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.doc).toEqual(v2);
   });
+  it('format 9 → 10 : projecteurs sans gélatine, aucune matière de réflecteur', () => {
+    const cur = newProject('X');
+    const { reflectors: _r, ...settings9 } = cur.settings;
+    const v9 = JSON.parse(
+      JSON.stringify({
+        ...cur,
+        schemaVersion: 9,
+        settings: settings9,
+        floorPlans: [{ id: 'fp', name: 'P', sequenceIds: [], background: null, scale: null, fovLengthM: 6, elements: [{ id: 'l', kind: 'light', at: { x: 0, y: 0 }, rotation: 0, fixtureId: null, mode: 0, dimmer: 1, lossStops: 0.5, circuit: '', label: '', icon: null, size: 40 }] }],
+      }),
+    );
+    const m = migrate(v9);
+    expect(m.ok).toBe(true);
+    if (!m.ok) return;
+    const r = validateProject(m.raw);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.doc.settings.reflectors).toEqual([]);
+    expect(r.doc.floorPlans[0]!.elements[0]).toMatchObject({ gels: [], lossStops: 0.5 });
+  });
   it('refuse ce qui n’est pas un projet', () => {
     expect(migrate(null).ok).toBe(false);
     expect(migrate({}).ok).toBe(false);

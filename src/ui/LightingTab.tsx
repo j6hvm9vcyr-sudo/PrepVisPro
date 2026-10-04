@@ -8,6 +8,7 @@ import { newId } from '../model/defaults';
 import { formatStop, luxForStop } from '../model/light';
 import type { Fixture } from '../model/types';
 import { DecimalField } from './DecimalField';
+import { MaterialFields } from '../floor/ReflectorPanel';
 
 const KINDS: [Fixture['kind'], string][] = [
   ['led', 'LED'],
@@ -136,6 +137,36 @@ export function LightingTab() {
           onClick={() => st().updateDoc((d) => void d.settings.fixtures.push({ id: newId('fx'), name: '', watts: null, kind: 'led', modes: [{ label: '', lux: null, distanceM: null, beamDeg: null }] }))}
         >
           + Projecteur
+        </button>
+      </section>
+
+      <section className="sec">
+        <div className="sec-h">Réflecteurs de ce projet</div>
+        <p className="note" style={{ margin: 0 }}>
+          Poly, toiles de bounce, CRLS, miroirs… Aucun fabricant ne publie de taux de réflexion mesuré pour ces matières : saisissez celui que vous mesurez (méthode
+          ci-dessous). Sans taux, la lumière renvoyée n’est pas calculée. Vous pouvez aussi créer une matière depuis un réflecteur posé sur le plan (outil Réflecteur, B).
+        </p>
+        {doc.settings.reflectors.length === 0 && <p className="note" style={{ margin: 0 }}>Aucune matière pour l’instant.</p>}
+        {doc.settings.reflectors.map((mt) => (
+          <div key={mt.id} className="fixture">
+            <MaterialFields material={mt} />
+            <button
+              type="button"
+              className="linkbtn danger"
+              style={{ alignSelf: 'flex-start' }}
+              onClick={() => st().updateDoc((d) => void (d.settings.reflectors = d.settings.reflectors.filter((x) => x.id !== mt.id)))}
+            >
+              Retirer
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          className="btn"
+          style={{ alignSelf: 'flex-start' }}
+          onClick={() => st().updateDoc((d) => void d.settings.reflectors.push({ id: newId('rm'), name: '', type: 'diffuse', reflectance: null }))}
+        >
+          + Matière de réflecteur
         </button>
       </section>
     </div>

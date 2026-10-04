@@ -74,11 +74,20 @@ const floorElement = z.discriminatedUnion('kind', [
     fixtureId: id.nullable(),
     mode: z.number().int().min(0),
     dimmer: z.number().min(0).max(1),
+    gels: z.array(z.string().min(1)).max(20),
     lossStops: z.number().min(0).max(20),
     circuit: z.string(),
     label: z.string(),
     icon: z.string().min(1).nullable(),
     size: z.number().finite().positive(),
+  }),
+  z.object({
+    ...elemBase,
+    kind: z.literal('reflector'),
+    materialId: id.nullable(),
+    widthM: z.number().finite().positive().max(100),
+    heightM: z.number().finite().positive().max(100),
+    label: z.string(),
   }),
 ]);
 const floorPlan = z.object({
@@ -153,6 +162,7 @@ export const projectSchema = z.object({
       }),
     ),
     exposure: z.object({ iso: z.number().finite().positive(), fps: z.number().finite().positive(), shutterDeg: z.number().finite().positive().max(360) }),
+    reflectors: z.array(z.object({ id, name: z.string(), type: z.enum(['diffuse', 'mirror']), reflectance: z.number().finite().positive().max(1).nullable() })),
   }),
   sequences: z.array(sequence),
   floorPlans: z.array(floorPlan),

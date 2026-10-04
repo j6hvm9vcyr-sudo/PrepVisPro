@@ -14,12 +14,14 @@ import { DecimalField } from '../ui/DecimalField';
 import { IconPalette } from './icons';
 import { FramingSuggestion } from './Suggest';
 import { ActorLight, iconToLight, LightInspector, PowerSummary } from './LightPanels';
+import { ReflectorInspector } from './ReflectorPanel';
 
 const TOOLS: { id: FloorTool; label: string; key: string }[] = [
   { id: 'select', label: 'Sélection', key: 'V' },
   { id: 'camera', label: 'Caméra', key: 'C' },
   { id: 'actor', label: 'Personnage', key: 'P' },
   { id: 'light', label: 'Projecteur', key: 'L' },
+  { id: 'reflector', label: 'Réflecteur', key: 'B' },
   { id: 'text', label: 'Texte', key: 'T' },
   { id: 'measure', label: 'Mesure', key: 'M' },
   { id: 'scale', label: 'Échelle', key: 'E' },
@@ -205,7 +207,7 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
       <div className="insp-body">
         {el ? (
           <section className="sec">
-            <div className="sec-h">{{ camera: 'Caméra', actor: 'Personnage', icon: 'Icône', text: 'Texte', light: 'Projecteur' }[el.kind]}</div>
+            <div className="sec-h">{{ camera: 'Caméra', actor: 'Personnage', icon: 'Icône', text: 'Texte', light: 'Projecteur', reflector: 'Réflecteur' }[el.kind]}</div>
             {el.kind === 'camera' && (
               <>
                 <label className="field">
@@ -255,6 +257,7 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
               </>
             )}
             {el.kind === 'light' && <LightInspector fp={fp} el={el} />}
+            {el.kind === 'reflector' && <ReflectorInspector fp={fp} el={el} />}
             {el.kind === 'icon' && (
               <button type="button" className="linkbtn" style={{ alignSelf: 'flex-start' }} onClick={() => iconToLight(fp, el)} title="Pour un projecteur : faisceau, éclairement et puissance">
                 Utiliser comme projecteur

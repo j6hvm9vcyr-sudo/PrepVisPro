@@ -81,6 +81,7 @@ export function defaultSettings(): ProjectSettings {
     lenses: [],
     fixtures: [],
     exposure: { iso: 800, fps: 24, shutterDeg: 180 },
+    reflectors: [],
   };
 }
 

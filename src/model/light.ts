@@ -9,8 +9,9 @@
  * Diaph : formule du posemètre en lumière incidente, N² = E × S × t / C, avec C = 340
  * (calotte d'un posemètre incident courant) et t = (angle d'obturation / 360) / cadence.
  */
-import type { Exposure, Fixture, FixtureMode, ProjectDoc } from './types';
-import { bearing, metersBetween, normalizeDeg, type FloorLight, type FloorPlan, type Point } from './floor';
+import type { Exposure, Fixture, FixtureMode, ProjectDoc, ReflectorMaterial } from './types';
+import { bearing, metersBetween, normalizeDeg, project, type FloorLight, type FloorPlan, type FloorReflector, type Point } from './floor';
+import { gelStack, type GelStack } from './gels';
 
 export const INCIDENT_C = 340;
 
@@ -62,6 +63,13 @@ export interface LightReading {
   offAxisDeg: number;
   /** La cible est au bord du faisceau (dernier tiers de l'angle) : valeur plus optimiste. */
   edge: boolean;
+  /** Gélatines et diffusions posées. */
+  gels: GelStack;
+  /**
+   * Pourquoi il n'y a pas de valeur : hors du faisceau, ou hors du faisceau d'origine alors
+   * qu'une diffusion l'a élargi (la lumière y arrive, mais on ne sait pas combien).
+   */
+  why: 'beam' | 'diffusion' | null;
 }
 
 /** Éclairement d'un projecteur sur un point du plan. null si le calcul n'est pas possible (échelle, données). */
@@ -75,9 +83,10 @@ export function readingAt(doc: ProjectDoc, fp: FloorPlan, light: FloorLight, tar
   const off = normalizeDeg(bearing(light.at, target) - light.rotation);
   const offAxisDeg = off > 180 ? 360 - off : off;
   const half = mode.beamDeg / 2;
-  if (offAxisDeg > half) return { light, fixture, distanceM, lux: null, offAxisDeg, edge: false };
-  const lux = mode.lux * (mode.distanceM / distanceM) ** 2 * light.dimmer * 2 ** -light.lossStops;
-  return { light, fixture, distanceM, lux, offAxisDeg, edge: offAxisDeg > (half * 2) / 3 };
+  const gels = gelStack(light.gels, fixture.kind === 'tungsten');
+  if (offAxisDeg > half) return { light, fixture, distanceM, lux: null, offAxisDeg, edge: false, gels, why: gels.diffused ? 'diffusion' : 'beam' };
+  const lux = mode.lux * (mode.distanceM / distanceM) ** 2 * light.dimmer * 2 ** -light.lossStops * gels.transmission;
+  return { light, fixture, distanceM, lux, offAxisDeg, edge: offAxisDeg > (half * 2) / 3, gels, why: null };
 }
 
 /** Lectures de tous les projecteurs d'un plan sur un point (les plus forts d'abord). */
@@ -87,6 +96,148 @@ export function readingsAt(doc: ProjectDoc, fp: FloorPlan, target: Point): Light
     .map((l) => readingAt(doc, fp, l, target))
     .filter((r): r is LightReading => r !== null)
     .sort((a, b) => (b.lux ?? -1) - (a.lux ?? -1));
+}
+
+// ------------------------------------------------------------------ réflecteurs
+
+/**
+ * Lumière renvoyée par un réflecteur sur un point.
+ *
+ * Diffus (toile, poly) : surface lambertienne. Éclairement reçu au centre E_r = E × cos(i) ;
+ * luminance L = ρ·E_r/π ; vu de la cible, la partie éclairée est assimilée à un disque de même
+ * aire, ce qui donne E = ρ·E_r·r²/(r² + D²)·cos(o) (formule exacte dans l'axe d'un disque
+ * uniforme). Aire éclairée = la plus petite de la toile et de la tache du faisceau. On suppose
+ * la tache uniforme à la valeur du centre : chiffre plutôt haut si le faisceau est inégal.
+ *
+ * Miroir : réflexion spéculaire exacte en plan (source image). E = ρ × éclairement du
+ * projecteur à la distance parcourue (projecteur → miroir → cible), si le rayon frappe le
+ * miroir dans le faisceau.
+ *
+ * Ni hauteur ni inclinaison : le réflecteur est supposé vertical, à hauteur de la cible.
+ */
+export interface BounceReading {
+  light: FloorLight;
+  fixture: Fixture;
+  reflector: FloorReflector;
+  material: ReflectorMaterial | null;
+  /** Distance réflecteur → cible (m). */
+  distanceM: number;
+  /** Éclairement reçu au centre du réflecteur, perpendiculairement à sa surface (lux). */
+  onReflector: number | null;
+  lux: number | null;
+  why: 'material' | 'not-lit' | 'back' | 'behind' | 'miss' | null;
+  edge: boolean;
+  gels: GelStack;
+}
+
+const dir = (deg: number): Point => project({ x: 0, y: 0 }, deg, 1);
+const dot = (a: Point, b: Point) => a.x * b.x + a.y * b.y;
+const sub = (a: Point, b: Point): Point => ({ x: a.x - b.x, y: a.y - b.y });
+
+export function bounceAt(doc: ProjectDoc, fp: FloorPlan, light: FloorLight, refl: FloorReflector, target: Point): BounceReading | null {
+  if (!fp.scale) return null;
+  const u = fp.scale.metersPerUnit;
+  const material = doc.settings.reflectors.find((m) => m.id === refl.materialId) ?? null;
+  const n = dir(refl.rotation);
+  const distanceM = metersBetween(fp, refl.at, target)!;
+  const atBoard = readingAt(doc, fp, light, refl.at);
+  if (!atBoard) return null;
+  const base = { light, fixture: atBoard.fixture, reflector: refl, material, distanceM, gels: atBoard.gels };
+  const toLight = sub(light.at, refl.at);
+  const toTarget = sub(target, refl.at);
+  const lenL = Math.hypot(toLight.x, toLight.y);
+  const lenT = Math.hypot(toTarget.x, toTarget.y);
+  const cosI = lenL > 0 ? dot(toLight, n) / lenL : 0;
+  const cosO = lenT > 0 ? dot(toTarget, n) / lenT : 0;
+  const onReflector = atBoard.lux !== null && cosI > 0 ? atBoard.lux * cosI : null;
+  if (cosI <= 0) return { ...base, onReflector: null, lux: null, why: 'back', edge: false };
+  if (cosO <= 0 || !(distanceM > 0)) return { ...base, onReflector, lux: null, why: 'behind', edge: false };
+  const rho = material?.reflectance ?? null;
+
+  if (material?.type === 'mirror') {
+    // Source image du projecteur derrière le miroir.
+    const h = dot(toLight, n);
+    const virt = { x: light.at.x - 2 * h * n.x, y: light.at.y - 2 * h * n.y };
+    const ray = sub(target, virt);
+    const den = dot(ray, n);
+    if (den <= 0) return { ...base, onReflector, lux: null, why: 'miss', edge: false };
+    const t = dot(sub(refl.at, virt), n) / den;
+    const hit = { x: virt.x + t * ray.x, y: virt.y + t * ray.y };
+    const along = Math.abs(dot(sub(hit, refl.at), dir(refl.rotation + 90))) * u;
+    if (t <= 0 || t >= 1 || along > refl.widthM / 2) return { ...base, onReflector, lux: null, why: 'miss', edge: false };
+    const atHit = readingAt(doc, fp, light, hit);
+    if (!atHit || atHit.lux === null) return { ...base, onReflector, lux: null, why: 'not-lit', edge: false };
+    if (rho === null) return { ...base, onReflector, lux: null, why: 'material', edge: atHit.edge };
+    const path = atHit.distanceM + metersBetween(fp, hit, target)!;
+    return { ...base, onReflector, lux: rho * atHit.lux * (atHit.distanceM / path) ** 2, why: null, edge: atHit.edge };
+  }
+
+  if (onReflector === null) return { ...base, onReflector: null, lux: null, why: 'not-lit', edge: false };
+  if (rho === null) return { ...base, onReflector, lux: null, why: 'material', edge: atBoard.edge };
+  const mode = modeData(atBoard.fixture.modes[light.mode])!;
+  const spot = atBoard.distanceM * Math.tan(((mode.beamDeg / 2) * Math.PI) / 180);
+  const area = Math.min(refl.widthM * refl.heightM, (Math.PI * spot * spot) / cosI);
+  const r2 = area / Math.PI;
+  return { ...base, onReflector, lux: rho * onReflector * (r2 / (r2 + distanceM * distanceM)) * cosO, why: null, edge: atBoard.edge };
+}
+
+/** Toute la lumière reçue en un point : directe et renvoyée (les plus fortes d'abord). */
+export interface Contribution {
+  key: string;
+  /** « Fresnel 2K », ou « Toile 12×12 ← Fresnel 2K ». */
+  label: string;
+  distanceM: number;
+  lux: number | null;
+  note: string | null;
+  edge: boolean;
+  /** Valeur indicative (diffusion, réflecteur diffus) plutôt que calcul exact. */
+  approx: boolean;
+  gels: GelStack;
+}
+
+export function lightName(doc: ProjectDoc, l: FloorLight): string {
+  return l.label || doc.settings.fixtures.find((f) => f.id === l.fixtureId)?.name || 'Projecteur';
+}
+
+export function reflectorName(doc: ProjectDoc, r: FloorReflector): string {
+  const m = doc.settings.reflectors.find((x) => x.id === r.materialId);
+  return r.label || m?.name || 'Réflecteur';
+}
+
+const BOUNCE_NOTE: Record<NonNullable<BounceReading['why']>, string | null> = {
+  material: 'taux de réflexion à mesurer',
+  'not-lit': null,
+  back: null,
+  behind: null,
+  miss: null,
+};
+
+export function contributionsAt(doc: ProjectDoc, fp: FloorPlan, target: Point): Contribution[] {
+  const lights = fp.elements.filter((e): e is FloorLight => e.kind === 'light');
+  const refls = fp.elements.filter((e): e is FloorReflector => e.kind === 'reflector');
+  const out: Contribution[] = [];
+  for (const l of lights) {
+    const r = readingAt(doc, fp, l, target);
+    if (!r) continue;
+    out.push({
+      key: l.id,
+      label: lightName(doc, l),
+      distanceM: r.distanceM,
+      lux: r.lux,
+      note: r.why === 'beam' ? 'hors faisceau' : r.why === 'diffusion' ? 'hors faisceau d’origine (diffusion) : non calculé' : null,
+      edge: r.edge,
+      approx: r.gels.diffused,
+      gels: r.gels,
+    });
+    for (const rf of refls) {
+      const b = bounceAt(doc, fp, l, rf, target);
+      if (!b) continue;
+      const note = b.why ? BOUNCE_NOTE[b.why] : null;
+      if (b.lux === null && !note) continue;
+      out.push({ key: `${l.id}>${rf.id}`, label: `${reflectorName(doc, rf)} ← ${lightName(doc, l)}`, distanceM: b.distanceM, lux: b.lux, note, edge: b.edge, approx: b.material?.type !== 'mirror' || b.gels.diffused, gels: b.gels });
+    }
+  }
+  return out.sort((a, b) => (b.lux ?? -1) - (a.lux ?? -1));
 }
 
 export interface PowerTotal {

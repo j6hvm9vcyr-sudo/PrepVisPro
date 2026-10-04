@@ -323,10 +323,47 @@ await page.keyboard.press('ControlOrMeta+3');
   await page.mouse.click(who.x, who.y);
   await expect(page.getByRole('region', { name: 'Lumière reçue' })).toContainText(/Fresnel 2K à 2,5 m/);
   await page.screenshot({ path: 'test-results/21-plan-feux.png' });
+
+  // Gélatine : CTB LEE 201 sur un tungstène → 35 % (fiche LEE, mesure tungstène). 2000 × 0,35 = 700 lx.
+  await page.mouse.click(l.x, l.y);
+  await page.getByLabel('Ajouter une gélatine ou une diffusion').selectOption('lee-201');
+  await expect(page.locator('.light-readings')).toContainText(/700 lx/);
+  await expect(page.locator('.gel-chip')).toHaveText(/Lee 201 CTB/);
+  await expect(page.locator('.floor-canvas text', { hasText: 'CTB' })).toBeVisible();
+  // Diffusion forte : avertissement, valeur indicative.
+  await page.getByLabel('Ajouter une gélatine ou une diffusion').selectOption('lee-216');
+  await expect(page.getByText(/Diffusion forte/)).toBeVisible();
+  await expect(page.locator('.light-readings')).toContainText(/≈ 250 lx/);
+  await page.getByRole('button', { name: 'Retirer Lee 216' }).click();
+  await page.getByRole('button', { name: 'Retirer Lee 201 CTB' }).click();
+  await expect(page.locator('.gel-chip')).toHaveCount(0);
+
+  // Réflecteur : poly 4×4 à 5 m du projecteur, face à lui, derrière le personnage.
+  await canvas.press('b');
+  const rf = at(850, 400);
+  await page.mouse.click(rf.x, rf.y);
+  await page.getByLabel('Orientation en degrés').fill('270');
+  await page.keyboard.press('Enter');
+  await page.getByLabel('Matière du réflecteur').selectOption({ label: '+ Nouvelle matière…' });
+  await expect(page.getByLabel('Nom de la matière')).toBeFocused();
+  await page.keyboard.type('Poly');
+  // Pas de taux : méthode de mesure, aucun chiffre.
+  await expect(page.getByText(/Taux = B ÷ A/)).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Lumière du réflecteur' }).or(page.getByLabel('Lumière du réflecteur'))).toContainText(/taux à mesurer/);
+  await page.getByLabel('Taux de réflexion mesuré en pour cent').fill('80');
+  // Reçoit 2000 × (2,5 / 5)² = 500 lx ; renvoie 0,8 × 500 × r² / (r² + 2,5²), r² = 1,22² / π → ≈ 28 lx.
+  await expect(page.getByLabel('Lumière du réflecteur')).toContainText(/Reçoit de Fresnel 2K\s*500 lx/);
+  await expect(page.getByLabel('Lumière du réflecteur')).toContainText(/≈ 28 lx/);
+  await page.screenshot({ path: 'test-results/22-reflecteur.png' });
+  await page.mouse.click(who.x, who.y);
+  await expect(page.getByRole('region', { name: 'Lumière reçue' })).toContainText(/Poly ← Fresnel 2K à 2,5 m\s*≈ 28 lx/);
+
   // La liste du projet (Réglages › Lumière) contient le projecteur saisi sur le plan.
   await page.getByRole('button', { name: 'Réglages' }).click();
   await page.getByRole('tab', { name: 'Lumière' }).click();
   await expect(page.getByLabel('Nom du projecteur')).toHaveValue('Fresnel 2K');
   await expect(page.getByLabel('Éclairement en lux')).toHaveValue('1000');
   await expect(page.getByLabel('Retirer ce mode')).toBeDisabled();
+  await expect(page.getByLabel('Nom de la matière')).toHaveValue('Poly');
+  await expect(page.getByLabel('Taux de réflexion mesuré en pour cent')).toHaveValue('80');
 });

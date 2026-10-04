@@ -4,7 +4,7 @@ import type { Id } from '../model/types';
 import type { Point } from '../model/floor';
 import type { IconItem } from '../platform/iconLibrary';
 
-export type FloorTool = 'select' | 'camera' | 'actor' | 'light' | 'text' | 'scale' | 'measure' | 'path';
+export type FloorTool = 'select' | 'camera' | 'actor' | 'light' | 'reflector' | 'text' | 'scale' | 'measure' | 'path';
 
 export interface Viewport {
   /** Coin haut-gauche visible, en unités du plan. */

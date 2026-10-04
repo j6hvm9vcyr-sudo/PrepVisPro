@@ -145,6 +145,20 @@ export interface ProjectSettings {
   fixtures: Fixture[];
   /** Réglages d'exposition pour le calcul des diaphs. */
   exposure: Exposure;
+  /** Matières de réflecteurs du projet, avec leur taux de réflexion mesuré. */
+  reflectors: ReflectorMaterial[];
+}
+
+/**
+ * Matière de réflecteur. Diffuse (toile, poly, muslin…) : renvoie la lumière dans toutes les
+ * directions. Miroir : renvoie le faisceau comme un miroir plan.
+ */
+export interface ReflectorMaterial {
+  id: Id;
+  name: string;
+  type: 'diffuse' | 'mirror';
+  /** Taux de réflexion mesuré (0 à 1). null : pas encore mesuré (aucun calcul). */
+  reflectance: number | null;
 }
 
 export interface FixtureMode {
@@ -194,7 +208,7 @@ export interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 9 as const;
+export const SCHEMA_VERSION = 10 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;

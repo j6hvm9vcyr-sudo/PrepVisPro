@@ -7,13 +7,17 @@ import type { ProjectDoc } from '../model/types';
 import { fovCone, fovLengthUnits, project, setupFov, type FloorPlan } from '../model/floor';
 import { cameraLabel } from '../model/floorOps';
 import { locatePlan } from '../model/ops';
-import { modeData } from '../model/light';
+import { modeData, reflectorName } from '../model/light';
+import { gelById } from '../model/gels';
 import type { computeNumbers } from '../model/numbering';
 import { ACTOR_COLORS } from './floorStore';
 
 export const CAM_COLOR = '#2457C5';
 export const CAM_END = '#7A5AF8';
 export const LIGHT_COLOR = '#D98A1C';
+export const REFLECTOR_COLOR = '#6B7280';
+/** Largeur dessinée d'un réflecteur quand le plan n'est pas à l'échelle (pixels écran). */
+const UNSCALED_REFLECTOR_PX = 60;
 /** Longueur dessinée du faisceau des projecteurs, rapportée à celle des champs caméra. */
 export const LIGHT_BEAM_RATIO = 0.8;
 
@@ -157,7 +161,7 @@ export function FloorScene({ doc, fp, k, numbers, selection = [], urlFor }: Scen
         bodies.push(<circle key={`h-${el.id}`} data-rotate={el.id} cx={h.x} cy={h.y} r={6 * k} fill="#fff" stroke={LIGHT_COLOR} strokeWidth={2 * k} style={{ cursor: 'grab' }} />);
       }
       const name = el.label || fixture?.name || 'Projecteur ?';
-      const detail = [fixture?.modes[el.mode]?.label, el.circuit ? `circ. ${el.circuit}` : '', el.dimmer < 1 ? `${Math.round(el.dimmer * 100)} %` : ''].filter(Boolean).join(' · ');
+      const detail = [fixture?.modes[el.mode]?.label, el.gels.map((g) => gelById(g)?.short).filter(Boolean).join(' + '), el.circuit ? `circ. ${el.circuit}` : '', el.dimmer < 1 ? `${Math.round(el.dimmer * 100)} %` : ''].filter(Boolean).join(' · ');
       labels.push(
         <g key={`l-${el.id}`} transform={`translate(${el.at.x} ${el.at.y}) scale(${k})`} pointerEvents="none">
           <g transform={`translate(${el.size / 2 + 6} 6)`}>
@@ -173,6 +177,30 @@ export function FloorScene({ doc, fp, k, numbers, selection = [], urlFor }: Scen
           </g>
         </g>,
       );
+    } else if (el.kind === 'reflector') {
+      // Surface vue de dessus, à l'échelle réelle ; le petit trait indique la face réfléchissante.
+      const half = fp.scale ? el.widthM / 2 / fp.scale.metersPerUnit : (UNSCALED_REFLECTOR_PX / 2) * k;
+      const a = project(el.at, el.rotation - 90, half);
+      const b = project(el.at, el.rotation + 90, half);
+      const face = project(el.at, el.rotation, 12 * k);
+      const material = doc.settings.reflectors.find((m) => m.id === el.materialId);
+      const mirror = material?.type === 'mirror';
+      bodies.push(
+        <g key={el.id} data-el={el.id} style={{ cursor: 'move' }}>
+          <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={isSel ? CAM_COLOR : REFLECTOR_COLOR} strokeWidth={9 * k} strokeLinecap="round" />
+          <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={mirror ? '#C9D6E8' : '#FFFFFF'} strokeWidth={5 * k} strokeLinecap="round" />
+          <line x1={el.at.x} y1={el.at.y} x2={face.x} y2={face.y} stroke={REFLECTOR_COLOR} strokeWidth={2 * k} />
+          {/* Zone de prise plus large que le trait. */}
+          <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent" strokeWidth={18 * k} pointerEvents="stroke" />
+        </g>,
+      );
+      if (isSel && ui.selection.length === 1) {
+        const h = project(el.at, el.rotation, 34 * k);
+        bodies.push(<circle key={`h-${el.id}`} data-rotate={el.id} cx={h.x} cy={h.y} r={6 * k} fill="#fff" stroke={CAM_COLOR} strokeWidth={2 * k} style={{ cursor: 'grab' }} />);
+      }
+      const name = reflectorName(doc, el);
+      const back = project(el.at, el.rotation + 180, 16 * k);
+      labels.push(<text key={`l-${el.id}`} x={back.x} y={back.y} fontSize={11 * k} fontWeight={600} textAnchor="middle" dominantBaseline="middle" fill="#13161B" stroke="#fff" strokeWidth={3 * k} paintOrder="stroke" pointerEvents="none">{name}</text>);
     } else if (el.kind === 'text') {
       bodies.push(
         <text key={el.id} data-el={el.id} x={el.at.x} y={el.at.y} fontSize={el.size * k} fontWeight={600} fill="#13161B" stroke="#fff" strokeWidth={3 * k} paintOrder="stroke" textAnchor="middle" dominantBaseline="middle" style={{ cursor: 'move' }} textDecoration={isSel ? 'underline' : undefined}>

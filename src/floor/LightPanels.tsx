@@ -3,7 +3,8 @@ import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
 import type { FloorActor, FloorElement, FloorIcon, FloorLight, FloorPlan } from '../model/floor';
 import { updateElement } from '../model/floorOps';
-import { formatStop, powerTotals, readingAt, readingsAt, stopFromLux } from '../model/light';
+import { contributionsAt, formatStop, powerTotals, readingAt, stopFromLux } from '../model/light';
+import { GEL_GROUPS, GELS, gelLabel, gelStack, gelTransmission, stopsLost } from '../model/gels';
 import { formatNumber } from '../model/text';
 import { newId } from '../model/defaults';
 import type { Fixture, ProjectDoc } from '../model/types';
@@ -11,11 +12,11 @@ import { DecimalField } from '../ui/DecimalField';
 import { produce } from 'immer';
 
 /** Lux arrondis à deux chiffres significatifs (la précision des données des fabricants). */
-const lx = (v: number) => {
+export const lx = (v: number) => {
   const p = 10 ** Math.max(0, Math.floor(Math.log10(Math.max(v, 1))) - 1);
   return `${(Math.round(v / p) * p).toLocaleString('fr-FR')} lx`;
 };
-const m = (v: number) => `${formatNumber(Math.round(v * 10) / 10)} m`;
+export const m = (v: number) => `${formatNumber(Math.round(v * 10) / 10)} m`;
 
 function apply(fn: (d: ReturnType<typeof selectDoc>) => ReturnType<typeof selectDoc>, msg?: string, key?: string) {
   const st = useApp.getState();
@@ -175,14 +176,15 @@ export function LightInspector({ fp, el }: { fp: FloorPlan; el: FloorLight }) {
         </div>
       )}
       {fixture && <FixtureData key={fixture.id} fixture={fixture} modeIndex={el.mode} uses={usesOf(doc, fixture.id)} />}
+      <GelsField fixture={fixture ?? null} el={el} onChange={(ids) => upd((x) => void (x.gels = ids), 'gels')} />
       <div className="row" style={{ gap: 10 }}>
         <label className="field">
           Gradateur {Math.round(el.dimmer * 100)} %
           <input type="range" min={5} max={100} step={5} value={Math.round(el.dimmer * 100)} onChange={(e) => upd((x) => void (x.dimmer = Number(e.target.value) / 100), 'dim')} aria-label="Gradateur" />
         </label>
         <div className="field small">
-          Pertes
-          <DecimalField label="Pertes en diaphs (diffusion, gélatine)" unit="diaph" width={56} min={0} max={20} required value={el.lossStops} onChange={(v) => v !== null && upd((x) => void (x.lossStops = v), 'loss')} />
+          Autres pertes
+          <DecimalField label="Autres pertes en diaphs (gélatine hors liste, grille…)" unit="diaph" width={56} min={0} max={20} required value={el.lossStops} onChange={(v) => v !== null && upd((x) => void (x.lossStops = v), 'loss')} />
         </div>
       </div>
       {fixture && fixture.kind !== 'led' && el.dimmer < 1 && <p className="note" style={{ margin: 0, color: 'var(--warn-text)' }}>Gradateur sur un {fixture.kind === 'hmi' ? 'HMI' : 'tungstène'} : lumière estimée proportionnelle, température de couleur modifiée.</p>}
@@ -206,7 +208,7 @@ export function LightInspector({ fp, el }: { fp: FloorPlan; el: FloorLight }) {
                 <span>
                   {a.name} à {m(r.distanceM)}
                 </span>
-                <b>{r.lux === null ? 'hors faisceau' : `${lx(r.lux)} · ${formatStop(stopFromLux(r.lux, doc.settings.exposure))}`}</b>
+                <b>{r.lux === null ? (r.why === 'diffusion' ? 'non calculé (diffusion)' : 'hors faisceau') : `${r.gels.diffused ? '≈ ' : ''}${lx(r.lux)} · ${formatStop(stopFromLux(r.lux, doc.settings.exposure))}`}</b>
                 {r.edge && <small>bord du faisceau</small>}
               </div>
             );
@@ -218,40 +220,102 @@ export function LightInspector({ fp, el }: { fp: FloorPlan; el: FloorLight }) {
   );
 }
 
-/** Éclairement reçu par un personnage, projecteur par projecteur. */
+/** Éclairement reçu par un personnage : chaque projecteur, en direct et par les réflecteurs. */
 export function ActorLight({ fp, actor }: { fp: FloorPlan; actor: FloorActor }) {
   const doc = useApp(selectDoc);
   if (!fp.scale || !fp.elements.some((e) => e.kind === 'light')) return null;
-  const rs = readingsAt(doc, fp, actor.at);
-  const lit = rs.filter((r) => r.lux !== null);
-  const sum = lit.reduce((n, r) => n + r.lux!, 0);
+  const cs = contributionsAt(doc, fp, actor.at);
+  const lit = cs.filter((c) => c.lux !== null);
+  const sum = lit.reduce((n, c) => n + c.lux!, 0);
+  const approx = lit.some((c) => c.approx);
   const e = doc.settings.exposure;
   return (
     <section className="sec suggest" aria-label="Lumière reçue">
       <div className="sec-h">Lumière reçue</div>
-      {rs.length === 0 && <p className="note" style={{ margin: 0 }}>Aucun projecteur défini (Réglages › Lumière).</p>}
-      {rs.map((r) => (
-        <div key={r.light.id} className="reading">
+      {cs.length === 0 && <p className="note" style={{ margin: 0 }}>Aucun projecteur renseigné (modèle et fiche du fabricant).</p>}
+      {cs.map((c) => (
+        <div key={c.key} className="reading">
           <span>
-            {r.light.label || r.fixture.name || 'Projecteur'} à {m(r.distanceM)}
+            {c.label} à {m(c.distanceM)}
           </span>
-          <b>{r.lux === null ? 'hors faisceau' : `${lx(r.lux)} · ${formatStop(stopFromLux(r.lux, e))}`}</b>
-          {r.edge && <small>bord du faisceau</small>}
+          <b>{c.lux === null ? (c.note ?? '—') : `${c.approx ? '≈ ' : ''}${lx(c.lux)} · ${formatStop(stopFromLux(c.lux, e))}`}</b>
+          {c.edge && <small>bord du faisceau</small>}
         </div>
       ))}
       {lit.length > 1 && (
         <div className="reading total">
           <span>Toutes sources</span>
           <b>
+            {approx ? '≈ ' : ''}
             {lx(sum)} · {formatStop(stopFromLux(sum, e))}
           </b>
         </div>
       )}
       <p className="note" style={{ margin: 0, fontSize: 11, lineHeight: '15px' }}>
-        Lumière incidente face à chaque source, au centre du faisceau : E = lux du fabricant × (distance de référence ÷ distance)², × gradateur, − pertes. Diaph :
-        N² = E × ISO × t ÷ 340 (ISO {formatNumber(e.iso)}, {formatNumber(e.fps)} i/s, {formatNumber(e.shutterDeg)}°).
+        Lumière incidente face à chaque source. Direct : E = lux du fabricant × (distance de référence ÷ distance)² × gradateur × transmission des gélatines (fiches LEE).
+        Réflecteur : taux de réflexion mesuré, miroir en réflexion exacte, toile ou poly en surface diffuse. « ≈ » : diffusion ou réflecteur diffus, à ± ⅓ diaph
+        environ. Diaph : N² = E × ISO × t ÷ 340 (ISO {formatNumber(e.iso)}, {formatNumber(e.fps)} i/s, {formatNumber(e.shutterDeg)}°).
       </p>
     </section>
+  );
+}
+
+const pct = (t: number) => `${formatNumber(Math.round(t * 1000) / 10)} %`;
+const stopTxt = (t: number) => `−${formatNumber(Math.round(stopsLost(t) * 10) / 10)} diaph`;
+
+/** Gélatines et diffusions LEE posées sur le projecteur, avec leur transmission publiée. */
+function GelsField({ fixture, el, onChange }: { fixture: Fixture | null; el: FloorLight; onChange: (ids: string[]) => void }) {
+  const tungsten = fixture?.kind === 'tungsten';
+  const stack = gelStack(el.gels, tungsten);
+  return (
+    <div className="field">
+      Gélatines et diffusion
+      {el.gels.length > 0 && (
+        <div className="gel-chips">
+          {el.gels.map((g, i) => (
+            <span key={`${g}-${i}`} className="gel-chip">
+              {gelLabel(g) || 'Référence inconnue'}
+              <button type="button" aria-label={`Retirer ${gelLabel(g)}`} onClick={() => onChange(el.gels.filter((_, j) => j !== i))}>
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <select
+        aria-label="Ajouter une gélatine ou une diffusion"
+        value=""
+        onChange={(e) => {
+          if (e.target.value) onChange([...el.gels, e.target.value]);
+        }}
+      >
+        <option value="">+ Ajouter (LEE)…</option>
+        {GEL_GROUPS.map((grp) => (
+          <optgroup key={grp.id} label={grp.label}>
+            {GELS.filter((g) => g.group === grp.id).map((g) => {
+              const t = gelTransmission(g, tungsten);
+              return (
+                <option key={g.id} value={g.id}>
+                  {g.ref} {g.name} · {g.atLeast ? '> ' : ''}
+                  {pct(t)} · {stopTxt(t)}
+                </option>
+              );
+            })}
+          </optgroup>
+        ))}
+      </select>
+      {el.gels.length > 0 && (
+        <span className="note" style={{ fontSize: 11.5 }}>
+          Transmission {pct(stack.transmission)} · {stopTxt(stack.transmission)} (fiches LEE, mesure {tungsten ? 'en tungstène' : 'en lumière du jour'})
+        </span>
+      )}
+      {stack.strong && (
+        <span className="note" style={{ fontSize: 11.5, color: 'var(--warn-text)' }}>
+          Diffusion forte : chiffre valable projecteur ouvert (flood), diffusion près du projecteur. Sur un faisceau serré, le centre reçoit moins. Hors du faisceau d’origine, rien n’est calculé.
+        </span>
+      )}
+      {stack.atLeast && <span className="note" style={{ fontSize: 11.5 }}>252 : la fiche indique plus de 85 % ; la perte comptée est la perte maximale.</span>}
+    </div>
   );
 }
 
@@ -293,7 +357,7 @@ export function iconToLight(fp: FloorPlan, el: FloorIcon) {
         const f = x.floorPlans.find((p) => p.id === fp.id);
         const i = f?.elements.findIndex((e) => e.id === el.id) ?? -1;
         if (!f || i < 0) return;
-        const light: FloorElement = { id: el.id, kind: 'light', at: el.at, rotation: el.rotation, fixtureId: x.settings.fixtures[0]?.id ?? null, mode: 0, dimmer: 1, lossStops: 0, circuit: '', label: el.label, icon: el.icon, size: el.size };
+        const light: FloorElement = { id: el.id, kind: 'light', at: el.at, rotation: el.rotation, fixtureId: x.settings.fixtures[0]?.id ?? null, mode: 0, dimmer: 1, gels: [], lossStops: 0, circuit: '', label: el.label, icon: el.icon, size: el.size };
         f.elements[i] = light;
       }),
     'Icône transformée en projecteur · ⌘Z pour annuler',

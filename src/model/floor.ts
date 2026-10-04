@@ -78,7 +78,9 @@ export interface FloorLight extends Base {
   mode: number;
   /** Gradateur, de 0 à 1 (1 = pleine puissance). */
   dimmer: number;
-  /** Pertes saisies (diffusion, gélatine…), en diaphs. */
+  /** Gélatines et diffusions du catalogue (références LEE, voir gels.ts), dans l'ordre de pose. */
+  gels: string[];
+  /** Autres pertes saisies à la main (gélatine hors catalogue, grille…), en diaphs. */
   lossStops: number;
   /** Circuit électrique (A, B…) pour les totaux de puissance. */
   circuit: string;
@@ -88,7 +90,23 @@ export interface FloorLight extends Base {
   size: number;
 }
 
-export type FloorElement = FloorCamera | FloorActor | FloorIcon | FloorText | FloorLight;
+/**
+ * Réflecteur (toile de bounce, poly, miroir…) : surface plane de `widthM` × `heightM`, tournée
+ * vers `rotation` (direction de sa face réfléchissante).
+ */
+export interface FloorReflector extends Base {
+  kind: 'reflector';
+  /** Matière de la liste du projet (Réglages › Lumière), avec son taux de réflexion mesuré. */
+  materialId: Id | null;
+  widthM: number;
+  heightM: number;
+  label: string;
+}
+
+/** Cadres de réflecteur courants (côté en pieds, converti en mètres). */
+export const FRAME_SIZES: { label: string; m: number }[] = [4, 6, 8, 12, 20].map((ft) => ({ label: `${ft}×${ft}`, m: Math.round(ft * 0.3048 * 100) / 100 }));
+
+export type FloorElement = FloorCamera | FloorActor | FloorIcon | FloorText | FloorLight | FloorReflector;
 
 export interface FloorPlan {
   id: Id;

@@ -104,7 +104,9 @@ export function cleanupFloorRefs(doc: ProjectDoc): ProjectDoc {
   const setups = new Set(doc.sequences.flatMap((s) => s.plans.flatMap((p) => p.cameras.map((c) => `${p.id}|${c.id}`))));
   const modes = new Map(doc.settings.fixtures.map((f) => [f.id, f.modes.length]));
   const badLight = (e: FloorElement) => e.kind === 'light' && e.fixtureId !== null && (!modes.has(e.fixtureId) || e.mode >= modes.get(e.fixtureId)!);
-  const needs = doc.floorPlans.some((fp) => fp.sequenceIds.some((id) => !seqIds.has(id)) || fp.elements.some((e) => (e.kind === 'camera' && e.planId && !setups.has(`${e.planId}|${e.setupId}`)) || badLight(e)));
+  const mats = new Set(doc.settings.reflectors.map((m) => m.id));
+  const badRefl = (e: FloorElement) => e.kind === 'reflector' && e.materialId !== null && !mats.has(e.materialId);
+  const needs = doc.floorPlans.some((fp) => fp.sequenceIds.some((id) => !seqIds.has(id)) || fp.elements.some((e) => (e.kind === 'camera' && e.planId && !setups.has(`${e.planId}|${e.setupId}`)) || badLight(e) || badRefl(e)));
   if (!needs) return doc;
   return produce(doc, (d) => {
     for (const fp of d.floorPlans) {
@@ -122,6 +124,8 @@ export function cleanupFloorRefs(doc: ProjectDoc): ProjectDoc {
             e.mode = 0;
           } else if (e.mode >= modes.get(e.fixtureId)!) e.mode = 0;
         }
+      // Matière retirée du projet : le réflecteur redevient « non défini ».
+      for (const e of fp.elements) if (e.kind === 'reflector' && e.materialId !== null && !mats.has(e.materialId)) e.materialId = null;
     }
   });
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
-import { bearing, computeScale, distance, normalizeDeg, type FloorElement, type FloorPlan, type Point } from '../model/floor';
+import { bearing, computeScale, distance, FRAME_SIZES, normalizeDeg, type FloorElement, type FloorPlan, type Point } from '../model/floor';
 import { addElements, deleteElements, moveElements, updateElement, updateFloorPlan } from '../model/floorOps';
 import { computeNumbers } from '../model/numbering';
 import { newId } from '../model/defaults';
@@ -113,15 +113,30 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
         fixtureId: last?.kind === 'light' ? last.fixtureId : (fixtures[0]?.id ?? null),
         mode: last?.kind === 'light' ? last.mode : 0,
         dimmer: 1,
+        gels: last?.kind === 'light' ? [...last.gels] : [],
         lossStops: 0,
         circuit: last?.kind === 'light' ? last.circuit : '',
         label: '',
         icon: null,
         size: 40,
       };
+    } else if (st.tool === 'reflector') {
+      // Même matière et même taille que le dernier réflecteur posé ; sinon un cadre 4×4.
+      const last = [...fp.elements].reverse().find((x) => x.kind === 'reflector');
+      const mats = docNow().settings.reflectors;
+      el = {
+        id: newId('fe'),
+        kind: 'reflector',
+        at: p,
+        rotation: last?.kind === 'reflector' ? last.rotation : 0,
+        materialId: last?.kind === 'reflector' ? last.materialId : (mats[0]?.id ?? null),
+        widthM: last?.kind === 'reflector' ? last.widthM : FRAME_SIZES[0]!.m,
+        heightM: last?.kind === 'reflector' ? last.heightM : FRAME_SIZES[0]!.m,
+        label: '',
+      };
     }
     if (!el) return;
-    apply(addElements(docNow(), fp.id, [el]), { camera: 'Caméra placée', actor: 'Personnage ajouté', text: 'Texte ajouté', light: 'Projecteur placé', icon: 'Icône posée' }[el.kind]);
+    apply(addElements(docNow(), fp.id, [el]), { camera: 'Caméra placée', actor: 'Personnage ajouté', text: 'Texte ajouté', light: 'Projecteur placé', icon: 'Icône posée', reflector: 'Réflecteur posé' }[el.kind]);
     st.set({ selection: [el.id], tool: 'select', placing: null });
   };
 
@@ -345,7 +360,7 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
       apply(d, undefined, `rot-key-${sel.join()}`);
       return;
     }
-    const tools: Record<string, typeof st.tool> = { v: 'select', c: 'camera', p: 'actor', l: 'light', t: 'text', e: 'scale', m: 'measure' };
+    const tools: Record<string, typeof st.tool> = { v: 'select', c: 'camera', p: 'actor', l: 'light', b: 'reflector', t: 'text', e: 'scale', m: 'measure' };
     const t = tools[e.key.toLowerCase()];
     if (t) {
       e.preventDefault();

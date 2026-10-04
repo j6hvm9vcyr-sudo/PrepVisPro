@@ -328,7 +328,7 @@ function FloorPages({ title, floors, date }: { title: string; floors: PdfFloorPa
             )}
             {f.lights && f.lights.length > 0 && (
               <View style={{ marginTop: 8 }}>
-                <Text style={{ fontSize: 8.5, fontWeight: 700, color: INK2 }}>PROJECTEURS</Text>
+                <Text style={{ fontSize: 8.5, fontWeight: 700, color: INK2 }}>PROJECTEURS ET RÉFLECTEURS</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                   {f.lights.map((l, i) => (
                     <View key={i} style={{ width: '50%', flexDirection: 'row', paddingVertical: 1.5, paddingRight: 10 }} wrap={false}>

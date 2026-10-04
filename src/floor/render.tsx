@@ -11,7 +11,8 @@ import { cameraLabel } from '../model/floorOps';
 import { locatePlan } from '../model/ops';
 import { computeNumbers } from '../model/numbering';
 import { formatNumber } from '../model/text';
-import { powerTotals } from '../model/light';
+import { powerTotals, reflectorName } from '../model/light';
+import { gelLabel } from '../model/gels';
 import { FloorMarkers, FloorScene, LIGHT_BEAM_RATIO } from './FloorScene';
 
 export interface Bounds {
@@ -52,6 +53,9 @@ export function contentBounds(fp: FloorPlan, k: number): Bounds | null {
     else if (el.kind === 'light') {
       add(el.at, 60 * k, 30 * k, 120 * k, 50 * k);
       for (const d of [-30, 0, 30]) add(project(el.at, el.rotation + d, fov * LIGHT_BEAM_RATIO), 4 * k, 4 * k, 4 * k, 4 * k);
+    } else if (el.kind === 'reflector') {
+      const half = fp.scale ? el.widthM / 2 / fp.scale.metersPerUnit : 30 * k;
+      add(el.at, half + 20 * k, half + 20 * k, half + 20 * k, half + 20 * k);
     } else add(el.at, Math.max(el.text.length, 4) * el.size * 0.35 * k, el.size * k, Math.max(el.text.length, 4) * el.size * 0.35 * k, el.size * k);
     if ('path' in el) for (const p of el.path) add(p, 12 * k, 12 * k, 12 * k, 12 * k);
   }
@@ -150,12 +154,21 @@ export function lightLegend(doc: ProjectDoc, fp: FloorPlan): { lights: { name: s
     if (el.kind !== 'light') return [];
     const f = doc.settings.fixtures.find((x) => x.id === el.fixtureId);
     const mode = f?.modes[el.mode];
-    const detail = [!f ? 'modèle non défini' : f.watts !== null ? `${formatNumber(f.watts)} W` : 'puissance non renseignée', mode?.label, el.dimmer < 1 ? `gradateur ${Math.round(el.dimmer * 100)} %` : '', el.lossStops ? `−${formatNumber(el.lossStops)} diaph` : '', el.circuit ? `circuit ${el.circuit}` : '']
+    const detail = [!f ? 'modèle non défini' : f.watts !== null ? `${formatNumber(f.watts)} W` : 'puissance non renseignée', mode?.label, el.dimmer < 1 ? `gradateur ${Math.round(el.dimmer * 100)} %` : '', el.gels.length ? el.gels.map((g) => gelLabel(g)).filter(Boolean).join(' + ') : '', el.lossStops ? `−${formatNumber(el.lossStops)} diaph` : '', el.circuit ? `circuit ${el.circuit}` : '']
       .filter(Boolean)
       .join(' · ');
     return [{ name: el.label || f?.name || 'Projecteur', detail }];
   });
-  if (!lights.length) return { lights, power: null };
+  const reflectors = fp.elements.flatMap((el) => {
+    if (el.kind !== 'reflector') return [];
+    const m = doc.settings.reflectors.find((x) => x.id === el.materialId);
+    const detail = [m ? (m.type === 'mirror' ? 'miroir' : 'réflecteur diffus') : 'matière non définie', `${formatNumber(Math.round(el.widthM * 100) / 100)} × ${formatNumber(Math.round(el.heightM * 100) / 100)} m`, m && m.reflectance !== null ? `réflexion ${Math.round(m.reflectance * 100)} %` : '']
+      .filter(Boolean)
+      .join(' · ');
+    return [{ name: reflectorName(doc, el), detail }];
+  });
+  if (!lights.length) return { lights: reflectors, power: null };
+  lights.push(...reflectors);
   const p = powerTotals(doc, fp);
   const circuits = p.circuits.filter((c) => c.circuit !== '—').map((c) => `${c.circuit} : ${formatNumber(c.watts)} W`).join(' · ');
   return { lights, power: `Puissance totale ${formatNumber(p.total.watts)} W (${formatNumber(Math.round(p.total.amps * 10) / 10)} A à 230 V)${circuits ? ` — ${circuits}` : ''}${p.unknown ? ` — ${p.unknown} projecteur(s) sans puissance renseignée, non compté(s)` : ''}` };

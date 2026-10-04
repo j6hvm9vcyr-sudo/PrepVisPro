@@ -24,6 +24,7 @@ export function migrate(raw: unknown): MigrateResult {
   if (v <= 6) doc = from6to7(doc);
   if (v <= 7) doc = from7to8(doc);
   if (v <= 8) doc = { ...doc, schemaVersion: 9 }; // 8 → 9 : données des projecteurs facultatives (rien à convertir)
+  if (v <= 9) doc = from9to10(doc);
   return { ok: true, raw: doc };
 }
 
@@ -75,4 +76,20 @@ function from6to7(doc: Record<string, unknown>): Record<string, unknown> {
 function from7to8(doc: Record<string, unknown>): Record<string, unknown> {
   const settings = doc.settings && typeof doc.settings === 'object' ? (doc.settings as Record<string, unknown>) : null;
   return { ...doc, schemaVersion: 8, ...(settings ? { settings: { fixtures: [], exposure: { iso: 800, fps: 24, shutterDeg: 180 }, ...settings } } : {}) };
+}
+
+/** Format 9 → 10 : gélatines sur les projecteurs (aucune), matières de réflecteurs (aucune). */
+function from9to10(doc: Record<string, unknown>): Record<string, unknown> {
+  const settings = doc.settings && typeof doc.settings === 'object' ? (doc.settings as Record<string, unknown>) : null;
+  const plans = Array.isArray(doc.floorPlans) ? doc.floorPlans : [];
+  return {
+    ...doc,
+    schemaVersion: 10,
+    ...(settings ? { settings: { reflectors: [], ...settings } } : {}),
+    floorPlans: plans.map((fp) => {
+      if (!fp || typeof fp !== 'object' || !Array.isArray((fp as { elements?: unknown }).elements)) return fp;
+      const f = fp as { elements: unknown[] };
+      return { ...f, elements: f.elements.map((e) => (e && typeof e === 'object' && (e as { kind?: unknown }).kind === 'light' ? { gels: [], ...(e as object) } : e)) };
+    }),
+  };
 }

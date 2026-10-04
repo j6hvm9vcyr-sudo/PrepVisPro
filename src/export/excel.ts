@@ -411,7 +411,7 @@ function buildFloorSheet(wb: ExcelJS.Workbook, m: ExportModel, floors: PdfFloorP
     if (f.lights?.length) {
       r++;
       const lh = ws.getRow(r);
-      ['PROJECTEUR', '', 'DÉTAIL'].forEach((t, i) => {
+      ['PROJECTEUR / RÉFLECTEUR', '', 'DÉTAIL'].forEach((t, i) => {
         const c = lh.getCell(i + 1);
         c.value = t;
         c.font = { name: DT_FONT, size: 9, color: { argb: 'FFFFFFFF' } };
