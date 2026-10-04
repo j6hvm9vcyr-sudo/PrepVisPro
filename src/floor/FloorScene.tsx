@@ -116,9 +116,14 @@ export function FloorScene({ doc, fp, k, numbers, selection = [], urlFor }: Scen
       bodies.push(
         <g key={el.id} data-el={el.id} transform={`translate(${el.at.x} ${el.at.y}) scale(${k}) rotate(${el.rotation})`} style={{ cursor: 'move' }}>
           {url && <image href={url} x={-el.size / 2} y={-el.size / 2} width={el.size} height={el.size} preserveAspectRatio="xMidYMid meet" />}
-          <rect x={-el.size / 2} y={-el.size / 2} width={el.size} height={el.size} fill="transparent" stroke={isSel ? CAM_COLOR : 'none'} strokeWidth={2} strokeDasharray="4 3" />
+          {/* Zone de prise : toute la case de l'icône, même ses parties transparentes. */}
+          <rect x={-el.size / 2 - 4} y={-el.size / 2 - 4} width={el.size + 8} height={el.size + 8} fill="none" pointerEvents="all" stroke={isSel ? CAM_COLOR : 'none'} strokeWidth={2} strokeDasharray="4 3" />
         </g>,
       );
+      if (isSel && ui.selection.length === 1) {
+        const h = project(el.at, el.rotation, (el.size / 2 + 22) * k);
+        bodies.push(<circle key={`h-${el.id}`} data-rotate={el.id} cx={h.x} cy={h.y} r={6 * k} fill="#fff" stroke={CAM_COLOR} strokeWidth={2 * k} style={{ cursor: 'grab' }} />);
+      }
       if (el.label) labels.push(<text key={`l-${el.id}`} x={el.at.x} y={el.at.y + (el.size / 2 + 14) * k} fontSize={11 * k} textAnchor="middle" fill="#13161B" stroke="#fff" strokeWidth={3 * k} paintOrder="stroke" pointerEvents="none">{el.label}</text>);
     } else if (el.kind === 'text') {
       bodies.push(

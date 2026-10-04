@@ -10,7 +10,7 @@ import { formatNumber } from '../model/text';
 import { ACTOR_COLORS, useFloor, type Viewport } from './floorStore';
 import { FloorMarkers, FloorScene } from './FloorScene';
 import { useLateFocus } from '../ui/focus';
-import { placeIcon } from './icons';
+import { draggedIcon, placeIcon } from './icons';
 
 
 type Drag =
@@ -370,7 +370,27 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
   const cursor = ui.tool === 'select' && !ui.placing && !ui.placingIcon ? 'default' : 'crosshair';
 
   return (
-    <div ref={wrap} className="floor-canvas" tabIndex={0} onKeyDown={onKeyDown} aria-label="Plan au sol" role="application" style={{ cursor }}>
+    <div
+      ref={wrap}
+      className="floor-canvas"
+      tabIndex={0}
+      onKeyDown={onKeyDown}
+      aria-label="Plan au sol"
+      role="application"
+      style={{ cursor }}
+      onDragOver={(e) => {
+        if (!draggedIcon) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+      }}
+      onDrop={(e) => {
+        const item = draggedIcon;
+        if (!item) return;
+        e.preventDefault();
+        e.stopPropagation();
+        void placeIcon(fp.id, item, world(e.clientX, e.clientY));
+      }}
+    >
       <svg
         ref={svg}
         width="100%"

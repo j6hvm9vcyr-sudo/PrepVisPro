@@ -149,6 +149,18 @@ test('bibliothèque d’icônes : import d’un dossier, recherche, pose sur le 
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await expect(page.locator('.floor-canvas [data-el] image')).toHaveCount(1);
   await expect(page.getByText('Fresnel 650 posé')).toBeVisible();
+  // L'icône se déplace à la souris, comme une caméra.
+  const icon = page.locator('.floor-canvas [data-el]').first();
+  const before = await icon.getAttribute('transform');
+  const ib = (await icon.boundingBox())!;
+  await page.mouse.move(ib.x + ib.width / 2, ib.y + ib.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(ib.x + ib.width / 2 + 120, ib.y + ib.height / 2 + 60, { steps: 6 });
+  await page.mouse.up();
+  await expect(icon).not.toHaveAttribute('transform', before!);
+  // Glisser-déposer depuis la palette.
+  await page.getByRole('button', { name: 'Poser Fresnel 650' }).dragTo(page.locator('.floor-canvas'), { targetPosition: { x: 200, y: 200 } });
+  await expect(page.locator('.floor-canvas [data-el] image')).toHaveCount(2);
   // Légende et taille.
   await page.getByPlaceholder('ex. 2K, Fresnel 650').fill('650 W');
   await page.getByRole('group', { name: 'Taille de l’icône' }).getByRole('button', { name: 'Grande', exact: true }).click();

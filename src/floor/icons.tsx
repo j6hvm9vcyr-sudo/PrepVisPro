@@ -14,6 +14,9 @@ import { iconBackend, useIcons, type IconItem } from '../platform/iconLibrary';
 import { norm } from '../model/text';
 import { useFloor } from './floorStore';
 
+/** Icône en cours de glisser-déposer depuis la palette. */
+export let draggedIcon: IconItem | null = null;
+
 /** Taille par défaut d'une icône posée, en pixels à l'écran. */
 export const ICON_SIZE = 56;
 
@@ -146,9 +149,18 @@ function IconTile({ item, active, managing }: { item: IconItem; active: boolean;
     <div className={`icon-tile ${active ? 'on' : ''}`}>
       <button
         type="button"
-        title={`${item.name} — cliquez puis cliquez sur le plan`}
+        title={`${item.name} — glissez-la sur le plan, ou cliquez puis cliquez sur le plan`}
         aria-label={`Poser ${item.name}`}
         aria-pressed={active}
+        draggable
+        onDragStart={(e) => {
+          draggedIcon = item;
+          e.dataTransfer.effectAllowed = 'copy';
+          e.dataTransfer.setData('text/plain', item.name);
+        }}
+        onDragEnd={() => {
+          draggedIcon = null;
+        }}
         onClick={() => useFloor.getState().set({ placingIcon: active ? null : item, placing: null, tool: 'select', draft: [] })}
       >
         {url ? <img src={url} alt="" draggable={false} /> : <span className="note">?</span>}
