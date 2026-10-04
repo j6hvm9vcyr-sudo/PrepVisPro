@@ -6,7 +6,8 @@ export function referencedFiles(doc: ProjectDoc): Set<string> {
   for (const s of doc.sequences) for (const p of s.plans) for (const i of p.images) out.add(i.file);
   for (const fp of doc.floorPlans) {
     if (fp.background) out.add(fp.background.file);
-    for (const el of fp.elements) if (el.kind === 'icon') out.add(el.icon);
+    // Icônes posées, et icônes des projecteurs, réflecteurs et personnages.
+    for (const el of fp.elements) if ('icon' in el && el.icon) out.add(el.icon);
   }
   return out;
 }

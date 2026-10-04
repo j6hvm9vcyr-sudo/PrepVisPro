@@ -13,7 +13,8 @@ import { useLateFocus } from '../ui/focus';
 import { DecimalField } from '../ui/DecimalField';
 import { IconPalette } from './icons';
 import { FramingSuggestion } from './Suggest';
-import { ActorLight, iconToLight, LightInspector, PowerSummary } from './LightPanels';
+import { ActorLight, LightInspector, PowerSummary } from './LightPanels';
+import { convertIcon } from './iconConvert';
 import { ReflectorInspector } from './ReflectorPanel';
 import { SunPanel } from './SunPanel';
 import { Fold } from '../ui/Fold';
@@ -271,9 +272,20 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
             {el.kind === 'light' && <LightInspector fp={fp} el={el} />}
             {el.kind === 'reflector' && <ReflectorInspector fp={fp} el={el} />}
             {el.kind === 'icon' && (
-              <button type="button" className="linkbtn" style={{ alignSelf: 'flex-start' }} onClick={() => iconToLight(fp, el)} title="Pour un projecteur : faisceau, éclairement et puissance">
-                Utiliser comme projecteur
-              </button>
+              <div className="field">
+                Utiliser comme
+                <div className="row" role="group" aria-label="Utiliser l’icône comme" style={{ gap: 6, flexWrap: 'wrap' }}>
+                  <button type="button" className="btn" onClick={() => convertIcon(fp, el, 'light')} title="Faisceau, éclairement et puissance">
+                    Projecteur
+                  </button>
+                  <button type="button" className="btn" onClick={() => convertIcon(fp, el, 'reflector')} title="Lumière renvoyée sur les personnages">
+                    Réflecteur
+                  </button>
+                  <button type="button" className="btn" onClick={() => convertIcon(fp, el, 'actor')} title="Lumière reçue, cadrage, positions">
+                    Personnage
+                  </button>
+                </div>
+              </div>
             )}
             {el.kind === 'text' && (
               <label className="field">

@@ -177,19 +177,30 @@ export function FloorScene({ doc, fp, k, numbers, selection = [], urlFor }: Scen
         </g>,
       );
     } else if (el.kind === 'actor') {
+      const url = el.icon ? urlFor(el.icon) : null;
+      const r = url ? el.size / 2 : 12;
       bodies.push(
         <g key={el.id} data-el={el.id} transform={`translate(${el.at.x} ${el.at.y}) scale(${k}) rotate(${el.rotation})`} style={{ cursor: 'move' }}>
-          {isSel && <circle r={19} fill="none" stroke={el.color} strokeWidth={2} strokeDasharray="4 3" />}
-          <circle r={12} fill={el.color} stroke="#fff" strokeWidth={2} />
-          <path d="M -5 -9 L 0 -17 L 5 -9 Z" fill="#fff" />
+          {isSel && <circle r={r + 7} fill="none" stroke={el.color} strokeWidth={2} strokeDasharray="4 3" />}
+          {url ? (
+            <>
+              <image href={url} x={-r} y={-r} width={el.size} height={el.size} preserveAspectRatio="xMidYMid meet" />
+              <rect x={-r - 4} y={-r - 4} width={el.size + 8} height={el.size + 8} fill="none" pointerEvents="all" />
+            </>
+          ) : (
+            <>
+              <circle r={12} fill={el.color} stroke="#fff" strokeWidth={2} />
+              <path d="M -5 -9 L 0 -17 L 5 -9 Z" fill="#fff" />
+            </>
+          )}
         </g>,
       );
       if (isSel && ui.selection.length === 1) {
-        const h = project(el.at, el.rotation, 34 * k);
+        const h = project(el.at, el.rotation, (r + 22) * k);
         bodies.push(<circle key={`h-${el.id}`} data-rotate={el.id} cx={h.x} cy={h.y} r={6 * k} fill="#fff" stroke={el.color} strokeWidth={2 * k} style={{ cursor: 'grab' }} />);
       }
       labels.push(
-        <text key={`l-${el.id}`} x={el.at.x} y={el.at.y + 28 * k} fontSize={12 * k} fontWeight={600} textAnchor="middle" fill="#13161B" stroke="#fff" strokeWidth={3 * k} paintOrder="stroke" pointerEvents="none">
+        <text key={`l-${el.id}`} x={el.at.x} y={el.at.y + ((el.icon ? el.size / 2 : 12) + 16) * k} fontSize={12 * k} fontWeight={600} textAnchor="middle" fill="#13161B" stroke="#fff" strokeWidth={3 * k} paintOrder="stroke" pointerEvents="none">
           {el.name}
         </text>,
       );
@@ -259,8 +270,15 @@ export function FloorScene({ doc, fp, k, numbers, selection = [], urlFor }: Scen
       const face = project(el.at, el.rotation, 12 * k);
       const material = doc.settings.reflectors.find((m) => m.id === el.materialId);
       const mirror = material?.type === 'mirror';
+      const iconUrl = el.icon ? urlFor(el.icon) : null;
+      if (iconUrl)
+        bodies.push(
+          <g key={`i-${el.id}`} transform={`translate(${el.at.x} ${el.at.y}) scale(${k}) rotate(${el.rotation})`} pointerEvents="none">
+            <image href={iconUrl} x={-el.size / 2} y={-el.size / 2} width={el.size} height={el.size} preserveAspectRatio="xMidYMid meet" />
+          </g>,
+        );
       bodies.push(
-        <g key={el.id} data-el={el.id} style={{ cursor: 'move' }}>
+        <g key={el.id} data-el={el.id} style={{ cursor: 'move' }} opacity={iconUrl ? 0.55 : 1}>
           <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={isSel ? CAM_COLOR : REFLECTOR_COLOR} strokeWidth={9 * k} strokeLinecap="round" />
           <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={mirror ? '#C9D6E8' : '#FFFFFF'} strokeWidth={5 * k} strokeLinecap="round" />
           <line x1={el.at.x} y1={el.at.y} x2={face.x} y2={face.y} stroke={REFLECTOR_COLOR} strokeWidth={2 * k} />

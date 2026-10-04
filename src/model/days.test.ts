@@ -15,7 +15,7 @@ function project() {
     ];
     x.settings.cameras[0]!.body = 'Alexa 35';
     x.settings.fixtures.push({ id: 'f2k', name: 'Fresnel 2K', watts: 2000, kind: 'tungsten', modes: [] }, { id: 'led', name: 'Panneau LED', watts: null, kind: 'led', modes: [] });
-    x.settings.reflectors.push({ id: 'poly', name: 'Poly', type: 'diffuse', reflectance: null });
+    x.settings.reflectors.push({ id: 'poly', name: 'Poly', type: 'diffuse', reflectance: null, presetId: null });
     x.sequences[1]!.breakdown.grip = 'Rail 6 m';
   });
   return d;
@@ -100,9 +100,9 @@ describe('matériel déduit', () => {
       light('l1', 'f2k', ['lee-216', 'lee-201']),
       light('l2', 'f2k', ['lee-216']),
       light('l3', 'led'),
-      { id: 'r1', kind: 'reflector', at: { x: 0, y: 0 }, rotation: 0, materialId: 'poly', widthM: 1.22, heightM: 1.22, label: '' },
+      { id: 'r1', kind: 'reflector', at: { x: 0, y: 0 }, rotation: 0, materialId: 'poly', widthM: 1.22, heightM: 1.22, label: '', icon: null, size: 40 },
     ]);
-    d = addElements(d, fpB.id, [light('l4', 'f2k'), light('l5', null), { id: 'r2', kind: 'reflector', at: { x: 0, y: 0 }, rotation: 0, materialId: 'poly', widthM: 1.22, heightM: 1.22, label: '' }]);
+    d = addElements(d, fpB.id, [light('l4', 'f2k'), light('l5', null), { id: 'r2', kind: 'reflector', at: { x: 0, y: 0 }, rotation: 0, materialId: 'poly', widthM: 1.22, heightM: 1.22, label: '', icon: null, size: 40 }]);
     const e = equipmentFor(d, [s1.id, s2.id]);
     // Trajet : 3 m + 4 m.
     expect(e.moves).toEqual([{ plan: '1/1', floorPlan: 'Quai', grip: ['Branches'], lengthM: 7 }]);

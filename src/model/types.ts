@@ -161,8 +161,10 @@ export interface ReflectorMaterial {
   id: Id;
   name: string;
   type: 'diffuse' | 'mirror';
-  /** Taux de réflexion mesuré (0 à 1). null : pas encore mesuré (aucun calcul). */
+  /** Taux de réflexion (0 à 1). null : pas encore renseigné (aucun calcul). */
   reflectance: number | null;
+  /** Matière préréglée d'origine (valeur publiée, voir reflectorPresets.ts) ; null pour une valeur saisie. */
+  presetId: string | null;
 }
 
 export interface FixtureMode {
@@ -212,7 +214,7 @@ export interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 12 as const;
+export const SCHEMA_VERSION = 13 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;

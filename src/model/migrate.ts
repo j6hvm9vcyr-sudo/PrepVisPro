@@ -27,6 +27,7 @@ export function migrate(raw: unknown): MigrateResult {
   if (v <= 9) doc = from9to10(doc);
   if (v <= 10) doc = from10to11(doc);
   if (v <= 11) doc = { ...doc, schemaVersion: 12, shootingDays: [] }; // 11 → 12 : jours de tournage (aucun)
+  if (v <= 12) doc = from12to13(doc);
   return { ok: true, raw: doc };
 }
 
@@ -107,5 +108,28 @@ function from10to11(doc: Record<string, unknown>): Record<string, unknown> {
     ...(settings ? { settings: { timeZone: null, ...settings } } : {}),
     sequences: seqs.map((s) => (s && typeof s === 'object' ? { gps: null, ...(s as object) } : s)),
     floorPlans: plans.map((f) => (f && typeof f === 'object' ? { northDeg: null, sunAt: null, ...(f as object) } : f)),
+  };
+}
+
+/** Format 12 → 13 : icône possible sur les personnages et les réflecteurs ; matières préréglées. */
+function from12to13(doc: Record<string, unknown>): Record<string, unknown> {
+  const settings = doc.settings && typeof doc.settings === 'object' ? (doc.settings as Record<string, unknown>) : null;
+  const plans = Array.isArray(doc.floorPlans) ? doc.floorPlans : [];
+  const mats = settings && Array.isArray(settings.reflectors) ? settings.reflectors : null;
+  return {
+    ...doc,
+    schemaVersion: 13,
+    ...(settings && mats ? { settings: { ...settings, reflectors: mats.map((m) => (m && typeof m === 'object' ? { ...(m as object), presetId: null } : m)) } } : {}),
+    floorPlans: plans.map((fp) => {
+      if (!fp || typeof fp !== 'object' || !Array.isArray((fp as { elements?: unknown }).elements)) return fp;
+      const f = fp as { elements: unknown[] };
+      return {
+        ...f,
+        elements: f.elements.map((e) => {
+          const k = e && typeof e === 'object' ? (e as { kind?: unknown }).kind : null;
+          return k === 'actor' || k === 'reflector' ? { ...(e as object), icon: null, size: 40 } : e;
+        }),
+      };
+    }),
   };
 }

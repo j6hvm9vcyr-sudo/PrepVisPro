@@ -52,6 +52,9 @@ export interface FloorActor extends Base {
   name: string;
   color: string;
   path: Point[];
+  /** Icône de la bibliothèque (sinon le rond de couleur). */
+  icon: string | null;
+  size: number;
 }
 
 export interface FloorIcon extends Base {
@@ -101,6 +104,9 @@ export interface FloorReflector extends Base {
   widthM: number;
   heightM: number;
   label: string;
+  /** Icône de la bibliothèque (sinon le trait du réflecteur). */
+  icon: string | null;
+  size: number;
 }
 
 /** Cadres de réflecteur courants (côté en pieds, converti en mètres). */

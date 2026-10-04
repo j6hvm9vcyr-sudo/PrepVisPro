@@ -1,7 +1,6 @@
 /**
- * Réflecteurs : matière (avec son taux de réflexion mesuré), taille, lumière reçue et renvoyée.
- * Aucun taux n'est fourni d'office : aucun fabricant ne publie de mesure fiable pour le poly,
- * les toiles ou les CRLS, il se mesure en deux lectures de posemètre.
+ * Réflecteurs : matière (preset à valeur publiée, ou valeur mesurée), taille, lumière reçue
+ * et renvoyée. Les presets et leurs sources sont dans model/reflectorPresets.ts.
  */
 import { Explain } from '../ui/Explain';
 import { produce } from 'immer';
@@ -15,6 +14,7 @@ import { formatNumber } from '../model/text';
 import type { ReflectorMaterial } from '../model/types';
 import { DecimalField } from '../ui/DecimalField';
 import { lx, m } from './LightPanels';
+import { materialForPreset, pct, PRESET_GROUPS, presetById, presetRange, presetValue, REFLECTOR_PRESETS } from '../model/reflectorPresets';
 
 const NEW = '__nouvelle';
 
@@ -40,6 +40,24 @@ export function MaterialFields({ material, autoFocus }: { material: ReflectorMat
       const x = d.settings.reflectors.find((y) => y.id === material.id);
       if (x) fn(x);
     }, `mat:${material.id}:${key}`);
+  const preset = presetById(material.presetId);
+  if (preset)
+    return (
+      <>
+        <div className="row" style={{ gap: 8, alignItems: 'baseline', justifyContent: 'space-between' }}>
+          <b>{material.name || preset.name}</b>
+          <span>
+            ≈ {pct(material.reflectance ?? presetValue(preset))} <span className="note">({presetRange(preset)}{preset.type === 'mirror' ? ', miroir' : ''})</span>
+          </span>
+        </div>
+        <Explain id={`preset-${preset.id}`} label="Source de la valeur">
+          {preset.source}.
+        </Explain>
+        <button type="button" className="linkbtn" style={{ alignSelf: 'flex-start' }} onClick={() => upd((x) => void (x.presetId = null), 'custom')}>
+          Remplacer par une valeur mesurée…
+        </button>
+      </>
+    );
   return (
     <>
       <div className="row" style={{ gap: 8, alignItems: 'flex-end' }}>
@@ -67,10 +85,45 @@ export function MaterialFields({ material, autoFocus }: { material: ReflectorMat
           />
         </div>
       </div>
-      {material.reflectance === null && <MeasureGuide type={material.type} />}
+      {material.reflectance === null && (
+        <Explain id={`measure-${material.type}`} label="Comment mesurer le taux">
+          <MeasureGuide type={material.type} />
+        </Explain>
+      )}
     </>
   );
 }
+
+/** Choix d'une matière : celles du projet, puis les presets par famille, puis une valeur mesurée. */
+export function MaterialOptions({ mats }: { mats: ReflectorMaterial[] }) {
+  const used = new Set(mats.map((m) => m.presetId).filter(Boolean));
+  return (
+    <>
+      {mats.length > 0 && (
+        <optgroup label="Matières du projet">
+          {mats.map((x) => (
+            <option key={x.id} value={x.id}>
+              {x.name || 'Sans nom'}
+              {x.reflectance !== null ? ` · ${formatNumber(Math.round(x.reflectance * 100))} %` : ' · taux à saisir'}
+            </option>
+          ))}
+        </optgroup>
+      )}
+      {PRESET_GROUPS.map((g) => (
+        <optgroup key={g} label={g}>
+          {REFLECTOR_PRESETS.filter((p) => p.group === g && !used.has(p.id)).map((p) => (
+            <option key={p.id} value={`${PRESET}${p.id}`}>
+              {p.name} · {presetRange(p)}
+            </option>
+          ))}
+        </optgroup>
+      ))}
+      <option value={NEW}>+ Matière à valeur mesurée…</option>
+    </>
+  );
+}
+
+export const PRESET = 'preset:';
 
 function usesOf(doc: ReturnType<typeof selectDoc>, id: string): number {
   return doc.floorPlans.reduce((n, fp) => n + fp.elements.filter((e) => e.kind === 'reflector' && e.materialId === id).length, 0);
@@ -90,9 +143,9 @@ export function ReflectorInspector({ fp, el }: { fp: FloorPlan; el: FloorReflect
     apply(
       (d) =>
         produce(updateElement(d, fp.id, el.id, (x) => void (x.kind === 'reflector' && (x.materialId = id))), (x) => {
-          x.settings.reflectors.push({ id, name: '', type: 'diffuse', reflectance: null });
+          x.settings.reflectors.push({ id, name: '', type: 'diffuse', reflectance: null, presetId: null });
         }),
-      'Nouvelle matière : nommez-la et saisissez son taux mesuré',
+      'Nouvelle matière : nommez-la et saisissez le taux mesuré',
     );
   };
   const lights = fp.elements.filter((x): x is FloorLight => x.kind === 'light');
@@ -105,15 +158,22 @@ export function ReflectorInspector({ fp, el }: { fp: FloorPlan; el: FloorReflect
     <>
       <label className="field">
         Réflecteur
-        <select aria-label="Matière du réflecteur" value={el.materialId ?? ''} onChange={(ev) => (ev.target.value === NEW ? create() : upd((x) => void (x.materialId = ev.target.value || null), 'mat'))}>
+        <select
+          aria-label="Matière du réflecteur"
+          value={el.materialId ?? ''}
+          onChange={(ev) => {
+            const v = ev.target.value;
+            if (v === NEW) create();
+            else if (v.startsWith(PRESET))
+              apply((d) => {
+                const r = materialForPreset(d, v.slice(PRESET.length), () => newId('rm'));
+                return updateElement(r.doc, fp.id, el.id, (x) => void (x.kind === 'reflector' && (x.materialId = r.id)));
+              });
+            else upd((x) => void (x.materialId = v || null), 'mat');
+          }}
+        >
           <option value="">Non défini</option>
-          {mats.map((x) => (
-            <option key={x.id} value={x.id}>
-              {x.name || 'Sans nom'}
-              {x.reflectance !== null ? ` · ${formatNumber(Math.round(x.reflectance * 100))} %` : ' · à mesurer'}
-            </option>
-          ))}
-          <option value={NEW}>+ Nouvelle matière…</option>
+          <MaterialOptions mats={mats} />
         </select>
       </label>
       {material && (

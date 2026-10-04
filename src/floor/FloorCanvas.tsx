@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
+import { materialForPreset } from '../model/reflectorPresets';
 import { bearing, computeScale, distance, FRAME_SIZES, normalizeDeg, type FloorElement, type FloorPlan, type Point } from '../model/floor';
 import { addElements, deleteElements, moveElements, updateElement, updateFloorPlan } from '../model/floorOps';
 import { computeNumbers } from '../model/numbering';
@@ -94,11 +95,12 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
       return;
     }
     let el: FloorElement | null = null;
+    let pre: ReturnType<typeof docNow> | null = null;
     if (st.tool === 'camera' || st.placing) {
       el = { id: newId('fe'), kind: 'camera', at: p, rotation: 0, planId: st.placing?.planId ?? null, setupId: st.placing?.setupId ?? null, showFov: true, path: [] };
     } else if (st.tool === 'actor') {
       const n = fp.elements.filter((e) => e.kind === 'actor').length;
-      el = { id: newId('fe'), kind: 'actor', at: p, rotation: 180, name: `Personnage ${n + 1}`, color: ACTOR_COLORS[n % ACTOR_COLORS.length]!, path: [] };
+      el = { id: newId('fe'), kind: 'actor', at: p, rotation: 180, name: `Personnage ${n + 1}`, color: ACTOR_COLORS[n % ACTOR_COLORS.length]!, path: [], icon: null, size: 40 };
     } else if (st.tool === 'text') {
       el = { id: newId('fe'), kind: 'text', at: p, rotation: 0, text: 'Texte', size: 14 };
     } else if (st.tool === 'light') {
@@ -121,22 +123,32 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
         size: 40,
       };
     } else if (st.tool === 'reflector') {
-      // Même matière et même taille que le dernier réflecteur posé ; sinon un cadre 4×4.
+      // Même matière et même taille que le dernier réflecteur posé ; sinon un cadre 4×4 de poly
+      // (valeur publiée, modifiable dans le panneau).
       const last = [...fp.elements].reverse().find((x) => x.kind === 'reflector');
-      const mats = docNow().settings.reflectors;
+      let base = docNow();
+      let materialId: string | null = last?.kind === 'reflector' ? last.materialId : (base.settings.reflectors[0]?.id ?? null);
+      if (!materialId) {
+        const r = materialForPreset(base, 'poly', () => newId('rm'));
+        base = r.doc;
+        materialId = r.id;
+      }
+      pre = base;
       el = {
         id: newId('fe'),
         kind: 'reflector',
         at: p,
         rotation: last?.kind === 'reflector' ? last.rotation : 0,
-        materialId: last?.kind === 'reflector' ? last.materialId : (mats[0]?.id ?? null),
+        materialId,
         widthM: last?.kind === 'reflector' ? last.widthM : FRAME_SIZES[0]!.m,
         heightM: last?.kind === 'reflector' ? last.heightM : FRAME_SIZES[0]!.m,
         label: '',
+        icon: null,
+        size: 40,
       };
     }
     if (!el) return;
-    apply(addElements(docNow(), fp.id, [el]), { camera: 'Caméra placée', actor: 'Personnage ajouté', text: 'Texte ajouté', light: 'Projecteur placé', icon: 'Icône posée', reflector: 'Réflecteur posé' }[el.kind]);
+    apply(addElements(pre ?? docNow(), fp.id, [el]), { camera: 'Caméra placée', actor: 'Personnage ajouté', text: 'Texte ajouté', light: 'Projecteur placé', icon: 'Icône posée', reflector: 'Réflecteur posé' }[el.kind]);
     st.set({ selection: [el.id], tool: 'select', placing: null });
   };
 

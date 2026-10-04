@@ -66,7 +66,7 @@ const point = z.object({ x: z.number().finite(), y: z.number().finite() });
 const elemBase = { id, at: point, rotation: z.number().finite() };
 const floorElement = z.discriminatedUnion('kind', [
   z.object({ ...elemBase, kind: z.literal('camera'), planId: id.nullable(), setupId: id.nullable(), showFov: z.boolean(), path: z.array(point) }),
-  z.object({ ...elemBase, kind: z.literal('actor'), name: z.string(), color: z.string(), path: z.array(point) }),
+  z.object({ ...elemBase, kind: z.literal('actor'), name: z.string(), color: z.string(), path: z.array(point), icon: z.string().min(1).nullable(), size: z.number().finite().positive() }),
   z.object({ ...elemBase, kind: z.literal('icon'), icon: z.string().min(1), label: z.string(), size: z.number().finite().positive() }),
   z.object({ ...elemBase, kind: z.literal('text'), text: z.string(), size: z.number().finite().positive() }),
   z.object({
@@ -89,6 +89,8 @@ const floorElement = z.discriminatedUnion('kind', [
     widthM: z.number().finite().positive().max(100),
     heightM: z.number().finite().positive().max(100),
     label: z.string(),
+    icon: z.string().min(1).nullable(),
+    size: z.number().finite().positive(),
   }),
 ]);
 const floorPlan = z.object({
@@ -165,7 +167,7 @@ export const projectSchema = z.object({
       }),
     ),
     exposure: z.object({ iso: z.number().finite().positive(), fps: z.number().finite().positive(), shutterDeg: z.number().finite().positive().max(360) }),
-    reflectors: z.array(z.object({ id, name: z.string(), type: z.enum(['diffuse', 'mirror']), reflectance: z.number().finite().positive().max(1).nullable() })),
+    reflectors: z.array(z.object({ id, name: z.string(), type: z.enum(['diffuse', 'mirror']), reflectance: z.number().finite().positive().max(1).nullable(), presetId: z.string().min(1).nullable() })),
     timeZone: z.string().min(1).nullable(),
   }),
   sequences: z.array(sequence),

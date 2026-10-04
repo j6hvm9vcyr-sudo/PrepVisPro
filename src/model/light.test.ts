@@ -99,7 +99,7 @@ describe('gélatines et réflecteurs sur le plan', () => {
     let d = doc((c) => [seq('1', [plan(c)])]);
     d = produce(d, (x) => {
       x.settings.fixtures.push({ id: 'f', name: 'Fresnel 2K', watts: 2000, kind: 'tungsten', modes: [{ label: 'Flood', lux: 1000, distanceM: 5, beamDeg: 60 }] });
-      x.settings.reflectors.push({ id: 'poly', name: 'Poly', type: 'diffuse', reflectance: 0.8 }, { id: 'miroir', name: 'Miroir', type: 'mirror', reflectance: 0.9 }, { id: 'toile', name: 'Toile', type: 'diffuse', reflectance: null });
+      x.settings.reflectors.push({ id: 'poly', name: 'Poly', type: 'diffuse', reflectance: 0.8, presetId: null }, { id: 'miroir', name: 'Miroir', type: 'mirror', reflectance: 0.9, presetId: null }, { id: 'toile', name: 'Toile', type: 'diffuse', reflectance: null, presetId: null });
       extra(x);
     });
     // 100 unités = 1 m.
@@ -121,7 +121,7 @@ describe('gélatines et réflecteurs sur le plan', () => {
   });
   it('réflecteur diffus (poly) : formule du disque lambertien', () => {
     const { d, fp, light } = build();
-    const board: FloorReflector = { id: 'r', kind: 'reflector', at: { x: 200, y: 0 }, rotation: 270, materialId: 'poly', widthM: 1, heightM: 1, label: '' };
+    const board: FloorReflector = { id: 'r', kind: 'reflector', at: { x: 200, y: 0 }, rotation: 270, materialId: 'poly', widthM: 1, heightM: 1, label: '', icon: null, size: 40 };
     // Au centre : 1000 × (5/2)² = 6250 lx. Tache du faisceau ≈ 4,2 m² > toile 1 m² → r² = 1/π.
     // Cible à 1 m devant : 0,8 × 6250 × (1/π) / (1/π + 1) ≈ 1207 lx.
     const b = bounceAt(d, fp, light, board, { x: 100, y: 0 })!;
@@ -137,7 +137,7 @@ describe('gélatines et réflecteurs sur le plan', () => {
   it('miroir : réflexion spéculaire, distance parcourue', () => {
     const { d, fp, light } = build();
     // Miroir à 2 m, tourné à 45° : renvoie le faisceau vers le bas du plan.
-    const mirror: FloorReflector = { id: 'm', kind: 'reflector', at: { x: 200, y: 0 }, rotation: 225, materialId: 'miroir', widthM: 1, heightM: 1, label: '' };
+    const mirror: FloorReflector = { id: 'm', kind: 'reflector', at: { x: 200, y: 0 }, rotation: 225, materialId: 'miroir', widthM: 1, heightM: 1, label: '', icon: null, size: 40 };
     // 2 m + 3 m = 5 m parcourus : 0,9 × 1000 lx.
     const b = bounceAt(d, fp, light, mirror, { x: 200, y: 300 })!;
     expect(b.lux).toBeCloseTo(900);
@@ -146,7 +146,7 @@ describe('gélatines et réflecteurs sur le plan', () => {
   });
   it('lumière reçue : directe et renvoyée, la plus forte d’abord', () => {
     const { d, fp } = build();
-    const board: FloorReflector = { id: 'r', kind: 'reflector', at: { x: 200, y: 0 }, rotation: 270, materialId: 'poly', widthM: 1, heightM: 1, label: 'Poly 1×1' };
+    const board: FloorReflector = { id: 'r', kind: 'reflector', at: { x: 200, y: 0 }, rotation: 270, materialId: 'poly', widthM: 1, heightM: 1, label: 'Poly 1×1', icon: null, size: 40 };
     const d2 = addElements(d, fp.id, [board]);
     const cs = contributionsAt(d2, d2.floorPlans[0]!, { x: 100, y: 0 });
     expect(cs.map((c) => c.label)).toEqual(['Fresnel 2K', 'Poly 1×1 ← Fresnel 2K']);

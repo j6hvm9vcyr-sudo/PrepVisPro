@@ -8,7 +8,8 @@ import { newId } from '../model/defaults';
 import { formatStop, luxForStop } from '../model/light';
 import type { Fixture } from '../model/types';
 import { DecimalField } from './DecimalField';
-import { MaterialFields } from '../floor/ReflectorPanel';
+import { MaterialFields, MaterialOptions, PRESET } from '../floor/ReflectorPanel';
+import { materialForPreset } from '../model/reflectorPresets';
 import { Explain } from './Explain';
 
 const KINDS: [Fixture['kind'], string][] = [
@@ -143,10 +144,10 @@ export function LightingTab() {
 
       <section className="sec">
         <div className="sec-h">Réflecteurs de ce projet</div>
-        <Explain id="refl-help" label="Pourquoi saisir un taux mesuré ?">
-          Poly, toiles de bounce, CRLS, miroirs… Aucun fabricant ne publie de taux de réflexion mesuré pour ces matières : saisissez celui que vous mesurez (méthode
-          affichée tant que le taux est vide). Sans taux, la lumière renvoyée n’est pas calculée. Vous pouvez aussi créer une matière depuis un réflecteur posé sur le
-          plan (outil Réflecteur, B).
+        <Explain id="refl-help" label="D’où viennent les valeurs ?">
+          Les matières préréglées reprennent des valeurs publiées (source affichée pour chacune) : tables de réflexion de l’éclairagisme pour le papier, la peinture,
+          les miroirs et les surfaces naturelles ; essai comparatif de M. Porwoll pour les toiles et le poly, ancré sur la réflectance du coton blanchi. Pour une
+          matière de votre parc, vous pouvez saisir une valeur mesurée.
         </Explain>
         {doc.settings.reflectors.length === 0 && <p className="note" style={{ margin: 0 }}>Aucune matière pour l’instant.</p>}
         {doc.settings.reflectors.map((mt) => (
@@ -162,14 +163,20 @@ export function LightingTab() {
             </button>
           </div>
         ))}
-        <button
-          type="button"
-          className="btn"
+        <select
+          aria-label="Ajouter une matière de réflecteur"
+          value=""
           style={{ alignSelf: 'flex-start' }}
-          onClick={() => st().updateDoc((d) => void d.settings.reflectors.push({ id: newId('rm'), name: '', type: 'diffuse', reflectance: null }))}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (!v) return;
+            if (v.startsWith(PRESET)) st().applyDoc(materialForPreset(selectDoc(st()), v.slice(PRESET.length), () => newId('rm')).doc);
+            else st().updateDoc((d) => void d.settings.reflectors.push({ id: newId('rm'), name: '', type: 'diffuse', reflectance: null, presetId: null }));
+          }}
         >
-          + Matière de réflecteur
-        </button>
+          <option value="">+ Ajouter une matière…</option>
+          <MaterialOptions mats={[]} />
+        </select>
       </section>
     </div>
   );

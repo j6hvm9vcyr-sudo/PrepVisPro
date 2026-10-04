@@ -9,13 +9,13 @@ describe('légende des exports : projecteurs et réflecteurs', () => {
     let d = doc((c) => [seq('1', [plan(c)])]);
     d = produce(d, (x) => {
       x.settings.fixtures.push({ id: 'f', name: 'Fresnel 2K', watts: 2000, kind: 'tungsten', modes: [{ label: 'Flood', lux: 1000, distanceM: 5, beamDeg: 60 }] });
-      x.settings.reflectors.push({ id: 'p', name: 'Poly', type: 'diffuse', reflectance: 0.8 });
+      x.settings.reflectors.push({ id: 'p', name: 'Poly', type: 'diffuse', reflectance: 0.8, presetId: null });
     });
     const fp = newFloorPlan('Salon', [d.sequences[0]!.id]);
     d = addFloorPlan(d, fp);
     d = addElements(d, fp.id, [
       { id: 'l', kind: 'light', at: { x: 0, y: 0 }, rotation: 90, fixtureId: 'f', mode: 0, dimmer: 1, gels: ['lee-216', 'lee-201'], lossStops: 0, circuit: 'A', label: '', icon: null, size: 40 },
-      { id: 'r', kind: 'reflector', at: { x: 200, y: 0 }, rotation: 270, materialId: 'p', widthM: 1.22, heightM: 1.22, label: '' },
+      { id: 'r', kind: 'reflector', at: { x: 200, y: 0 }, rotation: 270, materialId: 'p', widthM: 1.22, heightM: 1.22, label: '', icon: null, size: 40 },
     ]);
     const lg = lightLegend(d, d.floorPlans[0]!);
     expect(lg.lights).toEqual([

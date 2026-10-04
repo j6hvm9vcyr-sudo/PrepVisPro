@@ -3,7 +3,7 @@ import { Explain } from '../ui/Explain';
 import { Fold } from '../ui/Fold';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
-import type { FloorActor, FloorElement, FloorIcon, FloorLight, FloorPlan } from '../model/floor';
+import type { FloorActor, FloorLight, FloorPlan } from '../model/floor';
 import { updateElement } from '../model/floorOps';
 import { contributionsAt, formatStop, powerTotals, readingAt, stopFromLux } from '../model/light';
 import { GEL_GROUPS, GELS, gelLabel, gelStack, gelTransmission, stopsLost } from '../model/gels';
@@ -347,20 +347,5 @@ export function PowerSummary({ fp }: { fp: FloorPlan }) {
       {p.unknown > 0 && <p className="note" style={{ margin: 0, color: 'var(--warn-text)' }}>{p.unknown} projecteur(s) sans modèle ou sans puissance renseignée : non comptés.</p>}
       <p className="note" style={{ margin: 0, fontSize: 11 }}>À pleine puissance, intensité à 230 V.</p>
     </Fold>
-  );
-}
-
-/** Une icône de la bibliothèque devient un projecteur (elle garde son image). */
-export function iconToLight(fp: FloorPlan, el: FloorIcon) {
-  apply(
-    (d) =>
-      produce(d, (x) => {
-        const f = x.floorPlans.find((p) => p.id === fp.id);
-        const i = f?.elements.findIndex((e) => e.id === el.id) ?? -1;
-        if (!f || i < 0) return;
-        const light: FloorElement = { id: el.id, kind: 'light', at: el.at, rotation: el.rotation, fixtureId: x.settings.fixtures[0]?.id ?? null, mode: 0, dimmer: 1, gels: [], lossStops: 0, circuit: '', label: el.label, icon: el.icon, size: el.size };
-        f.elements[i] = light;
-      }),
-    'Icône transformée en projecteur · ⌘Z pour annuler',
   );
 }

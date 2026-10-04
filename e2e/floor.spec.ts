@@ -212,6 +212,17 @@ test('bibliothèque d’icônes : import d’un dossier, recherche, pose sur le 
   await page.getByRole('group', { name: 'Exporter ce plan' }).getByRole('button', { name: 'PNG' }).click();
   expect(readFileSync(await (await dl).path()).subarray(1, 4).toString()).toBe('PNG');
   await page.screenshot({ path: 'test-results/17-icones.png' });
+  // Une icône posée devient un personnage, un réflecteur ou un projecteur (elle garde son image).
+  const posed = page.locator('.floor-canvas [data-el]').filter({ has: page.locator('image') }).first();
+  await posed.click();
+  await page.getByRole('group', { name: 'Utiliser l’icône comme' }).getByRole('button', { name: 'Personnage' }).click();
+  await expect(page.locator('.insp-body .sec-h').first()).toHaveText('Personnage');
+  await expect(page.getByRole('region', { name: 'Lumière reçue' }).or(page.getByLabel('Nom'))).toBeVisible();
+  await page.keyboard.press('ControlOrMeta+z');
+  await posed.click();
+  await page.getByRole('group', { name: 'Utiliser l’icône comme' }).getByRole('button', { name: 'Réflecteur' }).click();
+  await expect(page.getByLabel('Données de la matière')).toContainText('Poly / bead board');
+  await expect(page.locator('.floor-canvas image')).toHaveCount(2);
 });
 
 test('tournage : installations proposées d’après le plan au sol, réorganisées à la main', async ({ page }) => {
@@ -346,19 +357,25 @@ await page.keyboard.press('ControlOrMeta+3');
   await page.mouse.click(rf.x, rf.y);
   await page.getByLabel('Orientation en degrés').fill('270');
   await page.keyboard.press('Enter');
-  await page.getByLabel('Matière du réflecteur').selectOption({ label: '+ Nouvelle matière…' });
-  await expect(page.getByLabel('Nom de la matière')).toBeFocused();
-  await page.keyboard.type('Poly');
-  // Pas de taux : méthode de mesure, aucun chiffre.
-  await expect(page.getByText(/Taux = B ÷ A/)).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Lumière du réflecteur' }).or(page.getByLabel('Lumière du réflecteur'))).toContainText(/taux à mesurer/);
-  await page.getByLabel('Taux de réflexion mesuré en pour cent').fill('80');
-  // Reçoit 2000 × (2,5 / 5)² = 500 lx ; renvoie 0,8 × 500 × r² / (r² + 2,5²), r² = 1,22² / π → ≈ 28 lx.
+  // Par défaut : poly, valeur publiée (essai Porwoll ancré sur le coton blanchi : ≈ 81 %, 79–84 %).
+  await expect(page.getByLabel('Données de la matière')).toContainText(/Poly \/ bead board\s*≈ 81 %\s*\(79–84 %\)/);
+  // Reçoit 2000 × (2,5 / 5)² = 500 lx ; renvoie 0,812 × 500 × r² / (r² + 2,5²), r² = 1,22² / π → ≈ 29 lx.
   await expect(page.getByLabel('Lumière du réflecteur')).toContainText(/Reçoit de Fresnel 2K\s*500 lx/);
+  await expect(page.getByLabel('Lumière du réflecteur')).toContainText(/≈ 29 lx/);
+  // Un autre preset du menu : Ultrabounce, 0,875 × 500 × 0,0705 → ≈ 31 lx.
+  await page.getByLabel('Matière du réflecteur').selectOption({ label: 'Ultrabounce (blanc) · 85–90 %' });
+  await expect(page.getByLabel('Lumière du réflecteur')).toContainText(/≈ 31 lx/);
+  // Matière de son parc, valeur mesurée : sans taux, aucun chiffre.
+  await page.getByLabel('Matière du réflecteur').selectOption({ label: '+ Matière à valeur mesurée…' });
+  await expect(page.getByLabel('Nom de la matière')).toBeFocused();
+  await page.keyboard.type('Poly maison');
+  await expect(page.getByLabel('Lumière du réflecteur')).toContainText(/taux à mesurer/);
+  await page.getByLabel('Taux de réflexion mesuré en pour cent').fill('80');
+  // 0,8 × 500 × r² / (r² + 2,5²) → ≈ 28 lx.
   await expect(page.getByLabel('Lumière du réflecteur')).toContainText(/≈ 28 lx/);
   await page.screenshot({ path: 'test-results/22-reflecteur.png' });
   await page.mouse.click(who.x, who.y);
-  await expect(page.getByRole('region', { name: 'Lumière reçue' })).toContainText(/Poly ← Fresnel 2K à 2,5 m\s*≈ 28 lx/);
+  await expect(page.getByRole('region', { name: 'Lumière reçue' })).toContainText(/Poly maison ← Fresnel 2K à 2,5 m\s*≈ 28 lx/);
 
   // La liste du projet (Réglages › Lumière) contient le projecteur saisi sur le plan.
   await page.getByRole('button', { name: 'Réglages' }).click();
@@ -366,7 +383,7 @@ await page.keyboard.press('ControlOrMeta+3');
   await expect(page.getByLabel('Nom du projecteur')).toHaveValue('Fresnel 2K');
   await expect(page.getByLabel('Éclairement en lux')).toHaveValue('1000');
   await expect(page.getByLabel('Retirer ce mode')).toBeDisabled();
-  await expect(page.getByLabel('Nom de la matière')).toHaveValue('Poly');
+  await expect(page.getByLabel('Nom de la matière')).toHaveValue('Poly maison');
   await expect(page.getByLabel('Taux de réflexion mesuré en pour cent')).toHaveValue('80');
 });
 
