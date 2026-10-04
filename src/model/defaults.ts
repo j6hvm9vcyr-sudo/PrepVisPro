@@ -61,6 +61,7 @@ export function newSequence(number: string, cameraId: Id): Sequence {
     dayNight: 'JOUR',
     location: '',
     address: '',
+    gps: null,
     comments: '',
     scriptText: '',
     breakdown: emptyBreakdown(),
@@ -82,6 +83,7 @@ export function defaultSettings(): ProjectSettings {
     fixtures: [],
     exposure: { iso: 800, fps: 24, shutterDeg: 180 },
     reflectors: [],
+    timeZone: null,
   };
 }
 

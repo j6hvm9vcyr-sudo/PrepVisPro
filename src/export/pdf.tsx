@@ -27,6 +27,8 @@ export interface PdfFloorPage {
   /** Projecteurs du plan feux et puissance totale. */
   lights?: { name: string; detail: string }[];
   power?: string | null;
+  /** Soleil simulé sur le plan (date, heure, direction, hauteur, lever et coucher). */
+  sun?: string | null;
 }
 
 export interface FontSources {
@@ -326,6 +328,7 @@ function FloorPages({ title, floors, date }: { title: string; floors: PdfFloorPa
                 ))}
               </View>
             )}
+            {f.sun ? <Text style={{ fontSize: 8, marginTop: 6, fontWeight: 600 }}>{f.sun}</Text> : null}
             {f.lights && f.lights.length > 0 && (
               <View style={{ marginTop: 8 }}>
                 <Text style={{ fontSize: 8.5, fontWeight: 700, color: INK2 }}>PROJECTEURS ET RÉFLECTEURS</Text>

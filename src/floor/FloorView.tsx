@@ -15,6 +15,9 @@ import { IconPalette } from './icons';
 import { FramingSuggestion } from './Suggest';
 import { ActorLight, iconToLight, LightInspector, PowerSummary } from './LightPanels';
 import { ReflectorInspector } from './ReflectorPanel';
+import { SunPanel } from './SunPanel';
+import { planSun, sunForCamera } from '../model/sunPlan';
+import type { FloorCamera } from '../model/floor';
 
 const TOOLS: { id: FloorTool; label: string; key: string }[] = [
   { id: 'select', label: 'Sélection', key: 'V' },
@@ -240,6 +243,7 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
                   Le champ suit la focale et le format capteur du plan (Réglages › Caméras). Plan évolutif : champ de fin en pointillé violet.
                 </p>
                 <FramingSuggestion fp={fp} cam={el} />
+                <CameraSun fp={fp} cam={el} />
               </>
             )}
             {el.kind === 'actor' && (
@@ -373,6 +377,7 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
           </section>
         )}
         {!el && selected.length === 0 && <PowerSummary fp={fp} />}
+        {!el && selected.length === 0 && <SunPanel fp={fp} />}
 
         <section className="sec">
           <div className="sec-h">
@@ -410,4 +415,17 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
 function TextField({ id, value, onChange }: { id: string; value: string; onChange: (v: string) => void }) {
   const ref = useLateFocus<HTMLInputElement>(id, true);
   return <input ref={ref} data-floor-text value={value} onChange={(e) => onChange(e.target.value)} />;
+}
+
+/** Soleil par rapport à l'axe de la caméra, si le soleil est simulé sur ce plan. */
+function CameraSun({ fp, cam }: { fp: FloorPlan; cam: FloorCamera }) {
+  const doc = useApp(selectDoc);
+  const sun = planSun(doc, fp, false);
+  if (!sun.ok || sun.planBearing === null) return null;
+  const rel = sunForCamera(cam.rotation, sun.planBearing, sun.pos.elevation);
+  return (
+    <p className="note" style={{ margin: 0 }} aria-label="Soleil pour cette caméra">
+      Soleil à {fp.sunAt!.time} : <b>{rel ?? 'couché'}</b>
+    </p>
+  );
 }

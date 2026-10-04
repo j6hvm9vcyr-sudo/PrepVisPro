@@ -25,6 +25,7 @@ export function migrate(raw: unknown): MigrateResult {
   if (v <= 7) doc = from7to8(doc);
   if (v <= 8) doc = { ...doc, schemaVersion: 9 }; // 8 → 9 : données des projecteurs facultatives (rien à convertir)
   if (v <= 9) doc = from9to10(doc);
+  if (v <= 10) doc = from10to11(doc);
   return { ok: true, raw: doc };
 }
 
@@ -91,5 +92,19 @@ function from9to10(doc: Record<string, unknown>): Record<string, unknown> {
       const f = fp as { elements: unknown[] };
       return { ...f, elements: f.elements.map((e) => (e && typeof e === 'object' && (e as { kind?: unknown }).kind === 'light' ? { gels: [], ...(e as object) } : e)) };
     }),
+  };
+}
+
+/** Format 10 → 11 : soleil (position GPS des décors, fuseau du projet, nord et heure des plans au sol). */
+function from10to11(doc: Record<string, unknown>): Record<string, unknown> {
+  const settings = doc.settings && typeof doc.settings === 'object' ? (doc.settings as Record<string, unknown>) : null;
+  const seqs = Array.isArray(doc.sequences) ? doc.sequences : [];
+  const plans = Array.isArray(doc.floorPlans) ? doc.floorPlans : [];
+  return {
+    ...doc,
+    schemaVersion: 11,
+    ...(settings ? { settings: { timeZone: null, ...settings } } : {}),
+    sequences: seqs.map((s) => (s && typeof s === 'object' ? { gps: null, ...(s as object) } : s)),
+    floorPlans: plans.map((f) => (f && typeof f === 'object' ? { northDeg: null, sunAt: null, ...(f as object) } : f)),
   };
 }

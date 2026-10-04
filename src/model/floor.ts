@@ -118,6 +118,10 @@ export interface FloorPlan {
   elements: FloorElement[];
   /** Longueur dessinée des champs caméra, en mètres (si le plan est à l'échelle). */
   fovLengthM: number;
+  /** Direction du nord sur le plan (degrés, 0 = haut du plan, sens horaire) ; null si inconnue. */
+  northDeg: number | null;
+  /** Date et heure légales simulées pour le soleil ; null si pas de simulation. */
+  sunAt: { date: string; time: string } | null;
 }
 
 export const DEFAULT_FOV_LENGTH_M = 4;

@@ -8,7 +8,7 @@ import { displayText } from './entry';
 import { locatePlan } from './ops';
 
 export function newFloorPlan(name: string, sequenceIds: Id[]): FloorPlan {
-  return { id: newId('fp'), name, sequenceIds, background: null, scale: null, elements: [], fovLengthM: DEFAULT_FOV_LENGTH_M };
+  return { id: newId('fp'), name, sequenceIds, background: null, scale: null, elements: [], fovLengthM: DEFAULT_FOV_LENGTH_M, northDeg: null, sunAt: null };
 }
 
 export function addFloorPlan(doc: ProjectDoc, fp: FloorPlan): ProjectDoc {

@@ -367,3 +367,62 @@ await page.keyboard.press('ControlOrMeta+3');
   await expect(page.getByLabel('Nom de la matière')).toHaveValue('Poly');
   await expect(page.getByLabel('Taux de réflexion mesuré en pour cent')).toHaveValue('80');
 });
+
+test('soleil : position GPS du décor, nord du plan, heure simulée, rapport avec la caméra', async ({ page }) => {
+  await page.goto('/?exemple');
+  await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
+  // Fuseau du projet fixé (les heures ne dépendent pas de l'ordinateur qui fait le test).
+  await page.getByRole('button', { name: 'Réglages' }).click();
+  await page.getByLabel('Fuseau horaire').selectOption('Europe/Paris');
+  await page.getByRole('button', { name: 'Terminé' }).click();
+
+  // Position GPS du décor, collée depuis une carte. Un texte qui n'est pas une position est refusé.
+  await page.getByRole('button', { name: 'Modifier la séquence 2' }).click();
+  const dlg = page.getByRole('dialog', { name: /Séquence/ });
+  const gps = dlg.getByLabel('Coordonnées GPS');
+  await gps.fill('rue de Rivoli');
+  await expect(dlg.getByText(/Format non reconnu/)).toBeVisible();
+  await gps.fill('48°51\'23.8"N 2°21\'7.9"E');
+  // ↩ ferme la fiche : la position est déjà enregistrée.
+  await gps.press('Enter');
+  await expect(dlg).toBeHidden();
+  await page.getByRole('button', { name: 'Modifier la séquence 2' }).click();
+  await expect(gps).toHaveValue('48.85661, 2.35219');
+  await dlg.getByRole('button', { name: 'Terminé' }).click();
+
+  await page.keyboard.press('ControlOrMeta+3');
+  await page.getByLabel('Créer un plan au sol pour la séquence').selectOption({ label: '2 — Wagon' });
+  const chooser = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Importer un fond…' }).click();
+  await (await chooser).setFiles(resolve('e2e/plan-decor.png'));
+  const sun = page.getByRole('region', { name: 'Soleil' });
+  await expect(sun).toBeVisible();
+  await sun.getByRole('button', { name: 'Nord en haut' }).click();
+  await sun.getByRole('button', { name: 'Simuler le soleil' }).click();
+  await sun.getByLabel('Date simulée').fill('2026-06-21');
+  await sun.getByLabel('Heure simulée').fill('14:00');
+  // Référence NREL SPA : azimut 184,05°, hauteur 64,54° ; lever 05:46:56, coucher 21:57:51.
+  await expect(sun.getByLabel('Position du soleil')).toContainText(/Direction\s*184° \(S\)/);
+  await expect(sun.getByLabel('Position du soleil')).toContainText(/Hauteur\s*65°/);
+  await expect(sun.getByLabel('Journée du soleil')).toContainText(/Lever · coucher\s*05:47 · 21:58/);
+  await expect(page.locator('.floor-canvas text', { hasText: 'Soleil 14:00 · 65°' })).toBeVisible();
+  // Heure qui n'existe pas (passage à l'heure d'été) : signalée.
+  await sun.getByLabel('Date simulée').fill('2026-03-29');
+  await sun.getByLabel('Heure simulée').fill('02:30');
+  await expect(sun.getByText(/n’existe pas ce jour-là/)).toBeVisible();
+  await sun.getByLabel('Date simulée').fill('2026-06-21');
+  await sun.getByLabel('Heure simulée').fill('14:00');
+
+  // Caméra 2/1 tournée vers le sud (180°) : le soleil (184°, 65° de haut) est devant elle → contre-jour, soleil haut.
+  await page.getByRole('button', { name: /^2\/1/ }).click();
+  const img = (await page.locator('.floor-canvas image').boundingBox())!;
+  await page.mouse.click(img.x + img.width * 0.4, img.y + img.height * 0.4);
+  await page.getByLabel('Orientation en degrés').fill('180');
+  await page.keyboard.press('Enter');
+  await expect(page.getByLabel('Soleil pour cette caméra')).toHaveText('Soleil à 14:00 : contre-jour (soleil haut)');
+  await page.screenshot({ path: 'test-results/23-soleil.png' });
+  // À 19 h (azimut 277°, ouest) : la caméra regarde au sud, l'ouest est à sa droite → latéral, à droite.
+  await page.getByRole('application', { name: 'Plan au sol' }).press('Escape');
+  await sun.getByLabel('Heure simulée').fill('19:00');
+  await expect(sun.getByLabel('Soleil et caméras')).toContainText(/2\/1\s*latéral, à droite/);
+});

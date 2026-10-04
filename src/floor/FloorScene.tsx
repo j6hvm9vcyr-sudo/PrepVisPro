@@ -9,6 +9,9 @@ import { cameraLabel } from '../model/floorOps';
 import { locatePlan } from '../model/ops';
 import { modeData, reflectorName } from '../model/light';
 import { gelById } from '../model/gels';
+import { planSun } from '../model/sunPlan';
+import { SUNRISE_ELEV } from '../model/sun';
+import type { Point } from '../model/floor';
 import type { computeNumbers } from '../model/numbering';
 import { ACTOR_COLORS } from './floorStore';
 
@@ -35,13 +38,84 @@ export interface SceneProps {
 export function FloorMarkers() {
   return (
     <>
-      {[['cam', CAM_COLOR], ...ACTOR_COLORS.map((c) => [c.slice(1), c])].map(([id, c]) => (
+      {[['cam', CAM_COLOR], ['sun', SUN_COLOR], ...ACTOR_COLORS.map((c) => [c.slice(1), c])].map(([id, c]) => (
         <marker key={id} id={`arrow-${id}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
           <path d="M 0 0 L 10 5 L 0 10 z" fill={c} />
         </marker>
       ))}
     </>
   );
+}
+
+export const SUN_COLOR = '#E0A100';
+
+/** Rectangle utile du plan : le fond, sinon l'étendue des éléments. */
+export function planBox(fp: FloorPlan): { x: number; y: number; w: number; h: number } | null {
+  if (fp.background) return { x: 0, y: 0, w: fp.background.width, h: fp.background.height };
+  if (!fp.elements.length) return null;
+  const xs = fp.elements.map((e) => e.at.x);
+  const ys = fp.elements.map((e) => e.at.y);
+  const x = Math.min(...xs);
+  const y = Math.min(...ys);
+  return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+}
+
+/** Repères du soleil et du nord sur le plan (positions en unités du plan, tailles selon k). */
+export function sunMarks(doc: ProjectDoc, fp: FloorPlan, k: number) {
+  const box = planBox(fp);
+  if (!box || fp.northDeg === null) return null;
+  const c = { x: box.x + box.w / 2, y: box.y + box.h / 2 };
+  const compass = { x: box.x + box.w - 34 * k, y: box.y + 40 * k };
+  const sun = planSun(doc, fp, false);
+  if (!sun.ok || sun.planBearing === null) return { compass, sun: null };
+  const r = Math.hypot(box.w, box.h) / 2 + 46 * k;
+  return { compass, sun: { at: project(c, sun.planBearing, r), center: c, bearing: sun.planBearing, up: sun.pos.elevation > SUNRISE_ELEV, elevation: sun.pos.elevation, time: fp.sunAt!.time, reach: r } };
+}
+
+function SunLayer({ doc, fp, k }: { doc: ProjectDoc; fp: FloorPlan; k: number }) {
+  const m = sunMarks(doc, fp, k);
+  if (!m) return null;
+  const n = m.compass;
+  const tip = project(n, fp.northDeg!, 20 * k);
+  const tail = project(n, fp.northDeg! + 180, 14 * k);
+  const left = project(n, fp.northDeg! - 90, 7 * k);
+  const right = project(n, fp.northDeg! + 90, 7 * k);
+  const nLabel = project(n, fp.northDeg!, 31 * k);
+  const out: ReactNode[] = [
+    <g key="north" pointerEvents="none" aria-label="Nord">
+      <circle cx={n.x} cy={n.y} r={24 * k} fill="#fff" fillOpacity={0.85} stroke="#13161B" strokeOpacity={0.3} strokeWidth={1 * k} />
+      <polygon points={`${tip.x},${tip.y} ${left.x},${left.y} ${tail.x},${tail.y} ${right.x},${right.y}`} fill="#13161B" />
+      <polygon points={`${tip.x},${tip.y} ${right.x},${right.y} ${n.x},${n.y}`} fill="#fff" stroke="#13161B" strokeWidth={0.8 * k} />
+      <text x={nLabel.x} y={nLabel.y} fontSize={11 * k} fontWeight={700} textAnchor="middle" dominantBaseline="middle" fill="#13161B" stroke="#fff" strokeWidth={3 * k} paintOrder="stroke">
+        N
+      </text>
+    </g>,
+  ];
+  const s = m.sun;
+  if (s) {
+    const color = s.up ? SUN_COLOR : '#8B94A2';
+    // Rayons : trois flèches parallèles qui traversent le plan dans le sens de la lumière.
+    const rays: Point[] = [-1, 0, 1].map((i) => project(s.at, s.bearing + 90, i * 70 * k));
+    out.push(
+      <g key="sun" pointerEvents="none" aria-label="Soleil">
+        {s.up &&
+          rays.map((p0, i) => {
+            const p1 = project(p0, s.bearing + 180, s.reach * 0.75);
+            return <line key={i} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke={color} strokeWidth={2 * k} strokeDasharray={`${10 * k} ${6 * k}`} markerEnd="url(#arrow-sun)" opacity={0.85} />;
+          })}
+        <circle cx={s.at.x} cy={s.at.y} r={13 * k} fill={color} stroke="#fff" strokeWidth={2 * k} />
+        {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => {
+          const p0 = project(s.at, a, 16 * k);
+          const p1 = project(s.at, a, 22 * k);
+          return <line key={a} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke={color} strokeWidth={2 * k} strokeLinecap="round" />;
+        })}
+        <text x={s.at.x} y={s.at.y + 36 * k} fontSize={11.5 * k} fontWeight={700} textAnchor="middle" fill="#13161B" stroke="#fff" strokeWidth={3 * k} paintOrder="stroke">
+          {s.up ? `Soleil ${s.time} · ${Math.round(s.elevation)}°` : `Soleil couché (${s.time})`}
+        </text>
+      </g>,
+    );
+  }
+  return <>{out}</>;
 }
 
 export function FloorScene({ doc, fp, k, numbers, selection = [], urlFor }: SceneProps) {
@@ -216,6 +290,7 @@ export function FloorScene({ doc, fp, k, numbers, selection = [], urlFor }: Scen
       <g>{paths}</g>
       <g>{bodies}</g>
       <g>{labels}</g>
+      <SunLayer doc={doc} fp={fp} k={k} />
     </>
   );
 }

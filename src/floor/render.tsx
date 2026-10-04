@@ -13,7 +13,9 @@ import { computeNumbers } from '../model/numbering';
 import { formatNumber } from '../model/text';
 import { powerTotals, reflectorName } from '../model/light';
 import { gelLabel } from '../model/gels';
-import { FloorMarkers, FloorScene, LIGHT_BEAM_RATIO } from './FloorScene';
+import { planSun } from '../model/sunPlan';
+import { compassName, utcToLocal } from '../model/sun';
+import { FloorMarkers, FloorScene, LIGHT_BEAM_RATIO, sunMarks } from './FloorScene';
 
 export interface Bounds {
   x: number;
@@ -30,7 +32,7 @@ export const REFERENCE_WIDTH = 1100;
  * `k` = unités du plan par pixel symbole (les marges des étiquettes en dépendent).
  * null si le plan est vide.
  */
-export function contentBounds(fp: FloorPlan, k: number): Bounds | null {
+export function contentBounds(fp: FloorPlan, k: number, doc?: ProjectDoc): Bounds | null {
   let x0 = Infinity;
   let y0 = Infinity;
   let x1 = -Infinity;
@@ -59,6 +61,12 @@ export function contentBounds(fp: FloorPlan, k: number): Bounds | null {
     } else add(el.at, Math.max(el.text.length, 4) * el.size * 0.35 * k, el.size * k, Math.max(el.text.length, 4) * el.size * 0.35 * k, el.size * k);
     if ('path' in el) for (const p of el.path) add(p, 12 * k, 12 * k, 12 * k, 12 * k);
   }
+  // Nord et soleil (le soleil est dessiné hors du plan, dans sa direction).
+  const marks = doc ? sunMarks(doc, fp, k) : null;
+  if (marks) {
+    add(marks.compass, 40 * k, 40 * k, 40 * k, 40 * k);
+    if (marks.sun) add(marks.sun.at, 70 * k, 30 * k, 70 * k, 50 * k);
+  }
   if (!Number.isFinite(x0)) return null;
   // Marge autour du contenu (sauf quand le fond suffit à cadrer).
   const pad = 16 * k;
@@ -75,13 +83,13 @@ export interface Framing {
 }
 
 /** Cadrage pour une image dont le grand côté fait `maxPx` pixels. */
-export function frame(fp: FloorPlan, maxPx: number): Framing | null {
+export function frame(fp: FloorPlan, maxPx: number, doc?: ProjectDoc): Framing | null {
   // Les marges dépendent de k, qui dépend du cadrage : quelques itérations convergent.
-  let b = contentBounds(fp, 0);
+  let b = contentBounds(fp, 0, doc);
   if (!b) return null;
   for (let i = 0; i < 4; i++) {
     const z: number = maxPx / Math.max(b.w, b.h, 1e-6);
-    b = contentBounds(fp, maxPx / REFERENCE_WIDTH / z)!;
+    b = contentBounds(fp, maxPx / REFERENCE_WIDTH / z, doc)!;
   }
   const zoom = maxPx / Math.max(b.w, b.h);
   const k = maxPx / REFERENCE_WIDTH / zoom;
@@ -146,6 +154,19 @@ export function cameraLegend(doc: ProjectDoc, fp: FloorPlan): LegendRow[] {
     return [{ row: { ...lab, action: loc?.plan.action ?? '' }, g }];
   });
   return rows.sort((a, b) => a.g - b.g || a.row.code.localeCompare(b.row.code, 'fr', { numeric: true })).map((r) => r.row);
+}
+
+/** Soleil simulé sur le plan, en une ligne pour les exports ; null sans simulation. */
+export function sunLegend(doc: ProjectDoc, fp: FloorPlan): string | null {
+  const s = planSun(doc, fp);
+  if (!s.ok) return null;
+  const [y, mo, d] = fp.sunAt!.date.split('-').map(Number);
+  const date = new Date(Date.UTC(y!, mo! - 1, d!)).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const t = (ms: number | null) => (ms === null ? '—' : utcToLocal(Math.round(ms / 60000) * 60000, s.tz).time);
+  const where =
+    s.pos.elevation > -0.833 ? `direction ${Math.round(s.pos.azimuth)}° (${compassName(s.pos.azimuth)}), hauteur ${Math.round(s.pos.elevation)}°` : 'soleil couché';
+  const day = s.day && !s.day.polar ? ` · lever ${t(s.day.sunrise)}, coucher ${t(s.day.sunset)}` : '';
+  return `Soleil le ${date} à ${fp.sunAt!.time} (${s.tz.replace(/_/g, ' ')}) : ${where}${day}`;
 }
 
 /** Projecteurs du plan (pour la légende des exports) et puissance totale. */
@@ -237,7 +258,7 @@ async function fontCss(fonts: FloorAssets['fonts']): Promise<string> {
  * `maxPx` : grand côté de l'image produite.
  */
 export async function renderFloorImage(doc: ProjectDoc, fp: FloorPlan, assets: FloorAssets, maxPx: number, mime: FloorImage['mime'] = 'image/png'): Promise<FloorImage> {
-  const f = frame(fp, maxPx);
+  const f = frame(fp, maxPx, doc);
   if (!f) throw new Error(`Le plan « ${fp.name} » est vide.`);
   const canvas = document.createElement('canvas');
   canvas.width = f.width;

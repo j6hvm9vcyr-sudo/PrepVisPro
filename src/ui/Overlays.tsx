@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
 import { locatePlan } from '../model/ops';
 import { computeNumbers } from '../model/numbering';
 import { imageStore } from '../platform/images';
-import type { DayNight, IntExt } from '../model/types';
+import type { DayNight, IntExt, Sequence } from '../model/types';
+import { formatCoordinates, parseCoordinates } from '../model/sun';
 import { focusGrid, isComposing, useDialogFocus } from './focus';
 import { norm } from '../model/text';
 import { summarizeSequence } from '../model/summary';
@@ -271,10 +272,11 @@ export function SequenceDialog() {
               onChange={(e) => {
                 const v = e.target.value;
                 // Décor déjà utilisé : son adresse est reprise (jamais saisie deux fois).
-                const twin = doc.sequences.find((x) => x.id !== seq.id && x.address.trim() && norm(x.location) === norm(v) && norm(v) !== '');
+                const twin = doc.sequences.find((x) => x.id !== seq.id && (x.address.trim() || x.gps) && norm(x.location) === norm(v) && norm(v) !== '');
                 upd('loc', (s) => {
                   s.location = v;
                   if (twin && !s.address.trim()) s.address = twin.address;
+                  if (twin && !s.gps && twin.gps) s.gps = { ...twin.gps };
                 });
               }}
             />
@@ -289,9 +291,12 @@ export function SequenceDialog() {
           Adresse
           <input value={seq.address} onChange={(e) => upd('addr', (s) => void (s.address = e.target.value))} />
         </label>
+        <GpsField value={seq.gps} onChange={(g) => upd('gps', (s) => void (s.gps = g))} />
         {(() => {
-          const others = doc.sequences.filter((x) => x.id !== seq.id && norm(seq.location) !== '' && norm(x.location) === norm(seq.location) && x.address !== seq.address);
-          if (!others.length || !seq.address.trim()) return null;
+          const sameGps = (x: Sequence) => (x.gps && seq.gps ? x.gps.lat === seq.gps.lat && x.gps.lon === seq.gps.lon : !x.gps && !seq.gps);
+          const others = doc.sequences.filter((x) => x.id !== seq.id && norm(seq.location) !== '' && norm(x.location) === norm(seq.location) && (x.address !== seq.address || !sameGps(x)));
+          if (!others.length || (!seq.address.trim() && !seq.gps)) return null;
+          const what = seq.address.trim() && seq.gps ? 'cette adresse et cette position' : seq.gps ? 'cette position GPS' : 'cette adresse';
           return (
             <button
               type="button"
@@ -299,11 +304,15 @@ export function SequenceDialog() {
               style={{ alignSelf: 'flex-start' }}
               onClick={() =>
                 st().updateDoc((d) => {
-                  for (const x of d.sequences) if (others.some((o) => o.id === x.id)) x.address = seq.address;
+                  for (const x of d.sequences)
+                    if (others.some((o) => o.id === x.id)) {
+                      if (seq.address.trim()) x.address = seq.address;
+                      if (seq.gps) x.gps = { ...seq.gps };
+                    }
                 }, undefined)
               }
             >
-              {others.length > 1 ? `Reporter cette adresse aux ${others.length} autres séquences « ${seq.location.trim()} »` : `Reporter cette adresse à l’autre séquence « ${seq.location.trim()} »`}
+              {others.length > 1 ? `Reporter ${what} aux ${others.length} autres séquences « ${seq.location.trim()} »` : `Reporter ${what} à l’autre séquence « ${seq.location.trim()} »`}
             </button>
           );
         })()}
@@ -352,5 +361,41 @@ export function SequenceDialog() {
         </p>
       </div>
     </div>
+  );
+}
+
+/** Position GPS du décor : collée depuis Plans, Google Maps ou un GPS ; jamais devinée. */
+function GpsField({ value, onChange }: { value: Sequence['gps']; onChange: (g: Sequence['gps']) => void }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft ?? (value ? formatCoordinates(value) : '');
+  const parsed = draft === null ? value : parseCoordinates(draft);
+  const bad = draft !== null && draft.trim() !== '' && !parsed;
+  // Enregistré dès que le texte est une position sûre : ↩ ferme la fiche sans passer par la sortie du champ.
+  const edit = (text: string) => {
+    setDraft(text);
+    if (!text.trim()) onChange(null);
+    else {
+      const g = parseCoordinates(text);
+      if (g) onChange(g);
+    }
+  };
+  return (
+    <label className="field">
+      Coordonnées GPS
+      <input
+        aria-label="Coordonnées GPS"
+        aria-invalid={bad}
+        value={shown}
+        placeholder="ex. 48.85837, 2.29448 — pour le soleil"
+        style={bad ? { borderColor: 'var(--danger)' } : undefined}
+        onChange={(e) => edit(e.target.value)}
+        onBlur={() => setDraft(null)}
+      />
+      <span className="note" style={{ fontSize: 11.5, color: bad ? 'var(--danger)' : undefined }}>
+        {bad
+          ? 'Format non reconnu : « 48.85837, 2.29448 » ou « 48°51′30″N 2°17′40″E ».'
+          : 'Google Maps : clic droit sur le lieu, puis clic sur les coordonnées pour les copier ; collez-les ici.'}
+      </span>
+    </label>
   );
 }

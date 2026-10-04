@@ -54,6 +54,7 @@ const sequence = z.object({
   dayNight: z.enum(['JOUR', 'NUIT']),
   location: z.string(),
   address: z.string(),
+  gps: z.object({ lat: z.number().finite().min(-90).max(90), lon: z.number().finite().min(-180).max(180) }).nullable(),
   comments: z.string(),
   scriptText: z.string(),
   breakdown: z.object({ camera: z.string(), grip: z.string(), lighting: z.string(), other: z.string() }),
@@ -100,6 +101,8 @@ const floorPlan = z.object({
   scale: z.object({ metersPerUnit: z.number().finite().positive(), a: point, b: point, meters: z.number().finite().positive() }).nullable(),
   elements: z.array(floorElement),
   fovLengthM: z.number().finite().positive(),
+  northDeg: z.number().finite().min(0).max(360).nullable(),
+  sunAt: z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), time: z.string().regex(/^\d{2}:\d{2}$/) }).nullable(),
 });
 
 const terms = z.object({
@@ -162,6 +165,7 @@ export const projectSchema = z.object({
       }),
     ),
     exposure: z.object({ iso: z.number().finite().positive(), fps: z.number().finite().positive(), shutterDeg: z.number().finite().positive().max(360) }),
+    timeZone: z.string().min(1).nullable(),
     reflectors: z.array(z.object({ id, name: z.string(), type: z.enum(['diffuse', 'mirror']), reflectance: z.number().finite().positive().max(1).nullable() })),
   }),
   sequences: z.array(sequence),

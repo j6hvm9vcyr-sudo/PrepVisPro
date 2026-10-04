@@ -1,3 +1,4 @@
+import { systemTimeZone } from '../model/sun';
 import { useState } from 'react';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
@@ -87,6 +88,17 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               <label className="field small">
                 Ratio
                 <input value={doc.meta.aspectRatio} placeholder="1,85:1" onChange={(e) => st().updateDoc((d) => void (d.meta.aspectRatio = e.target.value), 'meta:ratio')} />
+              </label>
+              <label className="field">
+                Fuseau horaire (heures du soleil)
+                <select aria-label="Fuseau horaire" value={doc.settings.timeZone ?? ''} onChange={(e) => st().updateDoc((d) => void (d.settings.timeZone = e.target.value || null))}>
+                  <option value="">Celui de cet ordinateur ({systemTimeZone()})</option>
+                  {[...new Set([...TIME_ZONES, ...(doc.settings.timeZone ? [doc.settings.timeZone] : [])])].map((z) => (
+                    <option key={z} value={z}>
+                      {z.replace(/_/g, ' ')}
+                    </option>
+                  ))}
+                </select>
               </label>
             </div>
             <div className="sec">
@@ -211,3 +223,12 @@ function TermEditor({ cat }: { cat: TermCategory }) {
     </div>
   );
 }
+
+/** Fuseaux connus du système (heure d'été comprise). */
+const TIME_ZONES: string[] = (() => {
+  try {
+    return (Intl as unknown as { supportedValuesOf?: (k: string) => string[] }).supportedValuesOf?.('timeZone') ?? ['Europe/Paris', 'UTC'];
+  } catch {
+    return ['Europe/Paris', 'UTC'];
+  }
+})();

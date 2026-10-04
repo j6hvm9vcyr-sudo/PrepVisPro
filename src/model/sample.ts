@@ -47,6 +47,7 @@ export function sampleProject(): ProjectDoc {
     dayNight,
     location,
     address: '',
+    gps: null,
     comments: '',
     scriptText: '',
     breakdown: { camera: '', grip: '', lighting: '', other: '' },

@@ -408,6 +408,12 @@ function buildFloorSheet(wb: ExcelJS.Workbook, m: ExportModel, floors: PdfFloorP
         r++;
       }
     }
+    if (f.sun) {
+      r++;
+      ws.getCell(r, 1).value = f.sun;
+      ws.getCell(r, 1).font = { name: DT_FONT, size: 9, bold: true };
+      r++;
+    }
     if (f.lights?.length) {
       r++;
       const lh = ws.getRow(r);

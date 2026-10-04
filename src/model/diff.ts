@@ -59,7 +59,7 @@ function planFields(doc: ProjectDoc, p: Plan): Record<string, string> {
 }
 
 function seqFields(s: Sequence): Record<string, string> {
-  return { Numéro: s.number, 'INT/EXT': s.intExt, Effet: s.dayNight, Décor: s.location, Adresse: s.address, Commentaires: s.comments };
+  return { Numéro: s.number, 'INT/EXT': s.intExt, Effet: s.dayNight, Décor: s.location, Adresse: s.address, 'Position GPS': s.gps ? `${s.gps.lat.toFixed(5)}, ${s.gps.lon.toFixed(5)}` : '', Commentaires: s.comments };
 }
 
 function changesOf(a: Record<string, string>, b: Record<string, string>): FieldChange[] {

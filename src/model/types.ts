@@ -78,6 +78,8 @@ export interface Sequence {
   /** Décor (ex. « Salle de bain d'Axel »). */
   location: string;
   address: string;
+  /** Position GPS du décor (pour le soleil) ; null si non renseignée. */
+  gps: { lat: number; lon: number } | null;
   comments: string;
   /** Texte de la scène, importé du scénario (vide si saisi à la main). */
   scriptText: string;
@@ -147,6 +149,8 @@ export interface ProjectSettings {
   exposure: Exposure;
   /** Matières de réflecteurs du projet, avec leur taux de réflexion mesuré. */
   reflectors: ReflectorMaterial[];
+  /** Fuseau horaire des heures du projet (nom IANA, ex. « Europe/Paris ») ; null = celui de cet ordinateur. */
+  timeZone: string | null;
 }
 
 /**
@@ -208,7 +212,7 @@ export interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 10 as const;
+export const SCHEMA_VERSION = 11 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;
