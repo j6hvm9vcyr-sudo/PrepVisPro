@@ -169,13 +169,13 @@ export async function buildExport(doc: ProjectDoc, format: ExportFormat, opts: E
   if (format === 'csv') return { bytes: new TextEncoder().encode(buildCsv(m, opts.columns, opts.showCamera)), failedImages: 0 };
   const withImages = opts.columns.includes('image');
   const { images, failed } = withImages ? await prepareImages(m, format === 'xlsx' ? 480 : MAX_WIDTH[opts.imageSize], onProgress) : { images: new Map<string, Resized>(), failed: [] };
+  const plans = opts.floorPlans ? floorPlansFor(doc, opts.sequenceIds) : [];
+  const floors = plans.length ? await prepareFloorPages(doc, plans, (d, t) => onProgress?.(d, t)) : [];
   if (format === 'xlsx') {
     const { buildWorkbook } = await import('./excel');
     const prepared = new Map<string, PreparedImage>([...images].map(([k, v]) => [k, { bytes: v.bytes, ext: 'jpeg', width: v.width, height: v.height }]));
-    return { bytes: await buildWorkbook(m, opts, prepared), failedImages: failed.length };
+    return { bytes: await buildWorkbook(m, opts, prepared, floors), failedImages: failed.length, failedFloors: floors.filter((f) => f.error).map((f) => f.error!) };
   }
-  const plans = opts.floorPlans ? floorPlansFor(doc, opts.sequenceIds) : [];
-  const floors = plans.length ? await prepareFloorPages(doc, plans, (d, t) => onProgress?.(d, t)) : [];
   const { renderPdf } = await pdfModule();
   const pdfImages = new Map<string, PdfImage>([...images].map(([k, v]) => [k, { dataUrl: `data:image/jpeg;base64,${toBase64(v.bytes)}`, width: v.width, height: v.height }]));
   return { bytes: await renderPdf(m, opts, pdfImages, floors), failedImages: failed.length, failedFloors: floors.filter((f) => f.error).map((f) => f.error!) };

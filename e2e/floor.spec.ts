@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { resolve } from 'node:path';
 import { copyFileSync, readFileSync } from 'node:fs';
+import ExcelJS from 'exceljs';
 
 test('plan au sol : fond, mise à l’échelle, caméra du découpage avec son champ, mesure', async ({ page }) => {
   await page.goto('/?exemple');
@@ -84,13 +85,22 @@ test('plan au sol : fond, mise à l’échelle, caméra du découpage avec son c
 
   // Le PDF du découpage inclut les plans au sol.
   await page.keyboard.press('ControlOrMeta+e');
-  await expect(page.getByLabel('Plans au sol des séquences exportées (1)')).toBeChecked();
+  await expect(page.getByLabel('Plans au sol des séquences exportées, en PDF et Excel (1)')).toBeChecked();
   const dl3 = page.waitForEvent('download');
   await page.getByRole('dialog', { name: 'Exporter' }).getByRole('button', { name: 'PDF', exact: true }).click();
   const full = readFileSync(await (await dl3).path());
   expect(full.subarray(0, 5).toString()).toBe('%PDF-');
   await expect(page.getByText('Exporté :', { exact: true })).toBeVisible();
   copyFileSync(await (await dl3).path(), 'test-results/15-decoupage-avec-plan.pdf');
+  // Et dans l'Excel : une feuille « Plans au sol » avec l'image du plan et sa légende.
+  const dl4 = page.waitForEvent('download');
+  await page.getByRole('dialog', { name: 'Exporter' }).getByRole('button', { name: 'Excel', exact: true }).click();
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(readFileSync(await (await dl4).path()).buffer as ArrayBuffer);
+  const fws = wb.getWorksheet('Plans au sol')!;
+  expect(fws).toBeTruthy();
+  expect(fws.getImages()).toHaveLength(1);
+  expect(String(fws.getCell(1, 1).value)).toContain('PLAN AU SOL — Séq. 1');
 });
 
 test('plan au sol : fond PDF (plan d’architecte), texte saisi au clavier, champs décimaux à la française', async ({ page }) => {

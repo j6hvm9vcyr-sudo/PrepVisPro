@@ -204,6 +204,12 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                 <input type="checkbox" checked={opts.showCamera} onChange={(e) => set({ showCamera: e.target.checked })} />
                 Caméra (A, B…) des plans à plusieurs caméras
               </label>
+              {doc.floorPlans.length > 0 && (
+                <label className="check">
+                  <input type="checkbox" checked={opts.floorPlans} onChange={(e) => set({ floorPlans: e.target.checked })} />
+                  Plans au sol des séquences exportées, en PDF et Excel ({floorPlansFor(doc, opts.sequenceIds).length})
+                </label>
+              )}
             </section>
 
             <section className="sec">
@@ -241,12 +247,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                 <input type="checkbox" checked={opts.breakdown} onChange={(e) => set({ breakdown: e.target.checked })} />
                 Dépouillement image (caméra, machinerie, lumière, autre)
               </label>
-              {doc.floorPlans.length > 0 && (
-                <label className="check">
-                  <input type="checkbox" checked={opts.floorPlans} onChange={(e) => set({ floorPlans: e.target.checked })} />
-                  Plans au sol des séquences exportées ({floorPlansFor(doc, opts.sequenceIds).length})
-                </label>
-              )}
+
             </section>
 
             <section className="sec">

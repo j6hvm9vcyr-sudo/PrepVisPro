@@ -3,6 +3,7 @@
  * Toutes les cellules de texte sont écrites comme du TEXTE : « 4/2 » ne devient jamais une date.
  */
 import ExcelJS from 'exceljs';
+import type { PdfFloorPage } from './pdf';
 import { COLUMN_DEFS, descriptionFields, descriptionText, dtColumns, planValue, type ColumnId, type ExportModel, type ExportOptions } from './model';
 
 export interface PreparedImage {
@@ -25,7 +26,7 @@ const argb = (hex: string) => 'FF' + hex.replace('#', '').toUpperCase();
 /** Pixels approximatifs d'une colonne Excel de largeur `w` caractères. */
 const colPx = (w: number) => Math.round(w * 7 + 5);
 
-export async function buildWorkbook(m: ExportModel, opts: ExportOptions, images: Map<string, PreparedImage>): Promise<Uint8Array> {
+export async function buildWorkbook(m: ExportModel, opts: ExportOptions, images: Map<string, PreparedImage>, floors: PdfFloorPage[] = []): Promise<Uint8Array> {
   const wb = new ExcelJS.Workbook();
   wb.creator = 'PrepVisPro';
   wb.created = new Date();
@@ -91,6 +92,8 @@ export async function buildWorkbook(m: ExportModel, opts: ExportOptions, images:
       });
     });
   }
+
+  if (floors.length) buildFloorSheet(wb, m, floors);
 
   const buf = await wb.xlsx.writeBuffer();
   return new Uint8Array(buf as ArrayBuffer);
@@ -338,5 +341,70 @@ function buildDtSheet(wb: ExcelJS.Workbook, m: ExportModel, opts: ExportOptions,
       row.height = rowHeight([{ text: c.value as string, width: total }], 9);
       r++;
     }
+  }
+}
+
+// ------------------------------------------------------------------ plans au sol
+
+/** Une feuille « Plans au sol » : chaque plan en image (même dessin que l'éditeur), puis sa légende. */
+function buildFloorSheet(wb: ExcelJS.Workbook, m: ExportModel, floors: PdfFloorPage[]) {
+  const ws = wb.addWorksheet('Plans au sol', {
+    views: [{ showGridLines: false }],
+    pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+    headerFooter: { oddFooter: `&L${(m.title || '').replace(/&/g, '&&')} — Plans au sol&RPage &P / &N` },
+  });
+  ws.columns = [{ width: 12 }, { width: 14 }, { width: 70 }, { width: 30 }];
+  const IMG_W = 900; // px
+  const ROW_PX = 20; // ligne de 15 pt
+  let r = 1;
+  for (const f of floors) {
+    const head = ws.getRow(r);
+    ws.mergeCells(r, 1, r, 4);
+    const hc = head.getCell(1);
+    hc.value = `PLAN AU SOL — ${f.name}${f.sequences ? ` — ${f.sequences}` : ''}${f.scaled ? '' : ' (non mis à l’échelle)'}`;
+    hc.font = { name: DT_FONT, size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+    hc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF464646' } };
+    hc.alignment = { vertical: 'middle' };
+    head.height = 24;
+    r++;
+    if (f.image) {
+      const base64 = f.image.dataUrl.replace(/^data:image\/\w+;base64,/, '');
+      const id = wb.addImage({ base64, extension: 'jpeg' });
+      const scale = Math.min(1, IMG_W / f.image.width);
+      const w = Math.round(f.image.width * scale);
+      const h = Math.round(f.image.height * scale);
+      ws.addImage(id, { tl: { col: 0, row: r - 1 + 0.2 }, ext: { width: w, height: h }, editAs: 'oneCell' });
+      const rows = Math.ceil(h / ROW_PX) + 1;
+      for (let i = 0; i < rows; i++) ws.getRow(r + i).height = 15;
+      r += rows;
+    } else {
+      ws.getCell(r, 1).value = f.error ?? 'Plan vide';
+      ws.getCell(r, 1).font = { name: DT_FONT, size: 10, color: { argb: 'FF9A4F00' } };
+      r++;
+    }
+    if (f.legend.length) {
+      const lh = ws.getRow(r);
+      ['PLAN', 'FOCALE', 'ACTION'].forEach((t, i) => {
+        const c = lh.getCell(i + 1);
+        c.value = t;
+        c.font = { name: DT_FONT, size: 9, color: { argb: 'FFFFFFFF' } };
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF464646' } };
+        c.border = BLACK_THIN;
+      });
+      r++;
+      for (const l of f.legend) {
+        const row = ws.getRow(r);
+        [l.code, l.detail, l.action].forEach((v, i) => {
+          const c = row.getCell(i + 1);
+          c.value = v;
+          c.font = { name: DT_FONT, size: 9, bold: i === 0, color: { argb: l.missing ? 'FF6A7383' : 'FF000000' } };
+          c.alignment = { vertical: 'top', wrapText: true };
+          c.border = BLACK_THIN;
+        });
+        row.height = rowHeight([{ text: l.action, width: 70 }], 9);
+        r++;
+      }
+    }
+    r += 2;
   }
 }
