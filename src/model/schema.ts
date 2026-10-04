@@ -88,6 +88,15 @@ const terms = z.object({
   grip: z.array(z.string()),
 });
 
+const lensSeries = z.object({
+  id,
+  name: z.string(),
+  kind: z.enum(['primes', 'zoom']),
+  focals: z.array(z.number().finite().positive().max(2000)),
+  min: z.number().finite().positive().max(2000).nullable(),
+  max: z.number().finite().positive().max(2000).nullable(),
+});
+
 const projectCamera = z.object({
   id,
   label: z.string().min(1),
@@ -120,6 +129,7 @@ export const projectSchema = z.object({
       grip: z.boolean(),
     }),
     cameras: z.array(projectCamera).min(1),
+    lenses: z.array(lensSeries),
   }),
   sequences: z.array(sequence),
   floorPlans: z.array(floorPlan),

@@ -2,10 +2,11 @@
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
 import type { FloorCamera, FloorPlan } from '../model/floor';
-import { suggestFraming, type FramingGuess } from '../model/floorSuggest';
+import { idealFocalFor, suggestFraming, type FramingGuess } from '../model/floorSuggest';
+import { nearestLens } from '../model/lenses';
 import { locatePlan, replaceCameraSetup } from '../model/ops';
 import { formatNumber } from '../model/text';
-import type { CameraSetup } from '../model/types';
+import type { CameraSetup, LensSeries } from '../model/types';
 
 const m = (v: number) => `${formatNumber(Math.round(v * 10) / 10)} m`;
 
@@ -72,6 +73,7 @@ export function FramingSuggestion({ fp, cam }: { fp: FloorPlan; cam: FloorCamera
           Tout reporter au découpage
         </button>
       )}
+      <IdealFocal setup={setup} guess={r.start} lenses={doc.settings.lenses} onSet={(f) => apply((s) => void (s.start.focalMm = f), 'Focale')} />
       <p className="note" style={{ margin: 0, fontSize: 11, lineHeight: '15px' }}>
         Estimation pour un personnage debout cadré en hauteur : hauteur de champ = distance × hauteur de l’image ÷ focale. Axe : orientation du personnage par rapport à la caméra.
       </p>
@@ -86,5 +88,32 @@ function Measure({ g, label }: { g: FramingGuess; label: string | null }) {
       {g.actor.name} à {m(g.distanceM)}
       {g.frameHeightM !== null ? ` · champ ≈ ${m(g.frameHeightM)} de haut` : ' · hauteur de champ inconnue (hauteur capteur ou ratio du projet à renseigner)'}
     </p>
+  );
+}
+
+/** Calcul inverse : pour la valeur écrite au découpage, quelle focale à cette distance (et quelle optique du projet). */
+function IdealFocal({ setup, guess, lenses, onSet }: { setup: CameraSetup; guess: FramingGuess; lenses: LensSeries[]; onSet: (f: number) => void }) {
+  const want = setup.start.size;
+  if (!want || guess.frameMm === null) return null;
+  const ideal = idealFocalFor(want, guess.distanceM, guess.frameMm);
+  if (ideal === null) return null;
+  const pick = lenses.length ? nearestLens(lenses, ideal) : { focal: Math.round(ideal), series: '' };
+  if (!pick) return null;
+  const same = setup.start.focalMm !== null && Math.abs(setup.start.focalMm - pick.focal) < 0.01;
+  return (
+    <div className="suggest-row ideal">
+      <span className="suggest-k">Focale</span>
+      <span className="suggest-v">
+        {formatNumber(Math.round(ideal))} mm pour un {want} à {m(guess.distanceM)}
+        {lenses.length ? <small> → {pick.series} {formatNumber(pick.focal)} mm</small> : null}
+      </span>
+      {same ? (
+        <span className="suggest-ok" title="Le découpage utilise déjà cette focale">✓</span>
+      ) : (
+        <button type="button" className="linkbtn" onClick={() => onSet(pick.focal)}>
+          Mettre {formatNumber(pick.focal)} mm
+        </button>
+      )}
+    </div>
   );
 }

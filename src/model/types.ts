@@ -124,6 +124,20 @@ export interface ProjectSettings {
   terms: Record<TermCategory, string[]>;
   required: Record<RequiredField, boolean>;
   cameras: ProjectCamera[];
+  /** Optiques du projet (séries fixes ou zooms). Vide : aucune contrainte. */
+  lenses: LensSeries[];
+}
+
+/** Série d'optiques du projet : fixes (liste de focales) ou zoom (plage). */
+export interface LensSeries {
+  id: Id;
+  name: string;
+  kind: 'primes' | 'zoom';
+  /** Focales des fixes, en mm (triées). */
+  focals: number[];
+  /** Plage du zoom, en mm. */
+  min: number | null;
+  max: number | null;
 }
 
 export interface ProjectMeta {
@@ -134,7 +148,7 @@ export interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 5 as const;
+export const SCHEMA_VERSION = 6 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;

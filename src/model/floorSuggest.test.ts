@@ -94,3 +94,15 @@ describe('écarts découpage / plan au sol', () => {
     expect(floorMismatches(d).size).toBe(0);
   });
 });
+
+describe('focale inverse', () => {
+  it('Taille à 3 m sur 36 × 24 : focale idéale cohérente avec le calcul direct', async () => {
+    const { idealFocalFor, sizeForFrameHeight } = await import('./floorSuggest');
+    const f = idealFocalFor('Taille', 3, 24)!;
+    // Avec cette focale, le cadre retombe bien sur « Taille ».
+    expect(sizeForFrameHeight((3 * 24) / f, DEFAULT_TERMS.size)).toBe('Taille');
+    expect(f).toBeGreaterThan(70);
+    expect(f).toBeLessThan(90);
+    expect(idealFocalFor('Inconnu', 3, 24)).toBeNull();
+  });
+});

@@ -14,6 +14,7 @@ import { norm } from '../model/text';
 import { CellEditor } from './CellEditor';
 import { focusGrid, registerGrid } from './focus';
 import { floorMismatches, type FloorMismatch } from '../model/floorSuggest';
+import { inKit } from '../model/lenses';
 import { sequenceTitle, stripColors } from './strip';
 
 const TECH: { col: Exclude<EditableField, 'action'>; label: string }[] = [
@@ -531,8 +532,11 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
             {TECH.map(({ col }) => {
               const txt = displayText(col, setup);
               const fd = col === 'size' || col === 'axis' ? floor?.[setup.id]?.find((x) => x.field === col) : undefined;
+              const offKit =
+                col === 'focal' && settings.lenses.length > 0 && [setup.start.focalMm, setup.end?.focalMm ?? null].some((f) => f !== null && !inKit(settings.lenses, f));
               const flags = [
                 fd ? 'floor-diff' : '',
+                offKit ? 'offkit' : '',
                 !txt ? (techMissing[col] ? 'missing' : 'empty') : '',
                 txt && isEvolving(col, setup) ? 'evol' : '',
                 txt && isCustom(col, plan, i) ? 'custom' : '',
@@ -546,7 +550,7 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
                   className={cls(col, flags)}
                   onMouseDown={(e) => select(e, setup.id, col)}
                   onDoubleClick={() => st().startEdit()}
-                  title={fd ? `Plan au sol « ${fd.floorPlan} » : ${fd.suggested}${txt ? ` (ici : ${txt})` : ''} — Détails › Caméras pour reporter` : txt}
+                  title={fd ? `Plan au sol « ${fd.floorPlan} » : ${fd.suggested}${txt ? ` (ici : ${txt})` : ''} — Détails › Caméras pour reporter` : offKit ? `${txt} : pas dans les optiques du projet (Réglages › Optiques)` : txt}
                 >
                   <span className="txt">{txt || '—'}</span>
                   {lineActive && activeCol === col && editing && <CellEditor field={col} />}

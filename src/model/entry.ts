@@ -108,7 +108,12 @@ export function currentFragment(field: EditableField, text: string): string {
 
 /** Suggestions pour la dernière partie tapée. */
 export function suggest(field: EditableField, text: string, terms: readonly string[]): Suggestion[] {
-  if (field === 'action' || field === 'focal') return [];
+  if (field === 'action') return [];
+  if (field === 'focal') {
+    // Focales des optiques du projet (« terms » = focales en texte) : celles qui commencent par ce qui est tapé.
+    const last = (splitParts(field, text).pop() ?? '').replace(/\s*mm$/i, '').trim().replace('.', ',');
+    return terms.filter((t) => !last || t.startsWith(last)).map((term) => ({ term, create: false }));
+  }
   const parts = splitParts(field, text);
   const last = parts[parts.length - 1] ?? '';
   let fragment = last;
@@ -370,4 +375,15 @@ export function completeWithPick(field: EditableField, text: string, terms: read
   if (!s || s.create) return null;
   const head = text.replace(/\s+$/, '');
   return head ? `${head} ${s.term}` : s.term;
+}
+
+/**
+ * Focale choisie aux flèches dans les optiques du projet : elle remplace la partie en cours
+ * (« 3 » → « 35 », « 75 > 1 » → « 75 > 100 »). null si rien n'est choisi.
+ */
+export function focalWithPick(text: string, kit: readonly string[], pick: number): string | null {
+  const s = suggest('focal', text, kit)[pick];
+  if (!s) return null;
+  const i = text.lastIndexOf('>');
+  return i < 0 ? s.term : `${text.slice(0, i + 1).trimEnd()} ${s.term}`;
 }

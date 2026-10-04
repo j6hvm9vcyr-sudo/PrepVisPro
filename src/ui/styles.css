@@ -413,3 +413,10 @@ table.cams input { width: 100%; border: 1px solid var(--border); border-radius: 
 .cell.floor-diff::after { content: ''; position: absolute; top: 3px; right: 3px; width: 0; height: 0; border-top: 7px solid #8E4EC6; border-left: 7px solid transparent; }
 .floor-note { display: flex; align-items: baseline; gap: 8px; font-size: 12px; color: #6b3fa0; padding-top: 4px; border-top: 1px dashed var(--border-soft); margin-top: 4px; }
 .floor-note span { flex: 1; }
+/* Focale absente des optiques du projet */
+.cell.offkit .txt { text-decoration: underline wavy #c77a12; text-underline-offset: 3px; }
+/* Réglages › Optiques */
+.lenses { display: flex; flex-direction: column; gap: 10px; }
+.lens-row { display: grid; grid-template-columns: 54px 1fr 1.3fr auto; gap: 10px; align-items: center; }
+.lens-kind { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text3); }
+.lens-row .decimal-field input { border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-size: 13px; background: var(--field); }

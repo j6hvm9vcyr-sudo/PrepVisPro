@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import type { Id, ImageKind, ProjectDoc, Sequence } from '../model/types';
 import { computeNumbers } from '../model/numbering';
-import { applyValue, categoryOf, completeWithPick, editText as fieldEditText, FIELD_LABEL, parseEntry, suggest, type EditableField, type TermField } from '../model/entry';
+import { kitFocals } from '../model/lenses';
+import { formatNumber } from '../model/text';
+import { applyValue, categoryOf, completeWithPick, focalWithPick, editText as fieldEditText, FIELD_LABEL, parseEntry, suggest, type EditableField, type TermField } from '../model/entry';
 import * as ops from '../model/ops';
 import { cleanupFloorRefs } from '../model/floorOps';
 import { newId } from '../model/defaults';
@@ -372,10 +374,11 @@ export function createAppStore(doc: ProjectDoc) {
         const field = fieldOf(c.col);
         if (!field) return false;
         const doc = docNow();
-        const terms = field === 'action' || field === 'focal' ? [] : doc.settings.terms[categoryOf(field as TermField)];
+        const terms = field === 'action' ? [] : field === 'focal' ? kitFocals(doc.settings.lenses).map(formatNumber) : doc.settings.terms[categoryOf(field as TermField)];
         const at = pick ?? s.editing.pick;
         // Case vide (ou partie vide) + suggestion choisie aux flèches : c'est elle qu'on valide.
-        const text = (!strict && s.editing.navigated && completeWithPick(field, s.editing.text, terms, at)) || s.editing.text;
+        const text =
+          (!strict && s.editing.navigated && (field === 'focal' ? focalWithPick(s.editing.text, terms, at) : completeWithPick(field, s.editing.text, terms, at))) || s.editing.text;
         const r = parseEntry(field, text, terms, { pick: at, strict });
         if (!r.ok) {
           set({ editing: { ...s.editing, error: r.error } });

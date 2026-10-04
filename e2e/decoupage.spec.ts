@@ -346,3 +346,23 @@ test('versions : enregistrer, voir ce qui a changé, revenir en arrière sans ri
   await expect(dlg.locator('.version-item')).toHaveCount(2);
   await expect(dlg.locator('.version-item').first()).toContainText('Avant le retour à « V1 réalisation »');
 });
+
+test('optiques du projet : focales proposées à la saisie, focale hors série signalée', async ({ page }) => {
+  await page.getByRole('button', { name: 'Réglages' }).click();
+  await page.getByRole('tab', { name: 'Optiques' }).click();
+  await page.getByRole('button', { name: '+ Série de fixes' }).click();
+  await page.getByLabel('Nom de la série').fill('Supreme');
+  await page.getByLabel('Focales de la série').fill('18 25 35 50 75');
+  await page.getByRole('button', { name: 'Terminé' }).click();
+  // 1/1 est à 32 mm : absent de la série.
+  await expect(cell(page, 0, 'focal')).toHaveClass(/offkit/);
+  await expect(cell(page, 0, 'focal')).toHaveAttribute('title', /pas dans les optiques du projet/);
+  // Saisie : « 3 » propose 35 ; ↩ l'applique.
+  await cell(page, 0, 'focal').click();
+  await page.keyboard.type('3');
+  await expect(page.locator('.pop .sug.on')).toHaveText('35');
+  await page.keyboard.press('ArrowDown'); // une seule proposition : reste sur 35
+  await page.keyboard.press('Enter');
+  await expect(cell(page, 0, 'focal')).toHaveText('35 mm');
+  await expect(cell(page, 0, 'focal')).not.toHaveClass(/offkit/);
+});

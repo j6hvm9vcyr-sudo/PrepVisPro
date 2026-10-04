@@ -1,6 +1,8 @@
 import { useMemo, useRef, type FocusEvent, type KeyboardEvent } from 'react';
 import { useApp } from '../state/appStore';
 import { categoryOf, suggest, type EditableField, type TermField } from '../model/entry';
+import { kitFocals } from '../model/lenses';
+import { formatNumber } from '../model/text';
 import { focusGrid } from './focus';
 
 const HINTS: Record<EditableField, string> = {
@@ -8,14 +10,17 @@ const HINTS: Record<EditableField, string> = {
   size: '« > » début → fin · ↑↓ choisir · ↩ valider · ⇥ suivant · esc annuler',
   axis: '« > » début → fin · ↑↓ choisir · ↩ valider · ⇥ suivant · esc annuler',
   angle: 'terme et/ou degrés (pl -20) · « > » début → fin · ↩ valider · esc annuler',
-  focal: 'nombre en mm · « > » pour la fin (75 > 300) · ↩ valider · ⇥ suivant · esc annuler',
+  focal: 'nombre en mm, ou ↑↓ parmi les optiques du projet · « > » pour la fin (75 > 300) · ↩ valider · esc annuler',
   movement: '« > » ou « , » enchaîne les mouvements · ↑↓ choisir · ↩ valider · esc annuler',
   grip: '« , » ajoute une machinerie · ↑↓ choisir · ↩ valider · esc annuler',
 };
 
 export function CellEditor({ field }: { field: EditableField }) {
   const editing = useApp((s) => s.editing);
-  const terms = useApp((s) => (field === 'action' || field === 'focal' ? null : s.hist.present.doc.settings.terms[categoryOf(field as TermField)]));
+  const lenses = useApp((s) => s.hist.present.doc.settings.lenses);
+  const termList = useApp((s) => (field === 'action' || field === 'focal' ? null : s.hist.present.doc.settings.terms[categoryOf(field as TermField)]));
+  // Focale : les focales des optiques du projet servent de propositions.
+  const terms = useMemo(() => (field === 'focal' ? (lenses.length ? kitFocals(lenses).map(formatNumber) : null) : termList), [field, lenses, termList]);
   const text = editing?.text ?? '';
   const sugs = useMemo(() => (terms ? suggest(field, text, terms) : []), [field, text, terms]);
   // Touche de validation reçue pendant une composition (accent, texte prédictif de macOS) :
@@ -127,7 +132,7 @@ export function CellEditor({ field }: { field: EditableField }) {
           e.target.setSelectionRange(v.length, v.length);
         }}
       />
-      {field !== 'action' && (
+      {field !== 'action' && (field !== 'focal' || terms || editing.error) && (
         <div className="pop" role="listbox" aria-label="Suggestions">
           {sugs.slice(0, 9).map((sg, i) => (
             <button

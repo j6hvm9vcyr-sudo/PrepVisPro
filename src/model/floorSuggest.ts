@@ -27,6 +27,22 @@ export const SIZE_SCALE: { term: string; maxM: number }[] = [
   { term: 'Général', maxM: Infinity },
 ];
 
+/** Hauteur de champ visée pour une valeur (milieu géométrique de sa plage), en mètres ; null si terme inconnu. */
+export function targetHeightFor(term: string): number | null {
+  const i = SIZE_SCALE.findIndex((x) => norm(x.term) === norm(term));
+  if (i < 0) return null;
+  const lo = i === 0 ? 0.12 : SIZE_SCALE[i - 1]!.maxM;
+  const hi = Number.isFinite(SIZE_SCALE[i]!.maxM) ? SIZE_SCALE[i]!.maxM : lo * 2.5;
+  return Math.sqrt(lo * hi);
+}
+
+/** Focale qui donne la valeur voulue à cette distance : f = distance × hauteur d'image ÷ hauteur de champ. */
+export function idealFocalFor(term: string, distanceM: number, frameHeightMm: number): number | null {
+  const h = targetHeightFor(term);
+  if (h === null || !(distanceM > 0) || !(frameHeightMm > 0)) return null;
+  return (distanceM * frameHeightMm) / h;
+}
+
 export function sizeForFrameHeight(heightM: number, terms: readonly string[]): string | null {
   const s = SIZE_SCALE.find((x) => heightM <= x.maxM);
   if (!s) return null;
@@ -59,6 +75,8 @@ export interface FramingGuess {
   distanceM: number;
   /** Hauteur de champ à la distance du personnage (m) ; null si l'angle vertical est inconnu. */
   frameHeightM: number | null;
+  /** Hauteur de l'image cadrée sur le capteur (mm), pour le calcul inverse de focale. */
+  frameMm: number | null;
   size: string | null;
   axisDeg: number;
   axis: string | null;
@@ -100,7 +118,7 @@ export function suggestFraming(doc: ProjectDoc, fp: FloorPlan, cam: FloorCamera)
     const hMm = fov.frame?.heightMm ?? null;
     const frameHeightM = hMm !== null && focal !== null && focal > 0 ? (distanceM * hMm) / focal : null;
     const axisDeg = axisAngle(actor, at);
-    return { actor, distanceM, frameHeightM, size: frameHeightM !== null ? sizeForFrameHeight(frameHeightM, terms.size) : null, axisDeg, axis: axisForAngle(axisDeg, terms.axis) };
+    return { actor, distanceM, frameHeightM, frameMm: hMm, size: frameHeightM !== null ? sizeForFrameHeight(frameHeightM, terms.size) : null, axisDeg, axis: axisForAngle(axisDeg, terms.axis) };
   };
 
   const start = guess(cam.at, cam.rotation, setup.start.focalMm);

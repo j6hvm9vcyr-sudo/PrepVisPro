@@ -77,6 +77,7 @@ export function defaultSettings(): ProjectSettings {
     terms: structuredClone(DEFAULT_TERMS),
     required: { action: true, size: true, axis: true, angle: true, focal: true, movement: true, grip: true },
     cameras: [newProjectCamera('A')],
+    lenses: [],
   };
 }
 

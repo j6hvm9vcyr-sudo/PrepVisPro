@@ -55,6 +55,8 @@ test('plan au sol : fond, mise à l’échelle, caméra du découpage avec son c
   await expect(suggest).toContainText('champ ≈ 1,3 m de haut');
   await expect(suggest.locator('.suggest-row', { hasText: 'Valeur' })).toContainText('Américain');
   await expect(suggest.locator('.suggest-row', { hasText: 'Axe' })).toContainText('Face');
+  // Calcul inverse : la focale qui garde la valeur du découpage (Ensemble) à cette distance.
+  await expect(suggest.locator('.suggest-row.ideal')).toContainText('pour un Ensemble à 3 m');
   // Le tableau signale l'écart, et Détails propose de reporter.
   await page.keyboard.press('ControlOrMeta+1');
   await expect(page.locator('.cell.floor-diff')).toHaveCount(1);

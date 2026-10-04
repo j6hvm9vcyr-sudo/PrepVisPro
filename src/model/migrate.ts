@@ -20,6 +20,7 @@ export function migrate(raw: unknown): MigrateResult {
   if (v <= 2) doc = from2to3(doc);
   if (v <= 3) doc = { ...doc, schemaVersion: 4, floorPlans: [] };
   if (v <= 4) doc = from4to5(doc);
+  if (v <= 5) doc = from5to6(doc);
   return { ok: true, raw: doc };
 }
 
@@ -53,4 +54,10 @@ function from4to5(doc: Record<string, unknown>): Record<string, unknown> {
     schemaVersion: 5,
     settings: { ...settings, cameras: cams.map((c) => (c && typeof c === 'object' ? { sensorHeightMm: null, ...(c as object) } : c)) },
   };
+}
+
+/** Format 5 → 6 : optiques du projet (aucune au départ). */
+function from5to6(doc: Record<string, unknown>): Record<string, unknown> {
+  const settings = doc.settings && typeof doc.settings === 'object' ? (doc.settings as Record<string, unknown>) : null;
+  return { ...doc, schemaVersion: 6, ...(settings ? { settings: { lenses: [], ...settings } } : {}) };
 }
