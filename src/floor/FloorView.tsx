@@ -1,3 +1,4 @@
+import { Picker } from '../ui/Picker';
 import { useEffect } from 'react';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
@@ -65,17 +66,12 @@ export function FloorView() {
         })}
         {seqsWithout.length > 0 && (
           <div className="floor-new">
-            <label className="field">
+            <div className="field">
               Nouveau plan au sol
-              <select value="" onChange={(e) => e.target.value && create(e.target.value)} aria-label="Créer un plan au sol pour la séquence">
-                <option value="">Pour la séquence…</option>
-                {seqsWithout.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.number || '?'} — {s.location || 'Décor à préciser'}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <Picker label="Créer un plan au sol pour la séquence" variant="field" onPick={create} groups={[{ items: seqsWithout.map((s) => ({ id: s.id, label: `${s.number || '?'} — ${s.location || 'Décor à préciser'}`, detail: `${s.intExt} · ${s.dayNight}` })) }]}>
+                <span className="ph">Pour la séquence…</span>
+              </Picker>
+            </div>
           </div>
         )}
       </aside>

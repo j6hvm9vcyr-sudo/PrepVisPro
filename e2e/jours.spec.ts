@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { pick } from './pick';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/?exemple');
@@ -25,8 +26,8 @@ test('jours de tournage : séquences du jour, ordre, soleil à la date du jour, 
 
   await list.getByRole('button', { name: '+ Jour de tournage' }).click();
   await page.getByLabel('Date du jour de tournage').fill('2026-06-21');
-  await page.getByLabel('Ajouter une séquence au jour').selectOption({ label: '1 — EXT. QUAI DE GARE — JOUR' });
-  await page.getByLabel('Ajouter une séquence au jour').selectOption({ label: '2 — INT. WAGON — JOUR' });
+  await pick(page, 'Ajouter une séquence au jour', '1 — EXT. QUAI DE GARE — JOUR');
+  await pick(page, 'Ajouter une séquence au jour', '2 — INT. WAGON — JOUR');
   await expect(page.getByRole('heading', { level: 3 })).toHaveText('J1 — dimanche 21 juin 2026');
   const seqs = page.getByRole('region', { name: 'Séquences du jour' });
   await expect(seqs).toContainText('SÉQ. 1 — EXT. QUAI DE GARE — JOUR');
@@ -42,7 +43,7 @@ test('jours de tournage : séquences du jour, ordre, soleil à la date du jour, 
 
   // J2 : la séquence 2 continue → signalée sur les deux jours.
   await list.getByRole('button', { name: '+ Jour de tournage' }).click();
-  await page.getByLabel('Ajouter une séquence au jour').selectOption({ label: '2 — INT. WAGON — JOUR (déjà au J1)' });
+  await pick(page, 'Ajouter une séquence au jour', /^2 — INT\. WAGON — JOURdéjà au J1/);
   await expect(seqs).toContainText('aussi au J1');
   // Le tableau montre les jours de chaque séquence.
   await page.keyboard.press('ControlOrMeta+1');

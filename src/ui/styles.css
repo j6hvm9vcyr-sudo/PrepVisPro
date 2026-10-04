@@ -631,3 +631,29 @@ table.modes input:not(.decimal-field input) { border: 1px solid var(--border); b
 /* Boutons d'un panneau : à leur taille, pas étirés sur toute la largeur. */
 .sec > .btn, .sec > .seg, .field > .seg { align-self: flex-start; }
 .row > .seg { flex: none; }
+/* Liste de choix à recherche (Picker) */
+.picker { display: inline-flex; align-items: center; gap: 8px; min-width: 0; font: inherit; font-size: 13px; color: var(--text); cursor: pointer; text-align: left; }
+.picker.pk-field { width: 100%; font-weight: 400; height: 32px; padding: 0 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--field); }
+.picker.pk-field:hover:not(:disabled) { border-color: var(--text3); }
+.picker.pk-add { align-self: flex-start; height: 28px; padding: 0 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--panel); font-weight: 600; font-size: 12.5px; }
+.picker.pk-add:hover:not(:disabled) { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.picker:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.picker:disabled { opacity: 0.5; cursor: default; }
+.picker-v { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker-v .ph { color: var(--text3); }
+.picker-chev { width: 7px; height: 7px; border-right: 1.5px solid var(--text3); border-bottom: 1.5px solid var(--text3); transform: translateY(-2px) rotate(45deg); flex: none; }
+.pick-pop { z-index: 200; display: flex; flex-direction: column; background: var(--pop); border: 1px solid var(--border); border-radius: 9px; box-shadow: var(--shadow); overflow: hidden; }
+.pick-search { margin: 6px; height: 30px; padding: 0 9px; border: 1px solid var(--border); border-radius: 6px; background: var(--field); color: var(--text); font: inherit; font-size: 13px; }
+.pick-list { overflow-y: auto; padding: 4px; outline: none; }
+.pick-g { padding: 7px 8px 3px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text3); }
+.pick-opt { display: flex; width: 100%; align-items: baseline; justify-content: space-between; gap: 12px; padding: 5px 8px; border: 0; border-radius: 5px; background: transparent; color: var(--text); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.pick-opt.cur .pick-l { font-weight: 600; }
+.pick-opt.on { background: var(--accent); color: var(--on-accent); }
+.pick-opt[aria-disabled] { opacity: 0.45; cursor: default; }
+.pick-l { display: flex; flex-direction: column; min-width: 0; }
+.pick-l small { font-size: 11px; color: var(--text3); }
+.pick-opt.on .pick-l small, .pick-opt.on .pick-m { color: inherit; opacity: 0.85; }
+.pick-m { flex: none; font-size: 12px; color: var(--text2); font-variant-numeric: tabular-nums; }
+.pick-none { padding: 8px; font-size: 12.5px; color: var(--text3); }
+.pick-actions { border-top: 1px solid var(--border-soft); margin-top: 4px; padding-top: 4px; }
+.pick-actions .pick-opt:not(.on) { color: var(--accent); font-weight: 600; }

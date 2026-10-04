@@ -13,6 +13,7 @@ import { newId } from '../model/defaults';
 import { formatNumber } from '../model/text';
 import type { ReflectorMaterial } from '../model/types';
 import { DecimalField } from '../ui/DecimalField';
+import { Picker, type PickGroup, type PickItem } from '../ui/Picker';
 import { lx, m } from './LightPanels';
 import { materialForPreset, pct, PRESET_GROUPS, presetById, presetRange, presetValue, REFLECTOR_PRESETS } from '../model/reflectorPresets';
 
@@ -95,32 +96,15 @@ export function MaterialFields({ material, autoFocus }: { material: ReflectorMat
 }
 
 /** Choix d'une matière : celles du projet, puis les presets par famille, puis une valeur mesurée. */
-export function MaterialOptions({ mats }: { mats: ReflectorMaterial[] }) {
-  const used = new Set(mats.map((m) => m.presetId).filter(Boolean));
-  return (
-    <>
-      {mats.length > 0 && (
-        <optgroup label="Matières du projet">
-          {mats.map((x) => (
-            <option key={x.id} value={x.id}>
-              {x.name || 'Sans nom'}
-              {x.reflectance !== null ? ` · ${formatNumber(Math.round(x.reflectance * 100))} %` : ' · taux à saisir'}
-            </option>
-          ))}
-        </optgroup>
-      )}
-      {PRESET_GROUPS.map((g) => (
-        <optgroup key={g} label={g}>
-          {REFLECTOR_PRESETS.filter((p) => p.group === g && !used.has(p.id)).map((p) => (
-            <option key={p.id} value={`${PRESET}${p.id}`}>
-              {p.name} · {presetRange(p)}
-            </option>
-          ))}
-        </optgroup>
-      ))}
-      <option value={NEW}>+ Matière à valeur mesurée…</option>
-    </>
-  );
+export function materialGroups(mats: ReflectorMaterial[]): { groups: PickGroup[]; actions: PickItem[] } {
+  const used = new Set(mats.map((x) => x.presetId).filter(Boolean));
+  return {
+    groups: [
+      { label: 'Matières du projet', items: mats.map((x) => ({ id: x.id, label: x.name || 'Sans nom', meta: x.reflectance !== null ? `${formatNumber(Math.round(x.reflectance * 100))} %` : 'taux à saisir' })) },
+      ...PRESET_GROUPS.map((g) => ({ label: g, items: REFLECTOR_PRESETS.filter((p) => p.group === g && !used.has(p.id)).map((p) => ({ id: `${PRESET}${p.id}`, label: p.name, meta: presetRange(p) })) })),
+    ],
+    actions: [{ id: NEW, label: '+ Matière à valeur mesurée…' }],
+  };
 }
 
 export const PRESET = 'preset:';
@@ -156,26 +140,25 @@ export function ReflectorInspector({ fp, el }: { fp: FloorPlan; el: FloorReflect
   const reads = fp.scale ? lights.map((l) => ({ l, b: actors.map((a) => ({ a, r: bounceAt(doc, fp, l, el, a.at) })), r0: actors.length ? null : bounceAt(doc, fp, l, el, el.at) })) : [];
   return (
     <>
-      <label className="field">
+      <div className="field">
         Réflecteur
-        <select
-          aria-label="Matière du réflecteur"
-          value={el.materialId ?? ''}
-          onChange={(ev) => {
-            const v = ev.target.value;
+        <Picker
+          label="Matière du réflecteur"
+          value={el.materialId}
+          {...materialGroups(mats)}
+          onPick={(v) => {
             if (v === NEW) create();
             else if (v.startsWith(PRESET))
               apply((d) => {
                 const r = materialForPreset(d, v.slice(PRESET.length), () => newId('rm'));
                 return updateElement(r.doc, fp.id, el.id, (x) => void (x.kind === 'reflector' && (x.materialId = r.id)));
               });
-            else upd((x) => void (x.materialId = v || null), 'mat');
+            else upd((x) => void (x.materialId = v), 'mat');
           }}
         >
-          <option value="">Choisir une matière…</option>
-          <MaterialOptions mats={mats} />
-        </select>
-      </label>
+          {material ? material.name || 'Sans nom' : <span className="ph">Choisir une matière…</span>}
+        </Picker>
+      </div>
       {material && (
         <div className="fixture-data" key={material.id} aria-label="Données de la matière">
           <MaterialFields material={material} autoFocus={!material.name} />

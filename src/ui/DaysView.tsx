@@ -2,6 +2,7 @@
  * Vue Jours : jours de tournage (J1, J2…), et pour chacun ses séquences, l'ordre de tournage,
  * les horaires du soleil, les plans au sol et le matériel — tout est déduit, rien n'est ressaisi.
  */
+import { Picker } from './Picker';
 import { create } from 'zustand';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
@@ -163,25 +164,23 @@ function DayPage({ doc, day, label, labels }: { doc: ProjectDoc; day: ShootingDa
         <div className="install-h">
           <b>Séquences et ordre de tournage</b>
           <span className="spacer" />
-          <select
-            aria-label="Ajouter une séquence au jour"
-            value=""
-            onChange={(e) => {
-              const id = e.target.value;
-              if (id) upd((x) => void x.sequenceIds.push(id));
-            }}
+          <Picker
+            label="Ajouter une séquence au jour"
+            variant="add"
+            onPick={(id) => upd((x) => void x.sequenceIds.push(id))}
+            empty="Toutes les séquences sont déjà dans ce jour"
+            groups={[
+              { label: 'Sans jour', items: others.filter((s) => !daysOfSequence(doc, s.id).length).map((s) => ({ id: s.id, label: `${s.number || '?'} — ${sequenceTitle(s)}` })) },
+              {
+                label: 'Déjà dans un autre jour',
+                items: others
+                  .filter((s) => daysOfSequence(doc, s.id).length)
+                  .map((s) => ({ id: s.id, label: `${s.number || '?'} — ${sequenceTitle(s)}`, detail: `déjà au ${daysOfSequence(doc, s.id).map((d) => labels.get(d.id)).join(', ')}` })),
+              },
+            ]}
           >
-            <option value="">+ Ajouter une séquence…</option>
-            {others.map((s) => {
-              const on = daysOfSequence(doc, s.id).map((d) => labels.get(d.id));
-              return (
-                <option key={s.id} value={s.id}>
-                  {s.number || '?'} — {sequenceTitle(s)}
-                  {on.length ? ` (déjà au ${on.join(', ')})` : ''}
-                </option>
-              );
-            })}
-          </select>
+            + Ajouter une séquence…
+          </Picker>
         </div>
         {seqs.length === 0 && <p className="note install-drop">Ajoutez les séquences de ce jour, dans l’ordre du plan de travail.</p>}
         {seqs.map((s, k) => {

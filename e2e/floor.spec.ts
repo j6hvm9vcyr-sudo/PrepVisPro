@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { pick } from './pick';
 import { resolve } from 'node:path';
 import { copyFileSync, readFileSync } from 'node:fs';
 import ExcelJS from 'exceljs';
@@ -14,7 +15,7 @@ test('plan au sol : fond, mise à l’échelle, caméra du découpage avec son c
 
   await page.keyboard.press('ControlOrMeta+3');
   await expect(page.getByText('Aucun plan au sol pour l’instant.')).toBeVisible();
-  await page.getByLabel('Créer un plan au sol pour la séquence').selectOption({ label: '1 — Quai de gare' });
+  await pick(page, 'Créer un plan au sol pour la séquence', '1 — Quai de gare');
   await expect(page.getByRole('application', { name: 'Plan au sol' })).toBeVisible();
 
   const chooser = page.waitForEvent('filechooser');
@@ -137,7 +138,7 @@ test('plan au sol : fond PDF (plan d’architecte), texte saisi au clavier, cham
   await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
   await page.keyboard.press('ControlOrMeta+3');
-  await page.getByLabel('Créer un plan au sol pour la séquence').selectOption({ label: '1 — Quai de gare' });
+  await pick(page, 'Créer un plan au sol pour la séquence', '1 — Quai de gare');
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Importer un fond…' }).click();
   await (await chooser).setFiles(resolve('e2e/plan-decor.pdf'));
@@ -172,7 +173,7 @@ test('bibliothèque d’icônes : import d’un dossier, recherche, pose sur le 
   await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
   await page.keyboard.press('ControlOrMeta+3');
-  await page.getByLabel('Créer un plan au sol pour la séquence').selectOption({ label: '1 — Quai de gare' });
+  await pick(page, 'Créer un plan au sol pour la séquence', '1 — Quai de gare');
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Importer un dossier d’icônes…' }).click();
   await (await chooser).setFiles(resolve('e2e/icones-test'));
@@ -229,7 +230,7 @@ test('tournage : installations proposées d’après le plan au sol, réorganis�
   await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
   await page.keyboard.press('ControlOrMeta+3');
-  await page.getByLabel('Créer un plan au sol pour la séquence').selectOption({ label: '1 — Quai de gare' });
+  await pick(page, 'Créer un plan au sol pour la séquence', '1 — Quai de gare');
   const canvas = page.getByRole('application', { name: 'Plan au sol' });
   const box = (await page.locator('.floor-canvas svg').boundingBox())!;
   const at = (fx: number, fy: number) => ({ x: box.x + box.width * fx, y: box.y + box.height * fy });
@@ -286,7 +287,7 @@ test('plan feux : projecteur créé et renseigné sur le plan, éclairement et d
   await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
 await page.keyboard.press('ControlOrMeta+3');
-  await page.getByLabel('Créer un plan au sol pour la séquence').selectOption({ label: '2 — Wagon' });
+  await pick(page, 'Créer un plan au sol pour la séquence', '2 — Wagon');
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Importer un fond…' }).click();
   await (await chooser).setFiles(resolve('e2e/plan-decor.png'));
@@ -310,7 +311,7 @@ await page.keyboard.press('ControlOrMeta+3');
   await page.getByLabel('Orientation en degrés').fill('90');
   await page.keyboard.press('Enter');
   // Aucun projecteur dans ce projet : on le crée sur place, d'après sa fiche (1000 lx à 5 m, 60°, 2000 W).
-  await page.getByLabel('Modèle de projecteur').selectOption({ label: '+ Nouveau projecteur…' });
+  await pick(page, 'Modèle de projecteur', '+ Nouveau projecteur…');
   await expect(page.getByLabel('Nom du projecteur')).toBeFocused();
   await page.keyboard.type('Fresnel 2K');
   await page.getByLabel('Type de projecteur').selectOption('tungsten');
@@ -341,12 +342,12 @@ await page.keyboard.press('ControlOrMeta+3');
 
   // Gélatine : CTB LEE 201 sur un tungstène → 35 % (fiche LEE, mesure tungstène). 2000 × 0,35 = 700 lx.
   await page.mouse.click(l.x, l.y);
-  await page.getByLabel('Ajouter une gélatine ou une diffusion').selectOption('lee-201');
+  await pick(page, 'Ajouter une gélatine ou une diffusion', /^201 Full C\.T\. Blue/, 'ctb 201');
   await expect(page.locator('.light-readings')).toContainText(/700 lx/);
   await expect(page.locator('.gel-chip')).toHaveText(/Lee 201 CTB/);
   await expect(page.locator('.floor-canvas text', { hasText: 'CTB' })).toBeVisible();
   // Diffusion forte : avertissement, valeur indicative.
-  await page.getByLabel('Ajouter une gélatine ou une diffusion').selectOption('lee-216');
+  await pick(page, 'Ajouter une gélatine ou une diffusion', /^216 White Diffusion/, '216');
   await expect(page.getByText(/Diffusion forte/)).toBeVisible();
   await expect(page.locator('.light-readings')).toContainText(/≈ 250 lx/);
   await page.getByRole('button', { name: 'Retirer Lee 216' }).click();
@@ -365,10 +366,10 @@ await page.keyboard.press('ControlOrMeta+3');
   await expect(page.getByLabel('Lumière du réflecteur')).toContainText(/Reçoit de Fresnel 2K\s*500 lx/);
   await expect(page.getByLabel('Lumière du réflecteur')).toContainText(/≈ 29 lx/);
   // Un autre preset du menu : Ultrabounce, 0,875 × 500 × 0,0705 → ≈ 31 lx.
-  await page.getByLabel('Matière du réflecteur').selectOption({ label: 'Ultrabounce (blanc) · 85–90 %' });
+  await pick(page, 'Matière du réflecteur', /^Ultrabounce \(blanc\)85–90 %/);
   await expect(page.getByLabel('Lumière du réflecteur')).toContainText(/≈ 31 lx/);
   // Matière de son parc, valeur mesurée : sans taux, aucun chiffre.
-  await page.getByLabel('Matière du réflecteur').selectOption({ label: '+ Matière à valeur mesurée…' });
+  await pick(page, 'Matière du réflecteur', '+ Matière à valeur mesurée…');
   await expect(page.getByLabel('Nom de la matière')).toBeFocused();
   await page.keyboard.type('Poly maison');
   await expect(page.getByLabel('Lumière du réflecteur')).toContainText(/taux à mesurer/);
@@ -415,7 +416,7 @@ test('soleil : position GPS du décor, nord du plan, heure simulée, rapport ave
   await dlg.getByRole('button', { name: 'Terminé' }).click();
 
   await page.keyboard.press('ControlOrMeta+3');
-  await page.getByLabel('Créer un plan au sol pour la séquence').selectOption({ label: '2 — Wagon' });
+  await pick(page, 'Créer un plan au sol pour la séquence', '2 — Wagon');
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Importer un fond…' }).click();
   await (await chooser).setFiles(resolve('e2e/plan-decor.png'));
@@ -460,7 +461,7 @@ test('positions : début, intermédiaire et fin d’un personnage, orientation, 
   await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
   await page.keyboard.press('ControlOrMeta+3');
-  await page.getByLabel('Créer un plan au sol pour la séquence').selectOption({ label: '2 — Wagon' });
+  await pick(page, 'Créer un plan au sol pour la séquence', '2 — Wagon');
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Importer un fond…' }).click();
   await (await chooser).setFiles(resolve('e2e/plan-decor.png'));

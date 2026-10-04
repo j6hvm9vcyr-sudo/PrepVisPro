@@ -10,6 +10,7 @@ import { formatNumber } from '../model/text';
 import { newId } from '../model/defaults';
 import type { Fixture, ProjectDoc } from '../model/types';
 import { DecimalField } from '../ui/DecimalField';
+import { Picker } from '../ui/Picker';
 import { produce } from 'immer';
 
 /** Lux arrondis à deux chiffres significatifs (la précision des données des fabricants). */
@@ -131,33 +132,33 @@ export function LightInspector({ fp, el }: { fp: FloorPlan; el: FloorLight }) {
   const md = fixture?.modes[el.mode];
   return (
     <>
-      <label className="field">
+      <div className="field">
         Modèle
-        <select aria-label="Modèle de projecteur" value={el.fixtureId ?? ''} onChange={(e) => (e.target.value === NEW ? createFixture() : upd((x) => ((x.fixtureId = e.target.value || null), (x.mode = 0)), 'fix'))}>
-          <option value="">Choisir un modèle…</option>
-          {fixtures.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.name || 'Sans nom'}
-              {f.watts !== null ? ` · ${formatNumber(f.watts)} W` : ''}
-            </option>
-          ))}
-          <option value={NEW}>+ Nouveau projecteur…</option>
-        </select>
-      </label>
+        <Picker
+          label="Modèle de projecteur"
+          value={el.fixtureId}
+          onPick={(id) => (id === NEW ? createFixture() : upd((x) => ((x.fixtureId = id), (x.mode = 0)), 'fix'))}
+          empty="Aucun modèle dans le projet"
+          groups={[{ items: fixtures.map((f) => ({ id: f.id, label: f.name || 'Sans nom', detail: FIXTURE_KINDS.find(([k]) => k === f.kind)?.[1], meta: f.watts !== null ? `${formatNumber(f.watts)} W` : undefined })) }]}
+          actions={[{ id: NEW, label: '+ Nouveau projecteur…' }]}
+        >
+          {fixture ? fixture.name || 'Sans nom' : <span className="ph">Choisir un modèle…</span>}
+        </Picker>
+      </div>
       {fixture && (
         <div className="row" style={{ gap: 8, alignItems: 'flex-end' }}>
-          <label className="field" style={{ flex: 1 }}>
+          <div className="field" style={{ flex: 1 }}>
             Mode
-            <select aria-label="Mode du projecteur" value={el.mode} onChange={(e) => (Number(e.target.value) === NEW_MODE ? addMode() : upd((x) => void (x.mode = Number(e.target.value)), 'mode'))}>
-              {fixture.modes.map((m, i) => (
-                <option key={i} value={i}>
-                  {m.label || (fixture.modes.length > 1 ? `Mode ${i + 1}` : 'Unique')}
-                  {m.beamDeg !== null ? ` · ${formatNumber(m.beamDeg)}°` : ''}
-                </option>
-              ))}
-              <option value={NEW_MODE}>+ Autre mode (spot, flood, optique…)</option>
-            </select>
-          </label>
+            <Picker
+              label="Mode du projecteur"
+              value={String(el.mode)}
+              onPick={(id) => (Number(id) === NEW_MODE ? addMode() : upd((x) => void (x.mode = Number(id)), 'mode'))}
+              groups={[{ items: fixture.modes.map((md, i) => ({ id: String(i), label: modeName(md.label, i, fixture.modes.length), meta: md.beamDeg !== null ? `${formatNumber(md.beamDeg)}°` : undefined })) }]}
+              actions={[{ id: String(NEW_MODE), label: '+ Autre mode (spot, flood, optique…)' }]}
+            >
+              {md ? modeName(md.label, el.mode, fixture.modes.length) : '—'}
+            </Picker>
+          </div>
           {md && fixture.modes.length > 1 && (
             <label className="field small">
               Nom du mode
@@ -278,6 +279,8 @@ export function ActorLight({ fp, actor }: { fp: FloorPlan; actor: FloorActor }) 
   );
 }
 
+const modeName = (label: string, i: number, n: number) => label || (n > 1 ? `Mode ${i + 1}` : 'Unique');
+
 const pct = (t: number) => `${formatNumber(Math.round(t * 1000) / 10)} %`;
 const stopTxt = (t: number) => `−${formatNumber(Math.round(stopsLost(t) * 10) / 10)} diaph`;
 
@@ -300,28 +303,20 @@ function GelsField({ fixture, el, onChange }: { fixture: Fixture | null; el: Flo
           ))}
         </div>
       )}
-      <select
-        aria-label="Ajouter une gélatine ou une diffusion"
-        value=""
-        onChange={(e) => {
-          if (e.target.value) onChange([...el.gels, e.target.value]);
-        }}
+      <Picker
+        label="Ajouter une gélatine ou une diffusion"
+        variant="add"
+        onPick={(id) => onChange([...el.gels, id])}
+        groups={GEL_GROUPS.map((grp) => ({
+          label: grp.label,
+          items: GELS.filter((g) => g.group === grp.id).map((g) => {
+            const t = gelTransmission(g, tungsten);
+            return { id: g.id, label: `${g.ref} ${g.name}`, meta: `${g.atLeast ? '> ' : ''}${pct(t)} · ${stopTxt(t)}` };
+          }),
+        }))}
       >
-        <option value="">+ Ajouter (LEE)…</option>
-        {GEL_GROUPS.map((grp) => (
-          <optgroup key={grp.id} label={grp.label}>
-            {GELS.filter((g) => g.group === grp.id).map((g) => {
-              const t = gelTransmission(g, tungsten);
-              return (
-                <option key={g.id} value={g.id}>
-                  {g.ref} {g.name} · {g.atLeast ? '> ' : ''}
-                  {pct(t)} · {stopTxt(t)}
-                </option>
-              );
-            })}
-          </optgroup>
-        ))}
-      </select>
+        + Ajouter (LEE)…
+      </Picker>
       {el.gels.length > 0 && (
         <span className="note" style={{ fontSize: 11.5 }}>
           Transmission {pct(stack.transmission)} · {stopTxt(stack.transmission)} (fiches LEE, mesure {tungsten ? 'en tungstène' : 'en lumière du jour'})

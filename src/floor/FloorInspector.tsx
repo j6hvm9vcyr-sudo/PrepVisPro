@@ -17,6 +17,7 @@ import { convertIcon } from './iconConvert';
 import { ReflectorInspector } from './ReflectorPanel';
 import { LightingPanel } from './LightingPanel';
 import { Fold } from '../ui/Fold';
+import { Picker } from '../ui/Picker';
 import { useIcons } from '../platform/iconLibrary';
 import { planSun, sunForCamera } from '../model/sunPlan';
 
@@ -85,6 +86,8 @@ function FloorExportButtons({ fp }: { fp: FloorPlan }) {
   );
 }
 
+const NONE = '__aucun';
+
 export function FloorInspector({ fp }: { fp: FloorPlan }) {
   const doc = useApp(selectDoc);
   const iconCount = useIcons((s) => s.items.length);
@@ -100,6 +103,7 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
   const setupOptions = doc.sequences
     .filter((s) => fp.sequenceIds.includes(s.id))
     .flatMap((s) => s.plans.flatMap((p) => p.cameras.map((c) => ({ planId: p.id, setupId: c.id, label: cameraLabel(doc, p.id, c.id, numbers) }))));
+  const linked = el?.kind === 'camera' ? setupOptions.find((o) => o.planId === el.planId && o.setupId === el.setupId) : undefined;
 
   const tab = selected.length === 0 && ui.panel === 'light' ? 'light' : 'plan';
   return (
@@ -120,12 +124,13 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
             <div className="sec-h">{{ camera: 'Caméra', actor: 'Personnage', icon: 'Icône', text: 'Texte', light: 'Projecteur', reflector: 'Réflecteur' }[el.kind]}</div>
             {el.kind === 'camera' && (
               <>
-                <label className="field">
+                <div className="field">
                   Plan du découpage
-                  <select
-                    value={el.planId ? `${el.planId}|${el.setupId}` : ''}
-                    onChange={(e) => {
-                      const [planId, setupId] = e.target.value ? e.target.value.split('|') : [null, null];
+                  <Picker
+                    label="Plan du découpage"
+                    value={el.planId ? `${el.planId}|${el.setupId}` : NONE}
+                    onPick={(v) => {
+                      const [planId, setupId] = v === NONE ? [null, null] : v.split('|');
                       upd((x) => {
                         if (x.kind === 'camera') {
                           x.planId = planId ?? null;
@@ -133,15 +138,12 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
                         }
                       }, 'link');
                     }}
+                    groups={[{ items: setupOptions.map((o) => ({ id: `${o.planId}|${o.setupId}`, label: o.label.code, detail: o.label.detail })) }]}
+                    actions={[{ id: NONE, label: 'Non reliée' }]}
                   >
-                    <option value="">Non reliée</option>
-                    {setupOptions.map((o) => (
-                      <option key={`${o.planId}|${o.setupId}`} value={`${o.planId}|${o.setupId}`}>
-                        {o.label.code} · {o.label.detail}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    {linked ? `${linked.label.code} · ${linked.label.detail}` : <span className="ph">Non reliée</span>}
+                  </Picker>
+                </div>
                 <label className="check">
                   <input type="checkbox" checked={el.showFov} onChange={(e) => upd((x) => void (x.kind === 'camera' && (x.showFov = e.target.checked)), 'fov')} />
                   Afficher le champ

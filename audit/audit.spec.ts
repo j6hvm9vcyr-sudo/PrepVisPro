@@ -1,5 +1,6 @@
 // Revue visuelle : une capture par écran (hors CI). npx playwright test -c audit/audit.config.ts
 import { expect, test, type Page } from '@playwright/test';
+import { pick } from '../e2e/pick';
 import { resolve } from 'node:path';
 
 const OUT = process.env.AUDIT_OUT ?? 'test-results/audit';
@@ -48,7 +49,7 @@ test('audit', async ({ page }) => {
   // Plans au sol
   await page.keyboard.press('ControlOrMeta+3');
   await shot(page, '11-plans-au-sol-vide');
-  await page.getByLabel('Créer un plan au sol pour la séquence').selectOption({ index: 1 });
+  await pick(page, 'Créer un plan au sol pour la séquence', 0);
   await shot(page, '12-plan-sans-fond');
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Importer un fond…' }).click();
@@ -72,6 +73,10 @@ test('audit', async ({ page }) => {
   await canvas.press('l');
   await page.mouse.click(at(350, 300).x, at(350, 300).y);
   await shot(page, '16-plan-projecteur');
+  await page.getByRole('button', { name: 'Ajouter une gélatine ou une diffusion', exact: true }).click();
+  await page.keyboard.type('ctb');
+  await shot(page, '16b-liste-gelatines');
+  await page.keyboard.press('Escape');
   await canvas.press('b');
   await page.mouse.click(at(850, 400).x, at(850, 400).y);
   await shot(page, '17-plan-reflecteur');
@@ -90,7 +95,7 @@ test('audit', async ({ page }) => {
   await page.keyboard.press('ControlOrMeta+5');
   await shot(page, '21-jours-vide');
   await page.getByRole('button', { name: '+ Jour de tournage' }).click();
-  await page.getByLabel('Ajouter une séquence au jour').selectOption({ index: 1 });
+  await pick(page, 'Ajouter une séquence au jour', 0);
   await shot(page, '22-jour');
   // Images, tampons
   await page.keyboard.press('ControlOrMeta+6');

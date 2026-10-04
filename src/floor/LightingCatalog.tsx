@@ -17,9 +17,10 @@ function reflectorUses(doc: ProjectDoc, materialId: string): number {
 
 
 import { DecimalField } from '../ui/DecimalField';
-import { MaterialFields, MaterialOptions, PRESET } from './ReflectorPanel';
+import { MaterialFields, materialGroups, PRESET } from './ReflectorPanel';
 import { materialForPreset } from '../model/reflectorPresets';
 import { Explain } from '../ui/Explain';
+import { Picker } from '../ui/Picker';
 import { FIXTURE_KINDS as KINDS, usesOf } from './LightPanels';
 
 
@@ -190,20 +191,17 @@ export function ReflectorCatalog() {
             </button>
           </div>
         ))}
-        <select
-          aria-label="Ajouter une matière de réflecteur"
-          value=""
-          style={{ alignSelf: 'flex-start' }}
-          onChange={(e) => {
-            const v = e.target.value;
-            if (!v) return;
+        <Picker
+          label="Ajouter une matière de réflecteur"
+          variant="add"
+          {...materialGroups([])}
+          onPick={(v) => {
             if (v.startsWith(PRESET)) st().applyDoc(materialForPreset(selectDoc(st()), v.slice(PRESET.length), () => newId('rm')).doc);
             else st().updateDoc((d) => void d.settings.reflectors.push({ id: newId('rm'), name: '', type: 'diffuse', reflectance: null, presetId: null }));
           }}
         >
-          <option value="">+ Ajouter une matière…</option>
-          <MaterialOptions mats={[]} />
-        </select>
+          + Ajouter une matière…
+        </Picker>
       </section>
     </div>
   );

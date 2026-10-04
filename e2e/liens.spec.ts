@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { pick } from './pick';
 import { resolve } from 'node:path';
 
 test('documents liés : un plan modifié se retrouve partout, « ce plan ailleurs » mène au bon endroit', async ({ page }) => {
@@ -11,7 +12,7 @@ test('documents liés : un plan modifié se retrouve partout, « ce plan ailleur
 
   // Plan au sol de la séquence 1.
   await page.keyboard.press('ControlOrMeta+3');
-  await page.getByLabel('Créer un plan au sol pour la séquence').selectOption({ label: '1 — Quai de gare' });
+  await pick(page, 'Créer un plan au sol pour la séquence', '1 — Quai de gare');
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Importer un fond…' }).click();
   await (await chooser).setFiles(resolve('e2e/plan-decor.png'));
