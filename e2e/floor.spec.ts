@@ -17,7 +17,7 @@ test('plan au sol : fond, mise à l’échelle, caméra du découpage avec son c
   await expect(page.getByRole('application', { name: 'Plan au sol' })).toBeVisible();
 
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Importer le plan du décor…' }).click();
+  await page.getByRole('button', { name: 'Importer un fond…' }).click();
   await (await chooser).setFiles(resolve('e2e/plan-decor.png'));
   await expect(page.locator('.floor-canvas image')).toHaveCount(1);
 
@@ -99,7 +99,7 @@ test('plan au sol : fond PDF (plan d’architecte), texte saisi au clavier, cham
   await page.keyboard.press('ControlOrMeta+3');
   await page.getByLabel('Créer un plan au sol pour la séquence').selectOption({ label: '1 — Quai de gare' });
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Importer le plan du décor…' }).click();
+  await page.getByRole('button', { name: 'Importer un fond…' }).click();
   await (await chooser).setFiles(resolve('e2e/plan-decor.pdf'));
   await expect(page.locator('.floor-canvas image')).toHaveCount(1, { timeout: 15000 });
   await expect(page.getByText(/Import du fond impossible/)).toHaveCount(0);

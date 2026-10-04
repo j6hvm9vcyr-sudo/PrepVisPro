@@ -142,8 +142,8 @@ function FloorToolbar({ fp }: { fp: FloorPlan }) {
                 ? `Échelle : ${formatNumber(fp.scale.meters)} m de référence`
                 : 'Pas encore à l’échelle'}
       </span>
-      <button type="button" className="btn" onClick={() => file.current?.click()} disabled={busy}>
-        {busy ? 'Import…' : fp.background ? 'Changer le fond…' : 'Importer le plan du décor…'}
+      <button type="button" className="btn" onClick={() => file.current?.click()} disabled={busy} title="Plan d’architecte (PDF ou image) ou vue satellite">
+        {busy ? 'Import…' : fp.background ? 'Changer le fond…' : 'Importer un fond…'}
       </button>
       <input ref={file} type="file" accept="image/*,application/pdf,.pdf" className="sr-only" tabIndex={-1} onChange={(e) => (void onFile(e.target.files?.[0]), (e.target.value = ''))} />
       <FloorExportButtons fp={fp} />
