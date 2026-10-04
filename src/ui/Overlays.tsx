@@ -204,6 +204,11 @@ export function SequenceDialog() {
     >
       <div className="dialog" onClick={(e) => e.stopPropagation()}>
         <h3>Séquence {seq.number || '(sans numéro)'}</h3>
+        {seq.number.trim() !== '' && doc.sequences.some((s) => s.id !== seq.id && s.number.trim().toUpperCase() === seq.number.trim().toUpperCase()) && (
+          <div className="welcome-error" role="alert">
+            Une autre séquence porte déjà le numéro {seq.number} : les numéros de plan seraient identiques. Choisissez un autre numéro (ex. {seq.number}A).
+          </div>
+        )}
         <div className="row">
           <label className="field small">
             Numéro

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { baseName, getBackend } from '../platform/backend';
+import { isTauri } from '../platform/env';
 import { newProjectFromScript } from '../import/flow';
 import { forgetRecent, newProjectDialog, openBlankUnsaved, openDialog, openPath, openSample, recentProjects, useProject } from '../state/project';
 
@@ -9,6 +10,8 @@ export function Welcome() {
   const [recent, setRecent] = useState<string[]>(recentProjects);
   useEffect(() => {
     void getBackend().then((b) => setKind(b.kind));
+    document.title = 'PrepVisPro';
+    if (isTauri()) void import('@tauri-apps/api/window').then(({ getCurrentWindow }) => getCurrentWindow().setTitle('PrepVisPro')).catch(() => {});
   }, []);
   const mac = kind === 'tauri';
 

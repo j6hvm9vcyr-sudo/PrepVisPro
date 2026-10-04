@@ -36,6 +36,11 @@ export function Inspector() {
         </div>
       </div>
       <div className="insp-body">
+        <label className="sec">
+          <span className="sec-h">Action / intention</span>
+          <textarea className="area" rows={2} value={plan.action} onChange={(e) => useApp.getState().setPlanText(plan.id, 'action', e.target.value)} />
+        </label>
+
         <ImageGroup plan={plan} kind="scouting" />
         <ImageGroup plan={plan} kind="reference" />
         <p className="note" style={{ margin: 0 }}>

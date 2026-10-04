@@ -141,3 +141,37 @@ describe('fichier projet', () => {
     expect(serializeProject(d)).toBe(serializeProject(JSON.parse(serializeProject(d))));
   });
 });
+
+describe('modification faite ailleurs (synchronisation, autre ordinateur)', () => {
+  it('ne l’écrase pas en silence : copie de sécurité, puis « garder ma version »', async () => {
+    mem.nextPick = '/F';
+    await newProjectDialog();
+    // Un autre ordinateur modifie le fichier.
+    const other = JSON.parse(mem.files.get('/F.prepvis')!);
+    other.meta.title = 'Version de l’autre ordinateur';
+    mem.files.set('/F.prepvis', JSON.stringify(other));
+    edit('GP');
+    await flushSave();
+    expect(mem.conflictCopies).toHaveLength(1);
+    expect(mem.conflictCopies[0]).toContain('"size": "GP"');
+    const saved = parseProject(mem.files.get('/F.prepvis')!);
+    expect(saved.ok && saved.doc.sequences[0]!.plans[0]!.cameras[0]!.start.size).toBe('GP');
+    expect(useProject.getState().status).toBe('saved');
+  });
+
+  it('« recharger la version du disque » : la version extérieure est ouverte, la nôtre est gardée en copie', async () => {
+    mem.nextPick = '/F';
+    await newProjectDialog();
+    const other = JSON.parse(mem.files.get('/F.prepvis')!);
+    other.meta.title = 'Autre';
+    mem.files.set('/F.prepvis', JSON.stringify(other));
+    mem.confirm = async () => false;
+    edit('GP');
+    await flushSave();
+    expect(selectDoc(useApp.getState()).meta.title).toBe('Autre');
+    expect(mem.conflictCopies).toHaveLength(1);
+    // Ensuite les enregistrements reprennent normalement.
+    edit('Taille');
+    expect(await flushSave()).toBe(true);
+  });
+});

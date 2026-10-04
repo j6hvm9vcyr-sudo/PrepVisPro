@@ -188,7 +188,7 @@ interface Actions {
   movePlan(delta: -1 | 1): void;
   addCamera(planId: Id): void;
   removeCamera(planId: Id, setupId: Id): void;
-  setPlanText(planId: Id, field: 'scriptExcerpt' | 'notes', value: string): void;
+  setPlanText(planId: Id, field: 'scriptExcerpt' | 'notes' | 'action', value: string): void;
   addImages(planId: Id, kind: ImageKind, files: File[]): Promise<void>;
   removeImage(planId: Id, imageId: Id): void;
   setImageKind(planId: Id, imageId: Id, kind: ImageKind): void;

@@ -118,6 +118,19 @@ try {
   ok(alerts.length === 1 && /illisible/.test(alerts[0]), `message clair à l’utilisateur (${alerts[0]})`);
   ok((await exec('return window.__prepvis.project().dir;')) === projectDir, 'le projet en cours reste ouvert');
 
+  // Modification faite ailleurs (synchronisation) : copie de sécurité, rien n'est écrasé en silence.
+  {
+    const pj = join(projectDir, 'project.json');
+    const ext = JSON.parse(readFileSync(pj, 'utf8'));
+    ext.meta.title = 'Modifié ailleurs';
+    writeFileSync(pj, JSON.stringify(ext));
+    await exec('const st = window.__prepvis.app(); st.startEdit(""); st.setEditText("Taille"); st.commitEdit("stay"); await window.__prepvis.flushSave(); return true;');
+    const copies = readdirSync(join(projectDir, 'backups')).filter((f) => f.startsWith('conflit-'));
+    ok(copies.length === 1, `conflit détecté, copie de sécurité écrite (${copies.join(', ')})`);
+    const after = JSON.parse(readFileSync(pj, 'utf8'));
+    ok(after.sequences[0].plans[0].cameras[0].start.size === 'Taille', 'version choisie (la mienne) enregistrée');
+  }
+
   // Dernière modification puis fermeture de la fenêtre : doit être enregistrée avant de quitter.
   await exec('const st = window.__prepvis.app(); st.startEdit(""); st.setEditText("GP"); st.commitEdit("stay"); return true;');
   // Comme un clic sur le bouton rouge de la fenêtre.

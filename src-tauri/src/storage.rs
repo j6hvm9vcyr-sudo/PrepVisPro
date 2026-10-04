@@ -156,6 +156,36 @@ pub fn load_project(dir: &Path) -> Result<String> {
     Ok(s)
 }
 
+/// Empreinte d'un contenu (pour détecter une modification faite ailleurs).
+pub fn fingerprint(bytes: &[u8]) -> u64 {
+    // FNV-1a 64 bits : simple, stable, suffisant pour détecter un changement.
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    for b in bytes {
+        h ^= *b as u64;
+        h = h.wrapping_mul(0x0100_0000_01b3);
+    }
+    h
+}
+
+/// Préfixe des erreurs « modifié ailleurs », reconnu par l'interface.
+pub const CONFLICT_PREFIX: &str = "CONFLIT:";
+
+/// Enregistre le projet (sauvegarde horodatée si due, puis écriture atomique).
+/// `expected` : empreinte du fichier tel que l'application l'a lu ou écrit la dernière fois.
+/// Si le fichier a changé entre-temps (autre ordinateur, synchronisation), on n'écrase pas.
+pub fn save_project_checked(dir: &Path, json: &str, force_backup: bool, expected: Option<u64>) -> Result<u64> {
+    let path = dir.join(PROJECT_FILE);
+    if let Some(exp) = expected {
+        if let Ok(current) = fs::read(&path) {
+            if fingerprint(&current) != exp {
+                return Err(format!("{CONFLICT_PREFIX}Le projet a été modifié en dehors de PrepVisPro (autre ordinateur, synchronisation…)."));
+            }
+        }
+    }
+    save_project(dir, json, force_backup)?;
+    Ok(fingerprint(json.as_bytes()))
+}
+
 /// Enregistre le projet (sauvegarde horodatée si due, puis écriture atomique).
 pub fn save_project(dir: &Path, json: &str, force_backup: bool) -> Result<()> {
     if !dir.join(PROJECT_FILE).exists() {
@@ -164,6 +194,16 @@ pub fn save_project(dir: &Path, json: &str, force_backup: bool) -> Result<()> {
     ensure_layout(dir)?;
     backup_if_due(dir, force_backup, now_secs())?;
     atomic_write(&dir.join(PROJECT_FILE), json.as_bytes())
+}
+
+/// Garde une copie de la version de l'application quand le fichier a été modifié ailleurs :
+/// rien n'est perdu, quel que soit le choix de l'utilisateur.
+pub fn save_conflict_copy(dir: &Path, json: &str) -> Result<PathBuf> {
+    let bdir = dir.join(BACKUPS_DIR);
+    fs::create_dir_all(&bdir).map_err(err("Création du dossier de sauvegardes impossible"))?;
+    let target = bdir.join(format!("conflit-{}.json", stamp(now_secs())));
+    atomic_write(&target, json.as_bytes())?;
+    Ok(target)
 }
 
 /// Nom d'image sûr : lettres minuscules, chiffres, tirets, un seul point d'extension connue.
@@ -343,6 +383,22 @@ mod tests {
         assert!(read_image(&p, "../project.json").is_err());
         assert!(read_image(&p, "images/../project.json").is_err());
         fs::remove_dir_all(&d).unwrap();
+    }
+
+    #[test]
+    fn detecte_une_modification_exterieure() {
+        let d = tmpdir("conflict").join("F.prepvis");
+        create_project(&d, "{\"v\":1}").unwrap();
+        let fp = fingerprint(b"{\"v\":1}");
+        let fp2 = save_project_checked(&d, "{\"v\":2}", false, Some(fp)).unwrap();
+        // Quelqu'un d'autre modifie le fichier…
+        atomic_write(&d.join(PROJECT_FILE), b"{\"v\":99}").unwrap();
+        let e = save_project_checked(&d, "{\"v\":3}", false, Some(fp2)).unwrap_err();
+        assert!(e.starts_with(CONFLICT_PREFIX));
+        assert_eq!(load_project(&d).unwrap(), "{\"v\":99}", "rien n'est écrasé");
+        // Écraser volontairement reste possible.
+        save_project_checked(&d, "{\"v\":3}", false, None).unwrap();
+        fs::remove_dir_all(d.parent().unwrap()).unwrap();
     }
 
     #[test]

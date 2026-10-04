@@ -31,27 +31,31 @@ fn allow_project_assets(app: &AppHandle, dir: &Path) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn project_create(app: AppHandle, dir: String, json: String) -> Result<String, String> {
+fn project_create(app: AppHandle, dir: String, json: String) -> Result<(String, String), String> {
     let dir = PathBuf::from(dir);
     storage::create_project(&dir, &json)?;
     allow_project_assets(&app, &dir)?;
-    Ok(dir.to_string_lossy().into_owned())
+    Ok((dir.to_string_lossy().into_owned(), storage::fingerprint(json.as_bytes()).to_string()))
 }
 
-/// Renvoie [dossier normalisé, contenu de project.json].
+/// Renvoie [dossier normalisé, contenu de project.json, empreinte].
 #[tauri::command]
-fn project_load(app: AppHandle, path: String) -> Result<(String, String), String> {
+fn project_load(app: AppHandle, path: String) -> Result<(String, String, String), String> {
     let dir = storage::project_dir_from_pick(Path::new(&path));
     let json = storage::load_project(&dir)?;
+    let fp = storage::fingerprint(json.as_bytes()).to_string();
     // Une copie de sauvegarde à chaque ouverture : on peut toujours revenir à l'état d'avant.
     storage::backup_if_due(&dir, true, now_secs())?;
     allow_project_assets(&app, &dir)?;
-    Ok((dir.to_string_lossy().into_owned(), json))
+    Ok((dir.to_string_lossy().into_owned(), json, fp))
 }
 
+/// Enregistre ; `expected` (empreinte, en texte) protège contre l'écrasement d'une version
+/// modifiée ailleurs. Renvoie la nouvelle empreinte.
 #[tauri::command]
-fn project_save(dir: String, json: String, force_backup: bool) -> Result<(), String> {
-    storage::save_project(Path::new(&dir), &json, force_backup)
+fn project_save(dir: String, json: String, force_backup: bool, expected: Option<String>) -> Result<String, String> {
+    let exp = expected.and_then(|s| s.parse::<u64>().ok());
+    storage::save_project_checked(Path::new(&dir), &json, force_backup, exp).map(|f| f.to_string())
 }
 
 /// Reçoit les octets bruts d'une image (sans passer par du JSON) ;
@@ -83,6 +87,11 @@ fn image_write(request: Request<'_>) -> Result<String, String> {
     let dir = header("x-prepvis-dir")?;
     let name = header("x-prepvis-name")?;
     storage::write_image(Path::new(&dir), &name, bytes)
+}
+
+#[tauri::command]
+fn project_save_conflict_copy(dir: String, json: String) -> Result<String, String> {
+    storage::save_conflict_copy(Path::new(&dir), &json).map(|p| p.to_string_lossy().into_owned())
 }
 
 /// Renvoie les octets d'une image du projet (sans passer par du JSON).
@@ -265,7 +274,7 @@ fn request_quit(app: &AppHandle) {
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![project_create, project_load, project_save, image_write, reveal_in_finder, quit_ack, quit_now, take_pending_open, image_read, export_write, open_file, script_read])
+        .invoke_handler(tauri::generate_handler![project_create, project_load, project_save, image_write, reveal_in_finder, quit_ack, quit_now, take_pending_open, image_read, export_write, open_file, script_read, project_save_conflict_copy])
         .setup(|app| {
             build_menu(app)?;
             Ok(())

@@ -14,7 +14,7 @@ import { validateProject } from '../model/schema';
 import { migrate } from '../model/migrate';
 import { newProject } from '../model/defaults';
 import { largeSampleProject, sampleProject } from '../model/sample';
-import { getBackend, baseName, type Backend } from '../platform/backend';
+import { CONFLICT_PREFIX, getBackend, baseName, type Backend } from '../platform/backend';
 import { imageStore } from '../platform/images';
 import { useApp } from './appStore';
 import { selectDoc } from './store';
@@ -96,6 +96,9 @@ let backend: Backend | null = null;
 let timer: ReturnType<typeof setTimeout> | null = null;
 let chain: Promise<void> = Promise.resolve();
 let lastWritten: ProjectDoc | null = null;
+/** Empreinte du fichier tel que lu ou écrit par l'application (détection des modifications extérieures). */
+let fingerprint: string | null = null;
+let resolvingConflict = false;
 let lastBackupForced = false;
 
 function setStatus(p: Partial<ProjectState>) {
@@ -117,13 +120,60 @@ async function writeNow(forceBackup = false): Promise<void> {
     return;
   }
   setStatus({ status: 'saving' });
+  const json = serializeProject(doc);
   try {
-    await backend.save(dir, serializeProject(doc), forceBackup);
+    fingerprint = await backend.save(dir, json, forceBackup, fingerprint);
     lastWritten = doc;
     const still = selectDoc(useApp.getState()) === doc;
     setStatus({ status: still ? 'saved' : 'pending', savedAt: Date.now(), error: null });
   } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.startsWith(CONFLICT_PREFIX)) {
+      await resolveConflict(dir, json, msg.slice(CONFLICT_PREFIX.length));
+      return;
+    }
+    setStatus({ status: 'error', error: msg });
+  }
+}
+
+/**
+ * Le fichier a été modifié ailleurs. On garde TOUJOURS une copie de la version de
+ * l'application (dossier backups), puis l'utilisateur choisit quelle version conserver.
+ */
+async function resolveConflict(dir: string, json: string, reason: string): Promise<void> {
+  if (!backend || resolvingConflict) return;
+  resolvingConflict = true;
+  try {
+    let copy = '';
+    try {
+      copy = await backend.saveConflictCopy(dir, json);
+    } catch {
+      /* la décision reste possible ; la copie a échoué */
+    }
+    setStatus({ status: 'error', error: `${reason} Votre version est conservée dans ${copy || 'la mémoire de l’application'}.` });
+    const keepMine = await backend.confirm(
+      'Projet modifié ailleurs',
+      `${reason}\n\nVotre version a été copiée par sécurité${copy ? ` (${copy.split('/').slice(-2).join('/')})` : ''}.\n\nQuelle version garder ?`,
+      'Garder ma version',
+      'Recharger la version du disque',
+    );
+    if (keepMine) {
+      fingerprint = await backend.save(dir, json, true, null);
+      lastWritten = selectDoc(useApp.getState());
+      setStatus({ status: 'saved', savedAt: Date.now(), error: null });
+    } else {
+      const { json: disk, fp } = await backend.load(dir);
+      const r = parseProject(disk);
+      if (!r.ok) {
+        setStatus({ status: 'error', error: `La version du disque est illisible : ${r.error}` });
+        return;
+      }
+      openDoc(r.doc, 'file', dir, fp);
+    }
+  } catch (e) {
     setStatus({ status: 'error', error: e instanceof Error ? e.message : String(e) });
+  } finally {
+    resolvingConflict = false;
   }
 }
 
@@ -164,10 +214,11 @@ function watchDoc() {
 
 // ------------------------------------------------------------------ ouvrir, créer, fermer
 
-function openDoc(doc: ProjectDoc, mode: ProjectState['mode'], dir: string | null) {
+function openDoc(doc: ProjectDoc, mode: ProjectState['mode'], dir: string | null, fp: string | null = null) {
   imageStore.attach(backend, mode === 'file' ? dir : null);
   useApp.getState().load(doc);
   lastWritten = mode === 'file' ? doc : null;
+  fingerprint = fp;
   lastBackupForced = false;
   setStatus({ mode, dir, status: 'saved', savedAt: mode === 'file' ? Date.now() : null, error: null, openError: null });
   watchDoc();
@@ -177,7 +228,7 @@ export async function openPath(path: string): Promise<boolean> {
   backend ??= await getBackend();
   try {
     // On lit et valide d'abord : le projet courant n'est fermé que si l'ouverture peut réussir.
-    const { dir, json } = await backend.load(path);
+    const { dir, json, fp } = await backend.load(path);
     const r = parseProject(json);
     if (!r.ok) {
       const msg = `Impossible d’ouvrir « ${baseName(dir)} ». ${r.error}`;
@@ -187,7 +238,7 @@ export async function openPath(path: string): Promise<boolean> {
     }
     if (useProject.getState().dir === dir) return true;
     if (!(await closeProject())) return false;
-    openDoc(r.doc, 'file', dir);
+    openDoc(r.doc, 'file', dir, fp);
     rememberRecent(dir);
     return true;
   } catch (e) {
@@ -232,9 +283,9 @@ export async function newProjectAt(dir: string, prepared?: ProjectDoc): Promise<
   const doc = prepared ?? newProject(baseName(dir));
   try {
     // Créé d'abord sur disque : en cas d'échec, le projet en cours reste ouvert.
-    const real = await backend.create(dir, serializeProject(doc));
+    const { dir: real, fp } = await backend.create(dir, serializeProject(doc));
     if (!(await closeProject())) return false;
-    openDoc(doc, 'file', real);
+    openDoc(doc, 'file', real, fp);
     rememberRecent(real);
     return true;
   } catch (e) {
@@ -250,7 +301,8 @@ export async function saveAsDialog(): Promise<boolean> {
   const dir = await backend.pickNew(doc.meta.title || 'Nouveau projet');
   if (!dir) return false;
   try {
-    const real = await backend.create(dir, serializeProject(doc));
+    const { dir: real, fp } = await backend.create(dir, serializeProject(doc));
+    fingerprint = fp;
     const used = new Set(doc.sequences.flatMap((s) => s.plans.flatMap((p) => p.images.map((i) => i.file))));
     await imageStore.flushPendingTo(backend, real, used);
     // On garde l'historique d'annulation : seul l'emplacement change.
@@ -373,6 +425,8 @@ export function resetForTests(b: Backend) {
   timer = null;
   chain = Promise.resolve();
   lastWritten = null;
+  fingerprint = null;
+  resolvingConflict = false;
   unsubscribe?.();
   unsubscribe = null;
   useProject.setState({ mode: 'none', dir: null, status: 'saved', savedAt: null, error: null, openError: null });

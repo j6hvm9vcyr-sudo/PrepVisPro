@@ -200,6 +200,14 @@ export function DecoupageTable() {
         onPaste={(e) => {
           const st = useApp.getState();
           if (st.editing) return;
+          // Image copiée (capture d'écran, image d'un site, d'un film…) : ajoutée au plan.
+          const files = Array.from(e.clipboardData.files ?? []).filter((f) => f.type.startsWith('image/'));
+          const c = selectCursor(st);
+          if (files.length && c) {
+            e.preventDefault();
+            st.requestDrop(c.planId, files.map((f, i) => (f.name && f.name !== 'image.png' ? f : new File([f], `presse-papiers-${i + 1}.${f.type.split('/')[1] || 'png'}`, { type: f.type }))));
+            return;
+          }
           const t = e.clipboardData.getData('text/plain');
           if (!t) return;
           e.preventDefault();

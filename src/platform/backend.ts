@@ -11,10 +11,16 @@ export interface Backend {
   pickNew(defaultName: string): Promise<string | null>;
   /** Boîte de dialogue « Ouvrir » : renvoie le chemin choisi, ou null. */
   pickOpen(): Promise<string | null>;
-  create(dir: string, json: string): Promise<string>;
-  /** Renvoie le dossier normalisé et le contenu de project.json. */
-  load(path: string): Promise<{ dir: string; json: string }>;
-  save(dir: string, json: string, forceBackup: boolean): Promise<void>;
+  /** Renvoie le dossier créé et l'empreinte du fichier écrit. */
+  create(dir: string, json: string): Promise<{ dir: string; fp: string }>;
+  /** Renvoie le dossier normalisé, le contenu de project.json et son empreinte. */
+  load(path: string): Promise<{ dir: string; json: string; fp: string }>;
+  /**
+   * Enregistre et renvoie la nouvelle empreinte. Si `expected` ne correspond plus au fichier
+   * (modifié ailleurs), échoue avec une erreur commençant par CONFLICT_PREFIX.
+   */
+  save(dir: string, json: string, forceBackup: boolean, expected: string | null): Promise<string>;
+  saveConflictCopy(dir: string, json: string): Promise<string>;
   writeImage(dir: string, name: string, bytes: Uint8Array): Promise<string>;
   imageUrl(dir: string, file: string): string;
   reveal(dir: string): Promise<void>;
@@ -32,6 +38,7 @@ export interface Backend {
 }
 
 export const PROJECT_EXT = '.prepvis';
+export const CONFLICT_PREFIX = 'CONFLIT:';
 
 export function withProjectExt(path: string): string {
   const p = path.replace(/[\\/]+$/, '');
@@ -75,18 +82,24 @@ class TauriBackend implements Backend {
 
   async create(dir: string, json: string) {
     const { invoke } = await this.core();
-    return invoke<string>('project_create', { dir, json });
+    const [d, fp] = await invoke<[string, string]>('project_create', { dir, json });
+    return { dir: d, fp };
   }
 
   async load(path: string) {
     const { invoke } = await this.core();
-    const [dir, json] = await invoke<[string, string]>('project_load', { path });
-    return { dir, json };
+    const [dir, json, fp] = await invoke<[string, string, string]>('project_load', { path });
+    return { dir, json, fp };
   }
 
-  async save(dir: string, json: string, forceBackup: boolean) {
+  async save(dir: string, json: string, forceBackup: boolean, expected: string | null) {
     const { invoke } = await this.core();
-    await invoke('project_save', { dir, json, forceBackup });
+    return invoke<string>('project_save', { dir, json, forceBackup, expected });
+  }
+
+  async saveConflictCopy(dir: string, json: string) {
+    const { invoke } = await this.core();
+    return invoke<string>('project_save_conflict_copy', { dir, json });
   }
 
   async writeImage(dir: string, name: string, bytes: Uint8Array) {
@@ -177,26 +190,39 @@ export class MemoryBackend implements Backend {
   async pickOpen() {
     return this.nextPick;
   }
+  conflictCopies: string[] = [];
+  private fp(json: string) {
+    let h = 0;
+    for (let i = 0; i < json.length; i++) h = (Math.imul(h, 31) + json.charCodeAt(i)) | 0;
+    return `${json.length}:${h}`;
+  }
   async create(dir: string, json: string) {
     if (this.files.has(dir)) throw new Error(`« ${dir} » existe déjà. Choisissez un autre nom.`);
     this.files.set(dir, json);
-    return dir;
+    return { dir, fp: this.fp(json) };
   }
   async load(path: string) {
     const dir = path.endsWith('/project.json') ? path.slice(0, -'/project.json'.length) : path;
     const json = this.files.get(dir);
     if (json === undefined) throw new Error(`Aucun projet PrepVisPro dans « ${dir} ».`);
-    return { dir, json };
+    return { dir, json, fp: this.fp(json) };
   }
-  async save(dir: string, json: string) {
+  async save(dir: string, json: string, _force: boolean, expected: string | null) {
     if (this.failNextSave) {
       const e = this.failNextSave;
       this.failNextSave = null;
       throw new Error(e);
     }
-    if (!this.files.has(dir)) throw new Error(`Le projet « ${dir} » est introuvable (déplacé ou supprimé ?).`);
+    const current = this.files.get(dir);
+    if (current === undefined) throw new Error(`Le projet « ${dir} » est introuvable (déplacé ou supprimé ?).`);
+    if (expected !== null && this.fp(current) !== expected) throw new Error(`${CONFLICT_PREFIX}Le projet a été modifié en dehors de PrepVisPro.`);
     this.files.set(dir, json);
     this.saves++;
+    return this.fp(json);
+  }
+  async saveConflictCopy(dir: string, json: string) {
+    this.conflictCopies.push(json);
+    return `${dir}/backups/conflit.json`;
   }
   async writeImage(dir: string, name: string, bytes: Uint8Array) {
     const file = `images/${name}`;

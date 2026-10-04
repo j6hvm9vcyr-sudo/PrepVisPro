@@ -155,7 +155,21 @@ export function App() {
   return <Workspace />;
 }
 
+/** Titre de la fenêtre : nom du projet. */
+function useWindowTitle() {
+  const title = useApp((s) => s.hist.present.doc.meta.title);
+  const mode = useProject((s) => s.mode);
+  useEffect(() => {
+    const t = `${title || 'Sans titre'}${mode === 'unsaved' ? ' (non enregistré)' : ''} — PrepVisPro`;
+    document.title = t;
+    if (isTauri()) {
+      void import('@tauri-apps/api/window').then(({ getCurrentWindow }) => getCurrentWindow().setTitle(t)).catch(() => {});
+    }
+  }, [title, mode]);
+}
+
 function Workspace() {
+  useWindowTitle();
   const view = useApp((s) => s.view);
   const inspector = useApp((s) => s.inspector);
   const settings = useApp((s) => s.showSettings);
