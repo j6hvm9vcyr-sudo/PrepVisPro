@@ -93,3 +93,21 @@ test('abréviations : ajoutées dans les Réglages, reconnues à la saisie ; une
   await page.keyboard.press('Enter');
   await expect(page.locator('.line [id$="-grip"]').first()).toHaveText('Dolly');
 });
+
+test('plans types : enregistrés depuis un plan, appliqués en un clic à un autre', async ({ page }) => {
+  await page.goto('/?exemple');
+  await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
+  // Plan 1/2 : Poitrine · 3/4 · 75 mm · Fixe · Branches.
+  await page.locator('.line [id$="-action"]').nth(1).click();
+  const cams = page.getByRole('region', { name: 'Caméras' });
+  await pick(page, 'Plan type', '+ Enregistrer ce réglage comme plan type');
+  await expect(cams.getByRole('button', { name: 'Plan type' })).toHaveText(/Plan type : Poitrine · 3\/4 · À niveau · 75 mm · Fixe · Branches/);
+  // Plan 4/1, vide : appliqué en un clic.
+  await page.locator('.line [id$="-action"]').nth(7).click();
+  await pick(page, 'Plan type', 'Poitrine · 3/4');
+  await expect(page.locator('.line [id$="-size"]').nth(7)).toHaveText('Poitrine');
+  await expect(page.locator('.line [id$="-focal"]').nth(7)).toHaveText('75 mm');
+  await expect(page.locator('.line [id$="-grip"]').nth(7)).toHaveText('Branches');
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(page.locator('.line [id$="-focal"]').nth(7)).not.toHaveText('75 mm');
+});

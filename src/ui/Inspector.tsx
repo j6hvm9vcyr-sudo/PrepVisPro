@@ -11,8 +11,10 @@ import { fieldOfView, formatDeg, parseAspectRatio } from '../model/optics';
 import { floorMismatches, type FloorMismatch } from '../model/floorSuggest';
 import { replaceCameraSetup } from '../model/ops';
 import { imageStore } from '../platform/images';
-import type { ImageKind, Plan } from '../model/types';
+import type { CameraSetup, ImageKind, Plan } from '../model/types';
 import { PlanLinksSection } from './PlanLinks';
+import { Picker } from './Picker';
+import { applyPreset, emptySetup, matchingPreset, presetLabel, savePreset } from '../model/shotPresets';
 
 export function Inspector() {
   const doc = useApp(selectDoc);
@@ -236,6 +238,7 @@ function CameraList({ plan }: { plan: Plan }) {
                 </button>
               </div>
             ))}
+            <PresetPicker planId={plan.id} setup={c} />
           </div>
         );
       })}
@@ -243,6 +246,42 @@ function CameraList({ plan }: { plan: Plan }) {
         Angle de champ horizontal de l’image cadrée : 2 × arctan(largeur ÷ (2 × focale)), d’après le capteur et le ratio du projet (Réglages › Caméras), mise au point à l’infini.
       </Explain>
     </section>
+  );
+}
+
+const SAVE_PRESET = '__enregistrer';
+
+/** Plans types : appliquer en un clic des réglages enregistrés, ou enregistrer ceux de cette caméra. */
+function PresetPicker({ planId, setup }: { planId: string; setup: CameraSetup }) {
+  const doc = useApp(selectDoc);
+  const st = useApp.getState;
+  const presets = doc.settings.shotPresets;
+  const current = matchingPreset(doc, setup);
+  const canSave = !current && !emptySetup(setup);
+  if (!presets.length && !canSave) return null;
+  return (
+    <div className="preset-row">
+      <Picker
+        label="Plan type"
+        variant="add"
+        value={current?.id ?? null}
+        groups={[{ label: presets.length ? 'Plans types du projet' : undefined, items: presets.map((p) => ({ id: p.id, label: presetLabel(p) })) }]}
+        actions={canSave ? [{ id: SAVE_PRESET, label: '+ Enregistrer ce réglage comme plan type' }] : []}
+        empty="Aucun plan type"
+        onPick={(id) => {
+          const d = selectDoc(st());
+          if (id === SAVE_PRESET) {
+            const r = savePreset(d, setup);
+            if (r.added) st().applyDoc(r.doc, 'Plan type enregistré');
+            return;
+          }
+          const p = d.settings.shotPresets.find((x) => x.id === id);
+          if (p) st().applyDoc(replaceCameraSetup(d, planId, applyPreset(setup, p)), `Plan type appliqué : ${presetLabel(p)} · ⌘Z pour annuler`);
+        }}
+      >
+        {current ? `Plan type : ${presetLabel(current)}` : 'Plan type…'}
+      </Picker>
+    </div>
   );
 }
 

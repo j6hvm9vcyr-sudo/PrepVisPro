@@ -89,6 +89,7 @@ export function defaultSettings(): ProjectSettings {
     // Le cadrage change d'un plan à l'autre : on ne le recopie pas sans le vérifier.
     carryOver: { ...DEFAULT_CARRY },
     aliases: structuredClone(TERM_ALIASES),
+    shotPresets: [],
     timeZone: null,
   };
 }

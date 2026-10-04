@@ -7,6 +7,7 @@ import { CARRY_FIELDS, REQUIRED_FIELDS, TERM_CATEGORIES, type CarryField, type T
 import { newId } from '../model/defaults';
 import { norm } from '../model/text';
 import { aliasConflict } from '../model/entry';
+import { presetLabel, removePreset } from '../model/shotPresets';
 import { isComposing, focusGrid, useDialogFocus } from './focus';
 import { CamerasTab } from './CamerasTab';
 import { LensesTab } from './LensesTab';
@@ -185,8 +186,25 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
                 </label>
               ))}
               <p className="note" style={{ margin: 0 }}>
-                Le reste part vide, à saisir. Une reprise (4/2B) reprend toujours tout ; ⌘D duplique le plan à l’identique.
+                Le reste part vide, à saisir. Une reprise (⇧⌘↩, 4/2B) reprend toujours tout.
               </p>
+            </div>
+            <div className="sec" aria-label="Plans types" role="group">
+              <div className="sec-h">
+                <span>Plans types</span>
+              </div>
+              {doc.settings.shotPresets.length === 0 ? (
+                <p className="note" style={{ margin: 0 }}>Aucun. Dans les Détails d’un plan, « Plan type… › Enregistrer ce réglage » garde ses réglages caméra pour les appliquer ensuite en un clic.</p>
+              ) : (
+                doc.settings.shotPresets.map((p) => (
+                  <div className="row" key={p.id} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>{presetLabel(p)}</span>
+                    <button type="button" className="linkbtn danger" aria-label={`Retirer le plan type ${presetLabel(p)}`} onClick={() => st().applyDoc(removePreset(selectDoc(st()), p.id))}>
+                      Retirer
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
             <div className="sec" aria-label="Plan complet" role="group">
               <div className="sec-h">

@@ -199,12 +199,12 @@ function from14to15(doc: Record<string, unknown>): Record<string, unknown> {
 /**
  * Format 15 → 16 : réglages repris par le plan suivant (les projets existants gardent le
  * comportement d'avant : tout est repris) ; abréviations modifiables (celles qui étaient
- * fixées dans l'application).
+ * fixées dans l'application) ; plans types (aucun).
  */
 function from15to16(doc: Record<string, unknown>): Record<string, unknown> {
   const settings = doc.settings && typeof doc.settings === 'object' ? (doc.settings as Record<string, unknown>) : {};
   const all = { size: true, axis: true, angle: true, focal: true, movement: true, grip: true };
   // Même ordre de clés que defaults.ts (relecture à l'identique).
   const { timeZone, ...rest } = settings;
-  return { ...doc, schemaVersion: 16, settings: { ...rest, carryOver: all, aliases: structuredClone(TERM_ALIASES), timeZone } };
+  return { ...doc, schemaVersion: 16, settings: { ...rest, carryOver: all, aliases: structuredClone(TERM_ALIASES), shotPresets: [], timeZone } };
 }

@@ -137,6 +137,15 @@ interface CrewMember {
 export type RequiredField = 'action' | 'size' | 'axis' | 'angle' | 'focal' | 'movement' | 'grip';
 export const REQUIRED_FIELDS: readonly RequiredField[] = ['action', 'size', 'axis', 'angle', 'focal', 'movement', 'grip'];
 
+/** Plan type : réglages d'une caméra, sans la caméra. Son nom est son résumé (« Poitrine · 3/4 · 50 mm »). */
+export interface ShotPreset {
+  id: Id;
+  start: Framing;
+  end: Framing | null;
+  movements: string[];
+  grip: string[];
+}
+
 /** Réglages qu'un nouveau plan peut reprendre du plan précédent. */
 export type CarryField = 'size' | 'axis' | 'angle' | 'focal' | 'movement' | 'grip';
 export const CARRY_FIELDS: readonly CarryField[] = ['size', 'axis', 'angle', 'focal', 'movement', 'grip'];
@@ -157,6 +166,8 @@ export interface ProjectSettings {
   carryOver: Record<CarryField, boolean>;
   /** Abréviations reconnues à la saisie, par terme (« stead » → Steadicam). */
   aliases: Record<string, string[]>;
+  /** Plans types : réglages caméra enregistrés, appliqués en un clic (Détails › Caméras). */
+  shotPresets: ShotPreset[];
   /** Fuseau horaire des heures du projet (nom IANA, ex. « Europe/Paris ») ; null = celui de cet ordinateur. */
   timeZone: string | null;
 }
