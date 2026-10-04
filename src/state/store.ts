@@ -341,7 +341,8 @@ export function createAppStore(doc: ProjectDoc) {
         // Plusieurs lignes sélectionnées dans une même colonne : la valeur saisie ira à toutes.
         const r = rangeOf(get());
         let batch: Line[] | undefined;
-        if (r && r.r1 > r.r0 && r.c0 === r.c1) {
+        // (Sélection sur plusieurs colonnes : c'est la colonne de la cellule active qui est remplie.)
+        if (r && r.r1 > r.r0) {
           batch = r.lines.slice(r.r0, r.r1 + 1).filter((l) => !(l.planId === c.planId && l.setupId === c.setupId) && !(c.col === 'action' && l.setupIndex > 0));
           if (!batch.length) batch = undefined;
         }

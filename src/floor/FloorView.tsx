@@ -300,7 +300,41 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
         ) : selected.length > 1 ? (
           <section className="sec">
             <div className="sec-h">{selected.length} éléments</div>
-            <p className="note">Déplacez-les ensemble, ou ⌫ pour les supprimer.</p>
+            <p className="note" style={{ margin: 0 }}>Glissez pour les déplacer ensemble · ⌫ pour les supprimer. Les réglages ci-dessous s’appliquent à toute la sélection.</p>
+            {selected.some((x) => x.kind === 'icon') && (
+              <div className="field">
+                Taille des icônes
+                <div className="seg" role="group" aria-label="Taille des icônes sélectionnées">
+                  {([['Petite', 40], ['Moyenne', 56], ['Grande', 84], ['Très grande', 120]] as const).map(([l, v]) => (
+                    <button key={v} type="button" aria-pressed={selected.every((x) => x.kind !== 'icon' || x.size === v)} onClick={() => apply((d) => selected.reduce((acc, x) => (x.kind === 'icon' ? updateElement(acc, fp.id, x.id, (y) => void (y.kind === 'icon' && (y.size = v))) : acc), d), `Taille appliquée à ${selected.filter((x) => x.kind === 'icon').length} icônes`)}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {selected.some((x) => x.kind === 'camera') && (
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={selected.every((x) => x.kind !== 'camera' || x.showFov)}
+                  onChange={(e) => apply((d) => selected.reduce((acc, x) => (x.kind === 'camera' ? updateElement(acc, fp.id, x.id, (y) => void (y.kind === 'camera' && (y.showFov = e.target.checked))) : acc), d))}
+                />
+                Afficher le champ des caméras
+              </label>
+            )}
+            <div className="field">
+              Même orientation pour tous
+              <DecimalField
+                label="Orientation commune en degrés"
+                unit="°"
+                width={80}
+                min={-360}
+                max={360}
+                value={selected.every((x) => x.rotation === selected[0]!.rotation) ? Math.round(selected[0]!.rotation) : null}
+                onChange={(v) => v !== null && apply((d) => selected.reduce((acc, x) => updateElement(acc, fp.id, x.id, (y) => void (y.rotation = ((v % 360) + 360) % 360)), d), undefined, `rotall-${selected.map((x) => x.id).join()}`)}
+              />
+            </div>
           </section>
         ) : (
           <section className="sec">

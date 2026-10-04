@@ -278,3 +278,32 @@ test('saisie groupée : plusieurs lignes sélectionnées dans une colonne, une s
   await expect(cell(page, 0, 'size')).toHaveText('Ensemble');
   await expect(cell(page, 2, 'size')).toHaveText('Général → Poitrine');
 });
+
+test('décor déjà utilisé : l’adresse est reprise, et peut être reportée aux autres séquences', async ({ page }) => {
+  await page.getByRole('button', { name: 'Modifier la séquence 1' }).click();
+  let dlg = page.getByRole('dialog', { name: /Séquence/ });
+  await dlg.getByLabel('Adresse').fill('Gare de Lyon, Paris');
+  await dlg.getByRole('button', { name: 'Terminé' }).click();
+  // Séquence 3 : même décor que la 1 → adresse remplie toute seule.
+  await page.getByRole('button', { name: 'Modifier la séquence 3' }).click();
+  dlg = page.getByRole('dialog', { name: /Séquence/ });
+  await dlg.getByLabel('Décor').fill('Quai de gare');
+  await expect(dlg.getByLabel('Adresse')).toHaveValue('Gare de Lyon, Paris');
+  // Changer l'adresse ici propose de la reporter à la séquence 1.
+  await dlg.getByLabel('Adresse').fill('Gare de l’Est, Paris');
+  await dlg.getByRole('button', { name: /Reporter cette adresse à/ }).click();
+  await dlg.getByRole('button', { name: 'Terminé' }).click();
+  await page.getByRole('button', { name: 'Modifier la séquence 1' }).click();
+  await expect(page.getByRole('dialog', { name: /Séquence/ }).getByLabel('Adresse')).toHaveValue('Gare de l’Est, Paris');
+});
+
+test('saisie groupée sur une sélection de plusieurs colonnes : la colonne active est remplie', async ({ page }) => {
+  // Valeur → Axe, plans 1/1 à 1/2.
+  await page.keyboard.press('Shift+ArrowDown');
+  await page.keyboard.press('Shift+ArrowRight');
+  await page.keyboard.type('pro');
+  await page.keyboard.press('Enter');
+  await expect(cell(page, 0, 'axis')).toHaveText('Profil');
+  await expect(cell(page, 1, 'axis')).toHaveText('Profil');
+  await expect(cell(page, 0, 'size')).toHaveText('Ensemble');
+});

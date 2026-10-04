@@ -6,6 +6,7 @@ import { computeNumbers } from '../model/numbering';
 import { imageStore } from '../platform/images';
 import type { DayNight, IntExt } from '../model/types';
 import { focusGrid, isComposing, useDialogFocus } from './focus';
+import { norm } from '../model/text';
 import { summarizeSequence } from '../model/summary';
 
 export function Preview() {
@@ -262,13 +263,49 @@ export function SequenceDialog() {
           </label>
           <label className="field">
             Décor
-            <input value={seq.location} onChange={(e) => upd('loc', (s) => void (s.location = e.target.value))} placeholder="ex. Chambre d’Axel" />
+            <input
+              list="known-locations"
+              value={seq.location}
+              placeholder="ex. Chambre d’Axel"
+              onChange={(e) => {
+                const v = e.target.value;
+                // Décor déjà utilisé : son adresse est reprise (jamais saisie deux fois).
+                const twin = doc.sequences.find((x) => x.id !== seq.id && x.address.trim() && norm(x.location) === norm(v) && norm(v) !== '');
+                upd('loc', (s) => {
+                  s.location = v;
+                  if (twin && !s.address.trim()) s.address = twin.address;
+                });
+              }}
+            />
+            <datalist id="known-locations">
+              {[...new Set(doc.sequences.filter((x) => x.id !== seq.id && x.location.trim()).map((x) => x.location.trim()))].map((l) => (
+                <option key={l} value={l} />
+              ))}
+            </datalist>
           </label>
         </div>
         <label className="field">
           Adresse
           <input value={seq.address} onChange={(e) => upd('addr', (s) => void (s.address = e.target.value))} />
         </label>
+        {(() => {
+          const others = doc.sequences.filter((x) => x.id !== seq.id && norm(seq.location) !== '' && norm(x.location) === norm(seq.location) && x.address !== seq.address);
+          if (!others.length || !seq.address.trim()) return null;
+          return (
+            <button
+              type="button"
+              className="linkbtn"
+              style={{ alignSelf: 'flex-start' }}
+              onClick={() =>
+                st().updateDoc((d) => {
+                  for (const x of d.sequences) if (others.some((o) => o.id === x.id)) x.address = seq.address;
+                }, undefined)
+              }
+            >
+              {others.length > 1 ? `Reporter cette adresse aux ${others.length} autres séquences « ${seq.location.trim()} »` : `Reporter cette adresse à l’autre séquence « ${seq.location.trim()} »`}
+            </button>
+          );
+        })()}
         <label className="field">
           Commentaires
           <textarea rows={2} value={seq.comments} onChange={(e) => upd('com', (s) => void (s.comments = e.target.value))} />
