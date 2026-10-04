@@ -18,6 +18,12 @@ export interface Backend {
   writeImage(dir: string, name: string, bytes: Uint8Array): Promise<string>;
   imageUrl(dir: string, file: string): string;
   reveal(dir: string): Promise<void>;
+  /** Octets d'une image du projet (pour les exports). */
+  readImage(dir: string, file: string): Promise<Uint8Array>;
+  /** Boîte de dialogue d'enregistrement d'un export ; renvoie le chemin, ou null. */
+  pickExportPath(defaultName: string, ext: 'pdf' | 'xlsx' | 'csv'): Promise<string | null>;
+  writeExport(path: string, bytes: Uint8Array): Promise<void>;
+  openFile(path: string): Promise<void>;
   alert(title: string, text: string): Promise<void>;
   confirm(title: string, text: string, ok: string, cancel: string): Promise<boolean>;
   quitNow(): Promise<void>;
@@ -103,6 +109,30 @@ class TauriBackend implements Backend {
     await invoke('reveal_in_finder', { path: dir });
   }
 
+  async readImage(dir: string, file: string) {
+    const { invoke } = await this.core();
+    const buf = await invoke<ArrayBuffer>('image_read', { dir, file });
+    return new Uint8Array(buf);
+  }
+
+  async pickExportPath(defaultName: string, ext: 'pdf' | 'xlsx' | 'csv') {
+    const { save } = await this.dialog();
+    const names = { pdf: 'Document PDF', xlsx: 'Classeur Excel', csv: 'Fichier CSV' };
+    const p = await save({ title: 'Exporter', defaultPath: defaultName, filters: [{ name: names[ext], extensions: [ext] }] });
+    if (!p) return null;
+    return p.toLowerCase().endsWith(`.${ext}`) ? p : `${p}.${ext}`;
+  }
+
+  async writeExport(path: string, bytes: Uint8Array) {
+    const { invoke } = await this.core();
+    await invoke('export_write', bytes, { headers: { 'x-prepvis-path': encodeURIComponent(path) } });
+  }
+
+  async openFile(path: string) {
+    const { invoke } = await this.core();
+    await invoke('open_file', { path });
+  }
+
   async alert(title: string, text: string) {
     const { message } = await this.dialog();
     await message(text, { title, kind: 'error' });
@@ -168,6 +198,32 @@ export class MemoryBackend implements Backend {
     return this.images.get(`${dir}/${file}`) ?? '';
   }
   async reveal() {}
+  exports = new Map<string, Uint8Array>();
+  async readImage(dir: string, file: string) {
+    const url = this.images.get(`${dir}/${file}`);
+    if (!url) throw new Error(`Image introuvable : ${file}`);
+    return new Uint8Array(await (await fetch(url)).arrayBuffer());
+  }
+  async pickExportPath(defaultName: string) {
+    return this.nextPick ?? defaultName;
+  }
+  async writeExport(path: string, bytes: Uint8Array) {
+    this.exports.set(path, bytes);
+    // Dans un navigateur, l'export est proposé en téléchargement.
+    if (typeof document !== 'undefined' && typeof URL.createObjectURL === 'function' && import.meta.env.MODE !== 'test') {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([bytes as BlobPart]));
+      a.download = path.split('/').pop() ?? path;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        a.remove();
+        URL.revokeObjectURL(a.href);
+      }, 1000);
+    }
+  }
+  async openFile() {}
   async alert() {}
   async confirm() {
     return true;

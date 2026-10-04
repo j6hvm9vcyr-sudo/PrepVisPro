@@ -2,3 +2,7 @@
 interface ImportMetaEnv {
   readonly VITE_TEST_HOOKS?: string;
 }
+declare module '*.woff' {
+  const url: string;
+  export default url;
+}

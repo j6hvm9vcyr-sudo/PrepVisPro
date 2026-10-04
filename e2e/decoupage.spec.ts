@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { PNG_160x90_B64 } from '../src/test/fixtures';
 
 const cell = (page: Page, row: number, col: string) => page.locator(`.line [id$="-${col}"]`).nth(row);
 
@@ -82,7 +83,7 @@ test('filtre des plans à compléter et repli de séquence', async ({ page }) =>
 });
 
 test('images : dépôt sur la vignette, choix Repérage, aperçu à l’espace', async ({ page }) => {
-  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABAAAAAJCAIAAAC0SDtlAAAAGUlEQVR4nGP4z8BAEmIY1TCqYVTDEBMIDAMAlPdQ4gk8D3UAAAAASUVORK5CYII=', 'base64');
+  const png = Buffer.from(PNG_160x90_B64, 'base64');
   const dt = await page.evaluateHandle((b64) => {
     const bin = atob(b64);
     const arr = new Uint8Array(bin.length);

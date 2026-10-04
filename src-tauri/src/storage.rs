@@ -198,6 +198,25 @@ pub fn write_image(dir: &Path, name: &str, bytes: &[u8]) -> Result<String> {
     Ok(format!("{IMAGES_DIR}/{name}"))
 }
 
+/// Lit une image du projet (pour les exports).
+pub fn read_image(dir: &Path, file: &str) -> Result<Vec<u8>> {
+    let name = file.strip_prefix(&format!("{IMAGES_DIR}/")).ok_or("Chemin d'image invalide")?;
+    let name = safe_image_name(name)?;
+    fs::read(dir.join(IMAGES_DIR).join(name)).map_err(err("Lecture de l'image impossible"))
+}
+
+/// Écrit un fichier exporté (PDF, Excel, CSV) à l'emplacement choisi par l'utilisateur.
+pub fn write_export(path: &Path, bytes: &[u8]) -> Result<()> {
+    let ext = path.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
+    if !["pdf", "xlsx", "csv"].contains(&ext.as_str()) {
+        return Err(format!("Type de fichier d'export refusé : « {} »", path.display()));
+    }
+    if path.parent().map(|p| !p.is_dir()).unwrap_or(true) {
+        return Err("Le dossier de destination n'existe pas".into());
+    }
+    atomic_write(path, bytes)
+}
+
 /// Normalise le chemin choisi : un fichier project.json désigne son dossier.
 pub fn project_dir_from_pick(p: &Path) -> PathBuf {
     if p.file_name().map(|n| n == PROJECT_FILE).unwrap_or(false) {
@@ -294,6 +313,22 @@ mod tests {
         assert!(write_image(&d, "abc.png", b"x").is_err(), "jamais d'écrasement");
         assert!(write_image(&d, "vide.png", b"").is_err());
         fs::remove_dir_all(d.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn exports_et_lecture_d_image() {
+        let d = tmpdir("exp");
+        fs::create_dir_all(&d).unwrap();
+        write_export(&d.join("a.pdf"), b"%PDF").unwrap();
+        assert!(write_export(&d.join("a.sh"), b"x").is_err());
+        assert!(write_export(&d.join("absent/a.pdf"), b"x").is_err());
+        let p = d.join("F.prepvis");
+        create_project(&p, "{}").unwrap();
+        write_image(&p, "x.png", b"123").unwrap();
+        assert_eq!(read_image(&p, "images/x.png").unwrap(), b"123");
+        assert!(read_image(&p, "../project.json").is_err());
+        assert!(read_image(&p, "images/../project.json").is_err());
+        fs::remove_dir_all(&d).unwrap();
     }
 
     #[test]

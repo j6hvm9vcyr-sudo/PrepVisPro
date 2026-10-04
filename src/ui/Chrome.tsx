@@ -86,6 +86,9 @@ export function Toolbar() {
       <button type="button" className="btn icon" onClick={() => st().setShowShortcuts(true)} aria-label="Raccourcis clavier" title="Raccourcis (?)">
         ?
       </button>
+      <button type="button" className="btn primary" onClick={() => st().setShowExport(true)} title="⌘E">
+        Exporter…
+      </button>
     </header>
   );
 }

@@ -14,7 +14,7 @@ import { closeProject, newProjectDialog, openDialog, openPath, quitApp, revealPr
 export function isMenuShortcut(e: Pick<KeyboardEvent, 'key' | 'code' | 'shiftKey' | 'altKey'>): boolean {
   if (e.altKey) return false;
   const k = e.key.toLowerCase();
-  return k === 'z' || e.code === 'Digit1' || e.code === 'Digit2' || k === 'i' || k === 'enter' || (e.shiftKey && k === 'c') || k === 's' || k === 'o' || k === 'n' || k === ',' || k === 'q';
+  return k === 'z' || e.code === 'Digit1' || e.code === 'Digit2' || k === 'i' || k === 'enter' || (e.shiftKey && k === 'c') || k === 's' || k === 'o' || k === 'n' || k === ',' || k === 'q' || k === 'e';
 }
 
 /** Exécute une commande de menu. Exporté pour les tests. */
@@ -62,6 +62,9 @@ export function runMenuCommand(id: string) {
       return;
     case 'view_inspector':
       st.toggleInspector();
+      return;
+    case 'file_export':
+      st.setShowExport(true);
       return;
     case 'view_settings':
       st.setShowSettings(true);

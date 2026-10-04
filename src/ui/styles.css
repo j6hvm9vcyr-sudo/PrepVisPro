@@ -259,3 +259,25 @@ table.cams input { width: 100%; border: 1px solid var(--border); border-radius: 
 .save-state { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text3); white-space: nowrap; }
 .save-state.error { color: var(--danger); font-weight: 600; }
 .save-state.unsaved { color: var(--warn-text); font-weight: 600; }
+
+/* ---------- export ---------- */
+.dialog.export { width: 860px; max-height: calc(100% - 20px); gap: 12px; }
+.export-head { display: flex; align-items: center; gap: 12px; }
+.export-body { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; overflow: auto; }
+.export-col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.preset-list { display: flex; flex-direction: column; gap: 2px; }
+.preset-row { display: flex; align-items: center; gap: 4px; }
+.preset { flex: 1; text-align: left; border: 1px solid transparent; background: transparent; border-radius: 7px; padding: 7px 10px; font-weight: 500; }
+.preset:hover { background: var(--border-soft); }
+.preset.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.preset.custom { font-style: italic; }
+.col-list { display: flex; flex-direction: column; border: 1px solid var(--border-soft); border-radius: 8px; padding: 4px; }
+.col-row { display: flex; align-items: center; justify-content: space-between; padding: 3px 6px; border-radius: 5px; }
+.col-row:hover { background: var(--side); }
+.col-row.off { color: var(--text3); }
+.col-move { display: flex; gap: 2px; }
+.col-move button { border: 1px solid var(--border); background: var(--panel); border-radius: 5px; width: 24px; height: 22px; padding: 0; font-size: 12px; }
+.seq-pick { display: flex; flex-direction: column; gap: 3px; max-height: 160px; overflow: auto; padding: 4px; border: 1px solid var(--border-soft); border-radius: 8px; }
+.export-actions .btn.big { flex: 1; }
+.export-done { display: flex; flex-direction: column; gap: 8px; background: color-mix(in srgb, var(--ok) 10%, var(--panel)); border: 1px solid color-mix(in srgb, var(--ok) 35%, var(--panel)); border-radius: 8px; padding: 10px 12px; user-select: text; -webkit-user-select: text; }
+.field-input { flex: 1; border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; background: var(--field); }

@@ -95,6 +95,14 @@ class ProjectImageStore {
     return u || null;
   }
 
+  /** Octets d'une image (projet enregistré ou image encore en mémoire). */
+  async readBytes(file: string): Promise<Uint8Array> {
+    const p = this.pending.get(file);
+    if (p) return new Uint8Array(await p.blob.arrayBuffer());
+    if (!this.backend || !this.dir) throw new Error(`Image introuvable : ${file}`);
+    return this.backend.readImage(this.dir, file);
+  }
+
   /** Copie les images en mémoire dans un projet qui vient d'être créé sur disque. */
   async flushPendingTo(backend: Backend, dir: string, used: Set<string>): Promise<void> {
     for (const [file, p] of this.pending) {

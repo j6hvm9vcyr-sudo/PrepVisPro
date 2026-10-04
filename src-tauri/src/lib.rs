@@ -85,6 +85,40 @@ fn image_write(request: Request<'_>) -> Result<String, String> {
     storage::write_image(Path::new(&dir), &name, bytes)
 }
 
+/// Renvoie les octets d'une image du projet (sans passer par du JSON).
+#[tauri::command]
+fn image_read(dir: String, file: String) -> Result<tauri::ipc::Response, String> {
+    storage::read_image(Path::new(&dir), &file).map(tauri::ipc::Response::new)
+}
+
+/// Écrit un export ; chemin dans l'en-tête (encodé), octets bruts dans le corps.
+#[tauri::command]
+fn export_write(request: Request<'_>) -> Result<(), String> {
+    let InvokeBody::Raw(bytes) = request.body() else {
+        return Err("Export reçu dans un format inattendu".into());
+    };
+    let path = request
+        .headers()
+        .get("x-prepvis-path")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| percent_encoding::percent_decode_str(v).decode_utf8().ok())
+        .ok_or("Chemin d'export manquant")?
+        .into_owned();
+    storage::write_export(Path::new(&path), bytes)
+}
+
+/// Ouvre un fichier avec l'application par défaut (Aperçu, Excel…).
+#[tauri::command]
+fn open_file(path: String) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open").arg(&path).spawn().map_err(|e| format!("Ouverture impossible : {e}"))?;
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = path;
+    Ok(())
+}
+
 #[tauri::command]
 fn reveal_in_finder(path: String) -> Result<(), String> {
     #[cfg(target_os = "macos")]
@@ -155,6 +189,8 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
         .item(&item("file_save", "Enregistrer", "CmdOrCtrl+S")?)
         .item(&plain("file_reveal", "Afficher dans le Finder")?)
         .separator()
+        .item(&item("file_export", "Exporter…", "CmdOrCtrl+E")?)
+        .separator()
         .item(&item("file_close", "Fermer le projet", "CmdOrCtrl+Shift+W")?)
         .build()?;
 
@@ -223,7 +259,7 @@ fn request_quit(app: &AppHandle) {
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![project_create, project_load, project_save, image_write, reveal_in_finder, quit_ack, quit_now, take_pending_open])
+        .invoke_handler(tauri::generate_handler![project_create, project_load, project_save, image_write, reveal_in_finder, quit_ack, quit_now, take_pending_open, image_read, export_write, open_file])
         .setup(|app| {
             build_menu(app)?;
             Ok(())

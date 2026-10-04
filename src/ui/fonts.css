@@ -1,0 +1,8 @@
+/* IBM Plex (licence SIL OFL 1.1, voir src/assets/fonts/LICENSE-IBM-Plex.txt). Jeu complet : flèches, guillemets, ligatures françaises. */
+@font-face { font-family: 'IBM Plex Sans'; src: url('../assets/fonts/IBMPlexSans-Regular.woff') format('woff'); font-weight: 400; font-display: block; }
+@font-face { font-family: 'IBM Plex Sans'; src: url('../assets/fonts/IBMPlexSans-Medium.woff') format('woff'); font-weight: 500; font-display: block; }
+@font-face { font-family: 'IBM Plex Sans'; src: url('../assets/fonts/IBMPlexSans-SemiBold.woff') format('woff'); font-weight: 600; font-display: block; }
+@font-face { font-family: 'IBM Plex Sans'; src: url('../assets/fonts/IBMPlexSans-Bold.woff') format('woff'); font-weight: 700; font-display: block; }
+@font-face { font-family: 'IBM Plex Mono'; src: url('../assets/fonts/IBMPlexMono-Regular.woff') format('woff'); font-weight: 400; font-display: block; }
+@font-face { font-family: 'IBM Plex Mono'; src: url('../assets/fonts/IBMPlexMono-Medium.woff') format('woff'); font-weight: 500; font-display: block; }
+@font-face { font-family: 'IBM Plex Mono'; src: url('../assets/fonts/IBMPlexMono-SemiBold.woff') format('woff'); font-weight: 600; font-display: block; }
