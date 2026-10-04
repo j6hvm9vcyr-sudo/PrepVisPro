@@ -46,6 +46,15 @@ export function addDay(doc: ProjectDoc): { doc: ProjectDoc; id: Id } {
   return { doc: produce(doc, (d) => void d.shootingDays.push({ id, date: null, sequenceIds: [], note: '' })), id };
 }
 
+/** Copie d'un jour, juste après lui : mêmes séquences et même note, date à fixer. */
+export function duplicateDay(doc: ProjectDoc, dayId: Id): { doc: ProjectDoc; id: Id } | null {
+  const i = doc.shootingDays.findIndex((x) => x.id === dayId);
+  if (i < 0) return null;
+  const src = doc.shootingDays[i]!;
+  const id = newId('jt');
+  return { doc: produce(doc, (d) => void d.shootingDays.splice(i + 1, 0, { id, date: null, sequenceIds: [...src.sequenceIds], note: src.note })), id };
+}
+
 export function updateDay(doc: ProjectDoc, dayId: Id, fn: (d: ShootingDay) => void): ProjectDoc {
   return produce(doc, (d) => {
     const x = d.shootingDays.find((y) => y.id === dayId);

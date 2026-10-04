@@ -7,12 +7,12 @@ import { focusGrid } from './focus';
 
 const HINTS: Record<EditableField, string> = {
   action: '↩ valider · ⇥ suivant · esc annuler',
-  size: '« > » début → fin · ↑↓ choisir · ↩ valider · ⇥ suivant · esc annuler',
-  axis: '« > » début → fin · ↑↓ choisir · ↩ valider · ⇥ suivant · esc annuler',
-  angle: 'terme et/ou degrés (pl -20) · « > » début → fin · ↩ valider · esc annuler',
-  focal: 'nombre en mm, ou ↑↓ parmi les optiques du projet · « > » pour la fin (75 > 300) · ↩ valider · esc annuler',
-  movement: '« > » ou « , » enchaîne les mouvements · ↑↓ choisir · ↩ valider · esc annuler',
-  grip: '« , » ajoute une machinerie · ↑↓ choisir · ↩ valider · esc annuler',
+  size: '↑↓ choisir · ↩ valider · « > » plan évolutif',
+  axis: '↑↓ choisir · ↩ valider · « > » plan évolutif',
+  angle: 'terme et/ou degrés (pl -20) · « > » plan évolutif',
+  focal: 'mm, ou ↑↓ dans les optiques · « > » zoom (75 > 300)',
+  movement: '↑↓ choisir · « > » ou « , » enchaîne',
+  grip: '↑↓ choisir · « , » ajoute',
 };
 
 export function CellEditor({ field }: { field: EditableField }) {

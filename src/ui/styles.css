@@ -155,7 +155,7 @@ button:disabled { opacity: 0.45; }
 .thumb { width: 72px; height: 40px; border-radius: 4px; background: transparent; border: 1px dashed transparent; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text3); position: relative; }
 .thumb.has { border: 0; background: var(--thumb); }
 /* Case image vide : visible seulement sur la ligne active ou au survol (glisser une image). */
-.line.sel .thumb, .line:hover .thumb, .thumb.drop { border-color: var(--border); }
+.line:hover .thumb, .thumb.drop { border-color: var(--border); }
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .thumb .more { position: absolute; right: 2px; bottom: 2px; font-size: 9px; font-weight: 700; padding: 0 3px; border-radius: 3px; background: rgba(10, 12, 16, 0.72); color: #fff; }
 .cell.img.active .thumb, .thumb.drop { box-shadow: 0 0 0 2px var(--accent); }
@@ -684,3 +684,5 @@ table.modes input:not(.decimal-field input) { border: 1px solid var(--border); b
 .reorder .mv { opacity: 0; transition: opacity 0.12s; }
 .reorder:hover .mv, .reorder:focus-within .mv { opacity: 1; }
 @media (hover: none) { .reorder .mv { opacity: 1; } }
+.loose { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 4px; margin: 8px 4px 0; font-size: 12px; }
+.tool-key { margin-left: 5px; font-size: 10px; font-weight: 600; color: var(--text3); font-family: var(--mono); }

@@ -44,7 +44,7 @@ test('jours de tournage : séquences du jour, ordre, soleil à la date du jour, 
   // Matériel du jour : focales des séquences 1 et 2.
   await expect(mat).toContainText(/300 mm/);
   await expect(mat).toContainText(/25 mm/);
-  await expect(list).toContainText('Sans jour : séq. 3, 4');
+  await expect(list.locator('.loose')).toHaveText(/Sans jour :\s*séq\. 3\s*séq\. 4/);
   await page.screenshot({ path: 'test-results/24-jour.png' });
 
   // J2 : la séquence 2 continue → signalée sur les deux jours.

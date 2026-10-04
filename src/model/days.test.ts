@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { produce } from 'immer';
-import { addDay, cleanupDays, compactPlans, daySun, dayLabels, equipmentFor, moveDay, sortDaysByDate, unscheduled, updateDay } from './days';
+import { addDay, cleanupDays, duplicateDay, compactPlans, daySun, dayLabels, equipmentFor, moveDay, sortDaysByDate, unscheduled, updateDay } from './days';
 import { sampleProjectMultiCam } from './sample';
 import { addElements, addFloorPlan, newFloorPlan } from './floorOps';
 import { computeScale } from './floor';
@@ -124,5 +124,23 @@ describe('listes de plans compactes', () => {
     expect(compactPlans(['1/1', '1/2', '1/3', '1/2B', '2/1', '2/2', '2/4', '3/1', '3/2'])).toBe('1/1–1/3, 1/2B, 2/1, 2/2, 2/4, 3/1, 3/2');
     expect(compactPlans(['10A/1', '10A/2', '10A/3'])).toBe('10A/1–10A/3');
     expect(compactPlans([])).toBe('');
+  });
+});
+
+describe('duplicateDay', () => {
+  it('copie juste après : mêmes séquences, même note, date à fixer', () => {
+    const d0 = sampleProjectMultiCam();
+    const a = addDay(d0);
+    const b = addDay(a.doc);
+    const d1 = updateDay(b.doc, a.id, (x) => {
+      x.date = '2026-06-21';
+      x.sequenceIds = [d0.sequences[0]!.id];
+      x.note = 'Lever 5 h';
+    });
+    const r = duplicateDay(d1, a.id)!;
+    expect(r.doc.shootingDays.map((x) => x.id)).toEqual([a.id, r.id, b.id]);
+    expect(r.doc.shootingDays[1]).toMatchObject({ date: null, sequenceIds: [d0.sequences[0]!.id], note: 'Lever 5 h' });
+    expect(validateProject(r.doc).ok).toBe(true);
+    expect(duplicateDay(d1, 'inconnu')).toBeNull();
   });
 });

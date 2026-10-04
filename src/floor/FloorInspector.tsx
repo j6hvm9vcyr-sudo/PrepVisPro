@@ -215,7 +215,7 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
               </div>
             )}
             {(el.kind === 'camera' || el.kind === 'actor' || el.kind === 'light') && <PositionsField fp={fp} el={el} />}
-            <button type="button" className="btn danger" onClick={() => (apply((d) => deleteElements(d, fp.id, [el.id]), 'Élément supprimé · ⌘Z pour annuler'), useFloor.getState().set({ selection: [] }))}>
+            <button type="button" className="linkbtn danger" style={{ alignSelf: 'flex-start' }} title="⌫ sur le plan" onClick={() => (apply((d) => deleteElements(d, fp.id, [el.id]), 'Élément supprimé · ⌘Z pour annuler'), useFloor.getState().set({ selection: [] }))}>
               Supprimer
             </button>
           </section>
@@ -288,7 +288,7 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
                 <FloorExportButtons fp={fp} />
               </div>
             </div>
-            <button type="button" className="btn danger" onClick={() => (apply((d) => deleteFloorPlan(d, fp.id), 'Plan au sol supprimé · ⌘Z pour annuler'), useFloor.getState().set({ currentId: null }))}>
+            <button type="button" className="linkbtn danger" style={{ alignSelf: 'flex-start' }} onClick={() => (apply((d) => deleteFloorPlan(d, fp.id), 'Plan au sol supprimé · ⌘Z pour annuler'), useFloor.getState().set({ currentId: null }))}>
               Supprimer ce plan au sol
             </button>
           </Fold>

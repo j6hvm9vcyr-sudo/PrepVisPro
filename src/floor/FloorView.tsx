@@ -101,8 +101,9 @@ function FloorToolbar({ fp }: { fp: FloorPlan }) {
     <div className="floor-toolbar">
       <div className="seg" role="group" aria-label="Outils">
         {TOOLS.map((t) => (
-          <button key={t.id} type="button" aria-pressed={tool === t.id} title={`${t.label} (${t.key})`} onClick={() => useFloor.getState().set({ tool: t.id, draft: [], placing: null })}>
+          <button key={t.id} type="button" aria-pressed={tool === t.id} aria-label={t.label} title={`${t.label} (touche ${t.key})`} onClick={() => useFloor.getState().set({ tool: t.id, draft: [], placing: null })}>
             {t.label}
+            <span className="tool-key" aria-hidden="true">{t.key}</span>
           </button>
         ))}
       </div>

@@ -254,7 +254,7 @@ test('tournage : installations proposées d’après le plan au sol, réorganis�
   await expect(installs.nth(0).locator('.install-name')).toHaveValue('Champ 1');
   await expect(installs.nth(1).locator('.shot-code')).toHaveText(['1/1', '1/2']);
   await expect(installs.nth(1).locator('.install-name')).toHaveValue('Contrechamp 2');
-  await expect(installs.nth(2).locator('.install-name')).toHaveValue('Hors plan au sol');
+  await expect(installs.nth(2).locator('.install-name')).toHaveValue('Sans position sur le plan');
   await expect(page.locator('.shot-order')).toHaveText(['1', '2', '3', '4']);
   // Réorganiser : 1/2 passe avant 1/1.
   await page.getByRole('button', { name: 'Monter 1/2', exact: true }).click();

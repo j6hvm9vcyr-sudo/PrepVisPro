@@ -111,7 +111,11 @@ export function CamerasTab() {
           </Explain>
         </fieldset>
 
-        <Comparator cam={cam} ratioText={doc.meta.aspectRatio} />
+        {cam.sensorWidthMm !== null ? (
+          <Comparator cam={cam} ratioText={doc.meta.aspectRatio} />
+        ) : (
+          <p className="note" style={{ margin: 0 }}>Renseignez la largeur du capteur : le schéma et les angles de champ s’affichent ici.</p>
+        )}
 
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <SaveToKit kind="cameras" item={cam} />

@@ -39,7 +39,7 @@ describe('ordre de tournage', () => {
     expect(actions).toEqual([
       { name: 'Champ 1', plans: ['Large champ', 'Taille Léa', 'GP Léa'] },
       { name: 'Contrechamp 2', plans: ['GP Marc (contrechamp)'] },
-      { name: 'Hors plan au sol', plans: ['Insert hors plan'] },
+      { name: 'Sans position sur le plan', plans: ['Insert hors plan'] },
     ]);
   });
 

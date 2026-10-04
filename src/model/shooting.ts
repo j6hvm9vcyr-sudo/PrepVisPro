@@ -92,7 +92,7 @@ export function proposeShooting(doc: ProjectDoc, seq: Sequence): ShootingOrder {
     const side = sideOf(g) === 0 ? 'Champ' : 'Contrechamp';
     return { id: newId('in'), name: `${side} ${i + 1}`, planIds: g.map((x) => x.plan.id), note: '' };
   });
-  if (unplaced.length) installations.push({ id: newId('in'), name: 'Hors plan au sol', planIds: unplaced.map((p) => p.id), note: '' });
+  if (unplaced.length) installations.push({ id: newId('in'), name: 'Sans position sur le plan', planIds: unplaced.map((p) => p.id), note: '' });
   return { installations };
 }
 

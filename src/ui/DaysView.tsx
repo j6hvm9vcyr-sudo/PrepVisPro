@@ -8,7 +8,7 @@ import { create } from 'zustand';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
 import type { Id, ProjectDoc, ShootingDay } from '../model/types';
-import { addDay, compactPlans, longDate, dayLabels, daysOfSequence, daySun, equipmentFor, moveDay, removeDay, sortDaysByDate, unscheduled, updateDay, type Equipment } from '../model/days';
+import { addDay, compactPlans, duplicateDay, longDate, dayLabels, daysOfSequence, daySun, equipmentFor, moveDay, removeDay, sortDaysByDate, unscheduled, updateDay, type Equipment } from '../model/days';
 import { effectiveShooting } from '../model/shooting';
 import { computeNumbers } from '../model/numbering';
 import { formatNumber } from '../model/text';
@@ -70,9 +70,26 @@ export function DaysView() {
           </span>
         </button>
         {loose.length > 0 && doc.shootingDays.length > 0 && (
-          <p className="note" style={{ margin: '8px 4px 0', color: 'var(--warn-text)' }}>
-            Sans jour : séq. {loose.map((s) => s.number || '?').join(', ')}
-          </p>
+          <div className="loose" role="group" aria-label="Séquences sans jour">
+            <span className="note" style={{ color: 'var(--warn-text)' }}>Sans jour :</span>
+            {loose.map((s) =>
+              !showAll && day ? (
+                <button
+                  key={s.id}
+                  type="button"
+                  className="linkbtn"
+                  title={`Ajouter la séquence ${s.number || '?'} au ${labels.get(day.id)}`}
+                  onClick={() => apply((d) => updateDay(d, day.id, (x) => void x.sequenceIds.push(s.id)), `Séquence ${s.number || '?'} ajoutée au ${labels.get(day.id)}`)}
+                >
+                  séq. {s.number || '?'}
+                </button>
+              ) : (
+                <span key={s.id} className="note">
+                  séq. {s.number || '?'}
+                </span>
+              ),
+            )}
+          </div>
         )}
       </aside>
       <main className="shooting-main">{showAll ? <WholeShoot doc={doc} /> : <DayPage key={day.id} doc={doc} day={day} label={labels.get(day.id)!} labels={labels} />}</main>
@@ -150,13 +167,26 @@ function DayPage({ doc, day, label, labels }: { doc: ProjectDoc; day: ShootingDa
         </button>
         <button
           type="button"
-          className="btn danger"
+          className="linkbtn"
+          title="Mêmes séquences et même note, date à fixer"
+          onClick={() => {
+            const r = duplicateDay(selectDoc(useApp.getState()), day.id);
+            if (!r) return;
+            apply(() => r.doc, `${label} dupliqué`);
+            useDaysUi.getState().set(r.id);
+          }}
+        >
+          Dupliquer
+        </button>
+        <button
+          type="button"
+          className="linkbtn danger"
           onClick={() => {
             apply((d) => removeDay(d, day.id), `${label} supprimé · ⌘Z pour annuler`);
             useDaysUi.getState().set(null);
           }}
         >
-          Supprimer
+          Supprimer ce jour
         </button>
       </div>
       <textarea className="day-note" rows={2} aria-label="Note du jour" placeholder="Note : horaires, déplacements, remarques de la régie…" value={day.note} onChange={(e) => upd((x) => void (x.note = e.target.value), 'note')} />
