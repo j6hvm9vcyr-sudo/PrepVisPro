@@ -10,6 +10,7 @@ import { formatNumber } from '../model/text';
 import { ACTOR_COLORS, useFloor, type Viewport } from './floorStore';
 import { FloorMarkers, FloorScene } from './FloorScene';
 import { useLateFocus } from '../ui/focus';
+import { placeIcon } from './icons';
 
 
 type Drag =
@@ -86,6 +87,12 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
   // ---------------------------------------------------------------- création d'éléments
   const place = (p: Point) => {
     const st = useFloor.getState();
+    if (st.placingIcon) {
+      const item = st.placingIcon;
+      st.set({ placingIcon: null });
+      void placeIcon(fp.id, item, p);
+      return;
+    }
     let el: FloorElement | null = null;
     if (st.tool === 'camera' || st.placing) {
       el = { id: newId('fe'), kind: 'camera', at: p, rotation: 0, planId: st.placing?.planId ?? null, setupId: st.placing?.setupId ?? null, showFov: true, path: [] };
@@ -131,7 +138,7 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
       );
       return;
     }
-    if (st.tool !== 'select' || st.placing) {
+    if (st.tool !== 'select' || st.placing || st.placingIcon) {
       place(p);
       return;
     }
@@ -254,7 +261,7 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
     const sel = st.selection;
     if (e.key === 'Escape') {
       e.preventDefault();
-      if (st.tool !== 'select' || st.placing || st.draft.length) st.set({ tool: 'select', placing: null, draft: [], pathFor: null });
+      if (st.tool !== 'select' || st.placing || st.placingIcon || st.draft.length) st.set({ tool: 'select', placing: null, placingIcon: null, draft: [], pathFor: null });
       else st.set({ selection: [] });
       setScaleInput(null);
       return;
@@ -324,7 +331,7 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
     const t = tools[e.key.toLowerCase()];
     if (t) {
       e.preventDefault();
-      st.set({ tool: t, draft: [], placing: null });
+      st.set({ tool: t, draft: [], placing: null, placingIcon: null });
       return;
     }
     // « 0 » : sur un clavier AZERTY la touche donne « à » sans Maj.
@@ -360,7 +367,7 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
   })();
 
   const bar = fp.scale ? scaleBar(fp.scale.metersPerUnit, vp.zoom) : null;
-  const cursor = ui.tool === 'select' && !ui.placing ? 'default' : 'crosshair';
+  const cursor = ui.tool === 'select' && !ui.placing && !ui.placingIcon ? 'default' : 'crosshair';
 
   return (
     <div ref={wrap} className="floor-canvas" tabIndex={0} onKeyDown={onKeyDown} aria-label="Plan au sol" role="application" style={{ cursor }}>

@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 import type { Id } from '../model/types';
 import type { Point } from '../model/floor';
+import type { IconItem } from '../platform/iconLibrary';
 
 export type FloorTool = 'select' | 'camera' | 'actor' | 'text' | 'scale' | 'measure' | 'path';
 
@@ -21,6 +22,8 @@ export interface FloorUi {
   draft: Point[];
   /** Caméra du découpage à placer au prochain clic. */
   placing: { planId: Id; setupId: Id } | null;
+  /** Icône de la bibliothèque à poser au prochain clic. */
+  placingIcon: IconItem | null;
   /** Élément dont on trace le trajet. */
   pathFor: Id | null;
   viewports: Record<Id, Viewport>;
@@ -33,6 +36,7 @@ export const useFloor = create<FloorUi>()((set) => ({
   tool: 'select',
   draft: [],
   placing: null,
+  placingIcon: null,
   pathFor: null,
   viewports: {},
   set: (p) => set(p),

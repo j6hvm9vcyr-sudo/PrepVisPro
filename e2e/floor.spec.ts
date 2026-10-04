@@ -127,3 +127,35 @@ test('plan au sol : fond PDF (plan d’architecte), texte saisi au clavier, cham
   await page.keyboard.press('Enter');
   await expect(page.getByLabel('Longueur des champs caméra en mètres')).toHaveValue('2,5');
 });
+
+test('bibliothèque d’icônes : import d’un dossier, recherche, pose sur le plan, export', async ({ page }) => {
+  await page.goto('/?exemple');
+  await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
+  await page.keyboard.press('ControlOrMeta+3');
+  await page.getByLabel('Créer un plan au sol pour la séquence').selectOption({ label: '1 — Quai de gare' });
+  const chooser = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Importer un dossier d’icônes…' }).click();
+  await (await chooser).setFiles(resolve('e2e/icones-test'));
+  await expect(page.locator('.icon-palette .sec-h .count')).toHaveText('4');
+  await expect(page.getByText(/4 icônes dans la bibliothèque/)).toBeVisible();
+  // Catégories = sous-dossiers ; les images à la racine vont dans la catégorie du dossier.
+  // (Noms sans accents : Chromium piloté par les tests ne relit pas les fichiers d'un dossier accentué ;
+  // l'application Mac lit le dossier par son propre code, testé avec accents.)
+  await expect(page.locator('.icon-group-h')).toHaveText([/icones-test\s*1/, /Lumieres\s*2/, /Machinerie\s*1/]);
+  await page.getByLabel('Rechercher une icône').fill('fres');
+  await page.getByRole('button', { name: 'Poser Fresnel 650' }).click();
+  const canvas = page.locator('.floor-canvas svg');
+  const box = (await canvas.boundingBox())!;
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await expect(page.locator('.floor-canvas [data-el] image')).toHaveCount(1);
+  await expect(page.getByText('Fresnel 650 posé')).toBeVisible();
+  // Légende et taille.
+  await page.getByPlaceholder('ex. 2K, Fresnel 650').fill('650 W');
+  await page.getByRole('group', { name: 'Taille de l’icône' }).getByRole('button', { name: 'Grande', exact: true }).click();
+  await expect(page.locator('.floor-canvas text', { hasText: '650 W' })).toBeVisible();
+  // L'icône est dans le PNG exporté (le rendu ne casse pas).
+  const dl = page.waitForEvent('download');
+  await page.getByRole('group', { name: 'Exporter ce plan' }).getByRole('button', { name: 'PNG' }).click();
+  expect(readFileSync(await (await dl).path()).subarray(1, 4).toString()).toBe('PNG');
+  await page.screenshot({ path: 'test-results/17-icones.png' });
+});

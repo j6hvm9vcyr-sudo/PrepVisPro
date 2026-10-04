@@ -124,6 +124,22 @@ try {
   wf(join(work, 'scenario.fdx'), '<?xml version="1.0"?><FinalDraft><Content><Paragraph Type="Scene Heading" Number="1"><Text>INT. CHAMBRE - NUIT</Text></Paragraph></Content></FinalDraft>');
   ok(String(await exec(`return await window.__prepvis.readScript(${JSON.stringify(join(work, 'scenario.fdx'))});`)).includes('CHAMBRE'), 'scénario .fdx lu');
 
+  // Bibliothèque d'icônes : dossier aux noms accentués, réduction, stockage, affichage.
+  {
+    const { mkdirSync: md } = await import('node:fs');
+    const src = join(work, 'Icônes perso');
+    md(join(src, 'Lumière'), { recursive: true });
+    md(join(src, '.cache'), { recursive: true });
+    const png = Buffer.from(readFileSync(resolve('e2e/plan-decor.png')));
+    wf(join(src, 'Lumière', 'Fresnel 650.png'), png);
+    wf(join(src, '.cache', 'caché.png'), png);
+    wf(join(src, 'notes.txt'), 'pas une image');
+    const lib = await exec(`return await window.__prepvis.importIconsFrom(${JSON.stringify(src)});`);
+    ok(lib && !lib.__error && lib.r?.added === 1 && lib.items?.[0]?.category === 'Lumière' && lib.items?.[0]?.name === 'Fresnel 650', `icônes importées (${JSON.stringify(lib).slice(0, 200)})`);
+    const w = lib?.url ? await exec(`return await new Promise((res) => { const i = new Image(); i.onload = () => res(i.naturalWidth); i.onerror = () => res(-1); i.src = ${JSON.stringify(lib.url)}; });`) : -1;
+    ok(w > 0 && w <= 512, `icône affichée depuis la bibliothèque, réduite (${w} px)`);
+  }
+
   // Fermer puis rouvrir : le projet revient à l'identique.
   await exec('await window.__prepvis.flushSave(); return true;');
   const before = await exec('return JSON.stringify(window.__prepvis.doc());');

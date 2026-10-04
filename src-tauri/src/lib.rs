@@ -1,6 +1,7 @@
 //! Enveloppe macOS de PrepVisPro : fenêtre, menus natifs, accès aux fichiers du projet.
 //! Toute la logique métier vit dans l'interface (TypeScript), testée séparément.
 
+mod icons;
 mod storage;
 
 use std::path::{Path, PathBuf};
@@ -98,6 +99,73 @@ fn project_save_conflict_copy(dir: String, json: String) -> Result<String, Strin
 #[tauri::command]
 fn image_read(dir: String, file: String) -> Result<tauri::ipc::Response, String> {
     storage::read_image(Path::new(&dir), &file).map(tauri::ipc::Response::new)
+}
+
+// ------------------------------------------------------------------ bibliothèque d'icônes
+
+/// Dossier analysé lors du dernier import d'icônes (seul dossier lisible par icons_read_source).
+static ICON_SOURCE: Mutex<Option<PathBuf>> = Mutex::new(None);
+
+fn icons_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    let dir = app.path().app_data_dir().map_err(|e| format!("Dossier de l'application introuvable : {e}"))?.join("icones");
+    std::fs::create_dir_all(&dir).map_err(|e| format!("Création de la bibliothèque impossible : {e}"))?;
+    Ok(dir)
+}
+
+#[derive(serde::Serialize)]
+struct IconLibrary {
+    dir: String,
+    items: Vec<icons::IconItem>,
+}
+
+/// Contenu de la bibliothèque, et autorisation d'afficher ses images.
+#[tauri::command]
+fn icons_list(app: AppHandle) -> Result<IconLibrary, String> {
+    let dir = icons_dir(&app)?;
+    app.asset_protocol_scope().allow_directory(&dir, false).map_err(|e| format!("Accès aux icônes refusé : {e}"))?;
+    Ok(IconLibrary { dir: dir.to_string_lossy().into_owned(), items: icons::list(&dir) })
+}
+
+#[tauri::command]
+fn icons_scan(path: String) -> Result<Vec<icons::SourceFile>, String> {
+    let root = PathBuf::from(path);
+    let files = icons::scan(&root)?;
+    *ICON_SOURCE.lock().map_err(|_| "Bibliothèque occupée")? = Some(root);
+    Ok(files)
+}
+
+#[tauri::command]
+fn icons_read_source(rel: String) -> Result<tauri::ipc::Response, String> {
+    let root = ICON_SOURCE.lock().map_err(|_| "Bibliothèque occupée")?.clone().ok_or("Aucun dossier d'icônes choisi")?;
+    icons::read_source(&root, &rel).map(tauri::ipc::Response::new)
+}
+
+/// Ajoute une icône (PNG brut dans le corps ; catégorie et nom encodés dans les en-têtes).
+#[tauri::command]
+fn icons_store(app: AppHandle, request: Request<'_>) -> Result<icons::IconItem, String> {
+    let InvokeBody::Raw(bytes) = request.body() else {
+        return Err("Icône reçue dans un format inattendu".into());
+    };
+    let header = |k: &str| -> String {
+        request
+            .headers()
+            .get(k)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| percent_encoding::percent_decode_str(v).decode_utf8().ok())
+            .map(|v| v.into_owned())
+            .unwrap_or_default()
+    };
+    icons::store(&icons_dir(&app)?, &header("x-prepvis-category"), &header("x-prepvis-name"), bytes)
+}
+
+#[tauri::command]
+fn icons_read(app: AppHandle, id: String) -> Result<tauri::ipc::Response, String> {
+    icons::read(&icons_dir(&app)?, &id).map(tauri::ipc::Response::new)
+}
+
+#[tauri::command]
+fn icons_remove(app: AppHandle, ids: Vec<String>) -> Result<usize, String> {
+    icons::remove(&icons_dir(&app)?, &ids)
 }
 
 /// Écrit un export ; chemin dans l'en-tête (encodé), octets bruts dans le corps.
@@ -275,7 +343,7 @@ fn request_quit(app: &AppHandle) {
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![project_create, project_load, project_save, image_write, reveal_in_finder, quit_ack, quit_now, take_pending_open, image_read, export_write, open_file, script_read, project_save_conflict_copy])
+        .invoke_handler(tauri::generate_handler![project_create, project_load, project_save, image_write, reveal_in_finder, quit_ack, quit_now, take_pending_open, image_read, export_write, open_file, script_read, project_save_conflict_copy, icons_list, icons_scan, icons_read_source, icons_store, icons_read, icons_remove])
         .setup(|app| {
             build_menu(app)?;
             Ok(())

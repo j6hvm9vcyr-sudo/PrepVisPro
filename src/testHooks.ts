@@ -37,6 +37,15 @@ export async function install() {
       const { invoke } = await import('@tauri-apps/api/core');
       return invoke<string>('script_read', { path });
     },
+    /** Importe un dossier d'icônes sans boîte de dialogue ; renvoie la bibliothèque et l'URL de la 1re icône. */
+    async importIconsFrom(path: string) {
+      const lib = await import('./platform/iconLibrary');
+      const b = lib.iconBackend() as unknown as { scan(p: string): Promise<unknown> };
+      const picked = await b.scan(path);
+      const r = await lib.useIcons.getState().importFolder(picked as never);
+      const items = lib.useIcons.getState().items;
+      return { r, items, url: items[0] ? lib.useIcons.getState().url(items[0]) : null };
+    },
     newProjectAt,
     openPath,
     closeProject,

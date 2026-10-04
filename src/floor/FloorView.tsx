@@ -11,6 +11,7 @@ import { importBackground } from './background';
 import { stripColors } from '../ui/strip';
 import { useLateFocus } from '../ui/focus';
 import { DecimalField } from '../ui/DecimalField';
+import { IconPalette } from './icons';
 
 const TOOLS: { id: FloorTool; label: string; key: string }[] = [
   { id: 'select', label: 'Sélection', key: 'V' },
@@ -257,8 +258,20 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
             {el.kind === 'icon' && (
               <label className="field">
                 Légende
-                <input value={el.label} onChange={(e) => upd((x) => void (x.kind === 'icon' && (x.label = e.target.value)), 'label')} />
+                <input value={el.label} placeholder="ex. 2K, Fresnel 650" onChange={(e) => upd((x) => void (x.kind === 'icon' && (x.label = e.target.value)), 'label')} />
               </label>
+            )}
+            {el.kind === 'icon' && (
+              <div className="field">
+                Taille à l’écran
+                <div className="seg" role="group" aria-label="Taille de l’icône">
+                  {([['Petite', 40], ['Moyenne', 56], ['Grande', 84], ['Très grande', 120]] as const).map(([l, v]) => (
+                    <button key={v} type="button" aria-pressed={el.size === v} onClick={() => upd((x) => void (x.kind === 'icon' && (x.size = v)), 'size')}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
             {el.kind !== 'text' && (
               <div className="field">
@@ -336,6 +349,7 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
           )}
           {ui.placing && <p className="note" style={{ margin: 0, color: 'var(--accent)', fontWeight: 600 }}>Cliquez sur le plan pour placer la caméra (esc pour annuler).</p>}
         </section>
+        <IconPalette />
         <p className="note" style={{ margin: 0 }}>
           Glisser : déplacer · poignée ronde : orienter (⇧ par pas de 15°) · R : tourner · ⌘D : dupliquer · ⌫ : supprimer · deux doigts : se déplacer · pincer : zoomer · 0 : tout afficher.
         </p>
