@@ -35,3 +35,7 @@ npm run e2e          # tests dans un vrai navigateur (Playwright)
 ```
 
 Organisation : `src/model/` (format et logique métier, testés), `src/state/` (état, annulation), `src/ui/` et `src/floor/` (interface), `src/export/`, `src/import/`, `src/platform/` (Tauri ou navigateur), `src-tauri/` (Rust).
+
+## Licence
+
+Code sous licence [MIT](LICENSE). Les icônes de la bibliothèque PF_ICONES ne sont pas incluses et restent soumises à leur propre licence.

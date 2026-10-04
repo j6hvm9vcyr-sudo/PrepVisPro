@@ -2,6 +2,7 @@
   "name": "prepvispro",
   "private": true,
   "version": "0.7.0",
+  "license": "MIT",
   "type": "module",
   "description": "PrepVisPro — préparation image : découpage, plans au sol, plans feux.",
   "scripts": {
