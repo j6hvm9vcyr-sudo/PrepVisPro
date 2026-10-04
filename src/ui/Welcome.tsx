@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AppLogo } from './AppLogo';
 import { APP_VERSION } from '../version';
 import { baseName, getBackend } from '../platform/backend';
 import { isTauri } from '../platform/env';
@@ -24,11 +25,7 @@ export function Welcome() {
     <div className="welcome">
       <div className="welcome-card">
         <div className="welcome-head">
-          <svg width="44" height="44" viewBox="0 0 64 64" aria-hidden="true">
-            <rect width="64" height="64" rx="14" fill="#2457C5" />
-            <path d="M14 22h26v20H14z" fill="none" stroke="#fff" strokeWidth="5" strokeLinejoin="round" />
-            <path d="M40 28l10-6v20l-10-6" fill="none" stroke="#fff" strokeWidth="5" strokeLinejoin="round" />
-          </svg>
+          <AppLogo />
           <div>
             <h1>PrepVisPro</h1>
             <p>Découpage technique, plans au sol, plans feux · version {APP_VERSION}</p>
