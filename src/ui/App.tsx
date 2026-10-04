@@ -18,6 +18,7 @@ import { focusGrid, installFocusRescue, isTypingTarget } from './focus';
 import { isMenuShortcut, isTauri } from '../platform/menu';
 import { ErrorBoundary } from './ErrorBoundary';
 import { VersionsDialog } from './VersionsDialog';
+import { ShootingView } from './ShootingView';
 
 /** Raccourcis valables partout dans la fenêtre (hors saisie de texte). */
 function useGlobalShortcuts(settingsOpen: boolean) {
@@ -126,6 +127,11 @@ function useGlobalShortcuts(settingsOpen: boolean) {
         st.setView('floor');
         return;
       }
+      if (meta && e.code === 'Digit4') {
+        e.preventDefault();
+        st.setView('shooting');
+        return;
+      }
       if (meta && e.key.toLowerCase() === 'i' && !e.shiftKey) {
         e.preventDefault();
         st.toggleInspector();
@@ -139,7 +145,7 @@ function useGlobalShortcuts(settingsOpen: boolean) {
         return;
       }
       // En vue Plans au sol, ces touches agissent sur le plan au sol, jamais sur le découpage caché.
-      if (st.view === 'floor' && (e.key === 'Backspace' || e.altKey || (meta && e.shiftKey))) return;
+      if ((st.view === 'floor' || st.view === 'shooting') && (e.key === 'Backspace' || e.altKey || (meta && e.shiftKey))) return;
       if (meta && e.key === 'Backspace') {
         e.preventDefault();
         st.deletePlan();
@@ -233,6 +239,13 @@ function Workspace() {
           <div className="center">
             <ErrorBoundary label="plans au sol" key="floor">
               <FloorView />
+            </ErrorBoundary>
+            <StatusBar />
+          </div>
+        ) : view === 'shooting' ? (
+          <div className="center">
+            <ErrorBoundary label="tournage" key="shooting">
+              <ShootingView />
             </ErrorBoundary>
             <StatusBar />
           </div>

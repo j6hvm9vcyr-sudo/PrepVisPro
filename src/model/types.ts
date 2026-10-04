@@ -84,6 +84,21 @@ export interface Sequence {
   /** Dépouillement image : besoins particuliers de la séquence, par département. */
   breakdown: Breakdown;
   plans: Plan[];
+  /** Ordre de tournage par installation ; null tant qu'il n'a pas été établi. */
+  shooting: ShootingOrder | null;
+}
+
+/** Installation : une position de caméra et un sens de lumière, pour plusieurs plans tournés à la suite. */
+export interface Installation {
+  id: Id;
+  name: string;
+  /** Plans de l'installation, dans l'ordre de tournage. */
+  planIds: Id[];
+  note: string;
+}
+
+export interface ShootingOrder {
+  installations: Installation[];
 }
 
 export interface Breakdown {
@@ -148,7 +163,7 @@ export interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 6 as const;
+export const SCHEMA_VERSION = 7 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;

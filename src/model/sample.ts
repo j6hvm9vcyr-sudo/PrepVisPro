@@ -50,6 +50,7 @@ export function sampleProject(): ProjectDoc {
     comments: '',
     scriptText: '',
     breakdown: { camera: '', grip: '', lighting: '', other: '' },
+    shooting: null,
     plans,
   });
 

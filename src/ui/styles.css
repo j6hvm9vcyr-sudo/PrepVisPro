@@ -420,3 +420,33 @@ table.cams input { width: 100%; border: 1px solid var(--border); border-radius: 
 .lens-row { display: grid; grid-template-columns: 54px 1fr 1.3fr auto; gap: 10px; align-items: center; }
 .lens-kind { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text3); }
 .lens-row .decimal-field input { border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-size: 13px; background: var(--field); }
+/* Vue Tournage */
+.shooting { display: grid; grid-template-columns: 200px 1fr; height: 100%; min-height: 0; }
+.shooting-list { border-right: 1px solid var(--border); background: var(--side); padding: 10px 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.shooting-main { overflow-y: auto; padding: 16px 20px 40px; }
+.shooting-seq { display: flex; flex-direction: column; gap: 12px; max-width: 1100px; }
+.shooting-head { display: flex; align-items: flex-start; gap: 10px; }
+.shooting-head h3 { margin: 0 0 2px; font-size: 16px; }
+.shooting-empty { border: 1px dashed var(--border); border-radius: 10px; padding: 14px 16px; background: var(--panel); }
+.shooting-empty p { margin: 0 0 6px; }
+.install { border: 1px solid var(--border); border-radius: 10px; background: var(--panel); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.install.loose { border-style: dashed; background: var(--head); }
+.install-h { display: flex; align-items: center; gap: 8px; }
+.install-n { width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex: none; }
+.install-name { font-size: 14px; font-weight: 700; border: 1px solid transparent; border-radius: 6px; padding: 3px 6px; background: none; color: var(--text); min-width: 160px; }
+.install-name:hover, .install-name:focus { border-color: var(--border); background: var(--field); }
+.install-note { border: none; border-bottom: 1px dashed var(--border-soft); background: none; font-size: 12.5px; padding: 3px 2px; color: var(--text2); }
+.install-plans { display: flex; flex-direction: column; }
+.install-drop { padding: 8px; text-align: center; border: 1px dashed var(--border); border-radius: 6px; }
+.shot-row { display: grid; grid-template-columns: 16px 26px 54px 30px 110px 70px 90px 120px 1fr auto; gap: 8px; align-items: center; padding: 5px 4px; border-top: 1px solid var(--sep); font-size: 13px; cursor: grab; background: var(--panel); }
+.install.loose .shot-row { background: transparent; }
+.shot-row.over { box-shadow: inset 0 2px 0 var(--accent); }
+.shot-grip { color: var(--text3); font-size: 11px; letter-spacing: -2px; }
+.shot-order { color: var(--text3); font-size: 11.5px; text-align: right; }
+.shot-code { font-size: 13px; }
+.shot-v { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text2); }
+.shot-action { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shot-move { display: inline-flex; gap: 2px; }
+.icon-btn { width: 24px; height: 22px; border: 1px solid var(--border-soft); border-radius: 5px; background: var(--panel); color: var(--text2); cursor: pointer; font-size: 12px; padding: 0; }
+.icon-btn:disabled { opacity: 0.35; cursor: default; }
+.icon-btn.danger { color: var(--danger); }

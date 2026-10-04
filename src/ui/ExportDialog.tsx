@@ -204,6 +204,12 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                 <input type="checkbox" checked={opts.showCamera} onChange={(e) => set({ showCamera: e.target.checked })} />
                 Caméra (A, B…) des plans à plusieurs caméras
               </label>
+              {doc.sequences.some((x) => x.shooting) && (
+                <label className="check">
+                  <input type="checkbox" checked={opts.shootingOrder} onChange={(e) => set({ shootingOrder: e.target.checked })} />
+                  Ordre de tournage (installations), en PDF et Excel
+                </label>
+              )}
               {doc.floorPlans.length > 0 && (
                 <label className="check">
                   <input type="checkbox" checked={opts.floorPlans} onChange={(e) => set({ floorPlans: e.target.checked })} />

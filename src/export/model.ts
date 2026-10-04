@@ -9,6 +9,7 @@ import { coverImage } from '../model/images';
 import { missingFields } from '../model/completeness';
 import { sequenceTitle, stripColors } from '../ui/strip';
 import { summarizeSequence } from '../model/summary';
+import { effectiveShooting } from '../model/shooting';
 
 export type ColumnId = 'global' | 'code' | 'image' | 'action' | 'script' | 'size' | 'axis' | 'angle' | 'focal' | 'movement' | 'grip' | 'notes';
 
@@ -56,6 +57,8 @@ export interface ExportOptions {
   breakdown: boolean;
   /** Ajouter les plans au sol des séquences exportées (PDF). */
   floorPlans: boolean;
+  /** Ajouter l'ordre de tournage (installations) des séquences où il est établi. */
+  shootingOrder: boolean;
   /**
    * Mise en page : « dt » = comme un découpage technique habituel (valeur, axe, angle, focale,
    * mouvement, machinerie regroupés dans une case Description) ; « colonnes » = une colonne par réglage.
@@ -80,6 +83,7 @@ const base: Omit<ExportOptions, 'columns'> = {
   markIncomplete: false,
   breakdown: false,
   floorPlans: true,
+  shootingOrder: true,
   layout: 'dt',
   showCamera: true,
 };
@@ -112,6 +116,12 @@ export interface ExportPlan {
   cameras: ExportCameraRow[];
 }
 
+export interface ExportInstallation {
+  name: string;
+  note: string;
+  plans: { order: number; plan: ExportPlan }[];
+}
+
 export interface ExportSequence {
   id: Id;
   number: string;
@@ -127,6 +137,8 @@ export interface ExportSequence {
   breakdown: { camera: string; grip: string; lighting: string; other: string };
   summary: { focals: string; grip: string; movements: string };
   plans: ExportPlan[];
+  /** Ordre de tournage, s'il est établi : installations dans l'ordre, puis plans « à ranger ». */
+  shooting: { installations: ExportInstallation[]; loose: ExportPlan[] } | null;
 }
 
 export interface ExportModel {
@@ -186,6 +198,7 @@ export function buildExportModel(doc: ProjectDoc, opts: Pick<ExportOptions, 'seq
       breakdown: { ...s.breakdown },
       summary: summarizeSequence(s),
       plans: s.plans.map((p) => planRow(p, doc, numbers.get(p.id)!)),
+      shooting: shootingOf(s, doc, numbers),
     }),
   );
   return {
@@ -266,6 +279,16 @@ export function dtColumns(opts: ExportOptions, multiCamera: boolean): DtCol[] {
   return out;
 }
 
+
+function shootingOf(s: Sequence, doc: ProjectDoc, numbers: ReturnType<typeof computeNumbers>): ExportSequence['shooting'] {
+  const e = effectiveShooting(s);
+  if (!e) return null;
+  let order = 0;
+  return {
+    installations: e.installations.filter((i) => i.plans.length).map((i) => ({ name: i.name, note: i.note, plans: i.plans.map((p) => ({ order: ++order, plan: planRow(p, doc, numbers.get(p.id)!) })) })),
+    loose: e.loose.map((p) => planRow(p, doc, numbers.get(p.id)!)),
+  };
+}
 
 /** Valeur texte d'une cellule non liée à une caméra. */
 export function planValue(p: ExportPlan, col: ColumnId): string {

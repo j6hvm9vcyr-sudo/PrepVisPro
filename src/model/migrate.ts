@@ -21,6 +21,7 @@ export function migrate(raw: unknown): MigrateResult {
   if (v <= 3) doc = { ...doc, schemaVersion: 4, floorPlans: [] };
   if (v <= 4) doc = from4to5(doc);
   if (v <= 5) doc = from5to6(doc);
+  if (v <= 6) doc = from6to7(doc);
   return { ok: true, raw: doc };
 }
 
@@ -60,4 +61,10 @@ function from4to5(doc: Record<string, unknown>): Record<string, unknown> {
 function from5to6(doc: Record<string, unknown>): Record<string, unknown> {
   const settings = doc.settings && typeof doc.settings === 'object' ? (doc.settings as Record<string, unknown>) : null;
   return { ...doc, schemaVersion: 6, ...(settings ? { settings: { lenses: [], ...settings } } : {}) };
+}
+
+/** Format 6 → 7 : ordre de tournage par séquence (pas encore établi). */
+function from6to7(doc: Record<string, unknown>): Record<string, unknown> {
+  const seqs = Array.isArray(doc.sequences) ? doc.sequences : [];
+  return { ...doc, schemaVersion: 7, sequences: seqs.map((s) => (s && typeof s === 'object' ? { shooting: null, ...(s as object) } : s)) };
 }

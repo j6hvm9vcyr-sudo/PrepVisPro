@@ -91,7 +91,7 @@ describe('fichier projet', () => {
   });
 
   it('refuse un fichier d’une version future', () => {
-    const d = { ...newProject(), schemaVersion: 7 };
+    const d = { ...newProject(), schemaVersion: 99 };
     const r = parseProject(JSON.stringify(d));
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toMatch(/plus récente/);

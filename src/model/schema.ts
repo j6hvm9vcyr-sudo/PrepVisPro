@@ -58,6 +58,7 @@ const sequence = z.object({
   scriptText: z.string(),
   breakdown: z.object({ camera: z.string(), grip: z.string(), lighting: z.string(), other: z.string() }),
   plans: z.array(plan).min(1),
+  shooting: z.object({ installations: z.array(z.object({ id, name: z.string(), planIds: z.array(id), note: z.string() })) }).nullable(),
 });
 
 const point = z.object({ x: z.number().finite(), y: z.number().finite() });

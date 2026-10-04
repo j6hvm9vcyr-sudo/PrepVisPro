@@ -64,6 +64,8 @@ export async function buildWorkbook(m: ExportModel, opts: ExportOptions, images:
   else buildColumnsSheet(wb, m, opts, images);
 
   // ---------------------------------------------------------- dépouillement image
+  if (opts.shootingOrder && m.sequences.some((x) => x.shooting)) buildShootingSheet(wb, m);
+
   if (opts.breakdown) {
     const bd = wb.addWorksheet('Dépouillement image', {
       views: [{ state: 'frozen', ySplit: 1 }],
@@ -407,5 +409,79 @@ function buildFloorSheet(wb: ExcelJS.Workbook, m: ExportModel, floors: PdfFloorP
       }
     }
     r += 2;
+  }
+}
+
+// ------------------------------------------------------------------ ordre de tournage
+
+function buildShootingSheet(wb: ExcelJS.Workbook, m: ExportModel) {
+  const ws = wb.addWorksheet('Ordre de tournage', {
+    views: [{ state: 'frozen', ySplit: 1, showGridLines: false }],
+    pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+    headerFooter: { oddFooter: `&L${(m.title || '').replace(/&/g, '&&')} — Ordre de tournage${m.version ? ` · ${m.version.replace(/&/g, '&&')}` : ''}&RPage &P / &N` },
+  });
+  const cols: [string, string, number][] = [
+    ['order', 'ORDRE', 7],
+    ['code', 'PLAN', 8],
+    ['size', 'VALEUR', 16],
+    ['axis', 'AXE', 10],
+    ['focal', 'FOCALE', 12],
+    ['movement', 'MOUVEMENT', 18],
+    ['grip', 'MACHINERIE', 16],
+    ['action', 'ACTION', 50],
+  ];
+  ws.columns = cols.map(([, , w]) => ({ width: w }));
+  const head = ws.getRow(1);
+  cols.forEach(([, l], i) => {
+    const c = head.getCell(i + 1);
+    c.value = l;
+    c.font = { name: DT_FONT, size: 9, color: { argb: 'FFFFFFFF' } };
+    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF464646' } };
+    c.alignment = { horizontal: 'center' };
+    c.border = BLACK_THIN;
+  });
+  ws.pageSetup.printTitlesRow = '1:1';
+  const value = (p: ExportModel['sequences'][number]['plans'][number], k: string) =>
+    k === 'code' ? p.code : k === 'action' ? p.action : p.cameras.map((c) => (p.cameras.length > 1 ? `${c.label} : ` : '') + (c.values[k as ColumnId] ?? '')).join('\n');
+  let r = 2;
+  const line = (order: number | null, p: ExportModel['sequences'][number]['plans'][number], tint: string) => {
+    const row = ws.getRow(r++);
+    cols.forEach(([k], i) => {
+      const c = row.getCell(i + 1);
+      c.value = k === 'order' ? (order ?? '') : value(p, k);
+      c.font = { name: DT_FONT, size: 9, bold: k === 'code' };
+      c.alignment = { vertical: 'top', wrapText: true };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: argb(tint) } };
+      c.border = BLACK_THIN;
+    });
+    row.height = rowHeight(cols.map(([k, , w]) => ({ text: k === 'order' ? '' : value(p, k), width: w })), 9);
+  };
+  for (const s of m.sequences) {
+    if (!s.shooting) continue;
+    ws.mergeCells(r, 1, r, cols.length);
+    const b = ws.getRow(r).getCell(1);
+    b.value = s.heading;
+    b.font = { name: DT_FONT, size: 13, bold: true };
+    b.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: argb(s.tint) } };
+    b.border = { ...BLACK_THIN, top: { style: 'medium', color: { argb: 'FF000000' } }, bottom: { style: 'medium', color: { argb: 'FF000000' } } };
+    ws.getRow(r).height = 22;
+    r++;
+    s.shooting.installations.forEach((ins, i) => {
+      ws.mergeCells(r, 1, r, cols.length);
+      const c = ws.getRow(r).getCell(1);
+      c.value = `Installation ${i + 1} · ${ins.name}${ins.note ? ` — ${ins.note}` : ''}`;
+      c.font = { name: DT_FONT, size: 10, bold: true };
+      r++;
+      for (const x of ins.plans) line(x.order, x.plan, s.tint);
+    });
+    if (s.shooting.loose.length) {
+      ws.mergeCells(r, 1, r, cols.length);
+      const c = ws.getRow(r).getCell(1);
+      c.value = 'À ranger';
+      c.font = { name: DT_FONT, size: 10, bold: true, color: { argb: 'FF9A4F00' } };
+      r++;
+      for (const p of s.shooting.loose) line(null, p, '#FFFFFF');
+    }
+    r++;
   }
 }

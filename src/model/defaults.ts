@@ -65,6 +65,7 @@ export function newSequence(number: string, cameraId: Id): Sequence {
     scriptText: '',
     breakdown: emptyBreakdown(),
     plans: [newPlan(cameraId)],
+    shooting: null,
   };
 }
 

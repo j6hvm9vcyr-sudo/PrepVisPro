@@ -211,3 +211,60 @@ test('bibliothèque d’icônes : import d’un dossier, recherche, pose sur le 
   expect(readFileSync(await (await dl).path()).subarray(1, 4).toString()).toBe('PNG');
   await page.screenshot({ path: 'test-results/17-icones.png' });
 });
+
+test('tournage : installations proposées d’après le plan au sol, réorganisées à la main', async ({ page }) => {
+  await page.goto('/?exemple');
+  await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
+  await page.keyboard.press('ControlOrMeta+3');
+  await page.getByLabel('Créer un plan au sol pour la séquence').selectOption({ label: '1 — Quai de gare' });
+  const canvas = page.getByRole('application', { name: 'Plan au sol' });
+  const box = (await page.locator('.floor-canvas svg').boundingBox())!;
+  const at = (fx: number, fy: number) => ({ x: box.x + box.width * fx, y: box.y + box.height * fy });
+  // 1/1 et 1/2 depuis le bas (champ), 1/3 depuis le haut (contrechamp) ; 1/2B pas placé.
+  for (const [code, fx, fy] of [['1/1', 0.5, 0.85], ['1/2', 0.52, 0.83], ['1/3', 0.5, 0.15]] as const) {
+    await page.locator('.place-item').filter({ has: page.getByText(code, { exact: true }) }).click();
+    const p = at(fx, fy);
+    await page.mouse.click(p.x, p.y);
+  }
+  // Orienter la caméra du 1/3 vers le bas (contrechamp) : R tourne de 15°, on règle directement l'orientation.
+  await page.getByLabel('Orientation en degrés').fill('180');
+  await page.keyboard.press('Enter');
+  await canvas.press('Escape');
+
+  await page.keyboard.press('ControlOrMeta+4');
+  await page.getByRole('button', { name: 'Proposer un ordre' }).click();
+  const installs = page.locator('.install:not(.loose)');
+  await expect(installs).toHaveCount(3);
+  // 1/3 (Général → Poitrine) est le plus large : son côté passe en premier, puis l'autre côté du large au serré.
+  await expect(installs.nth(0).locator('.shot-code')).toHaveText(['1/3']);
+  await expect(installs.nth(0).locator('.install-name')).toHaveValue('Champ 1');
+  await expect(installs.nth(1).locator('.shot-code')).toHaveText(['1/1', '1/2']);
+  await expect(installs.nth(1).locator('.install-name')).toHaveValue('Contrechamp 2');
+  await expect(installs.nth(2).locator('.install-name')).toHaveValue('Hors plan au sol');
+  await expect(page.locator('.shot-order')).toHaveText(['1', '2', '3', '4']);
+  // Réorganiser : 1/2 passe avant 1/1.
+  await page.getByRole('button', { name: 'Monter 1/2', exact: true }).click();
+  await expect(installs.nth(1).locator('.shot-code')).toHaveText(['1/2', '1/1']);
+  // Glisser 1/2B dans la première installation.
+  await page.locator('.shot-row', { hasText: '1/2B' }).dragTo(installs.nth(0).locator('.shot-row').first());
+  await expect(installs.nth(0).locator('.shot-code')).toHaveText(['1/2B', '1/3']);
+  // Un plan ajouté au découpage apparaît « à ranger ».
+  await page.keyboard.press('ControlOrMeta+1');
+  await page.keyboard.press('ControlOrMeta+Enter');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('ControlOrMeta+4');
+  await expect(page.locator('.install.loose .shot-row')).toHaveCount(1);
+  await page.screenshot({ path: 'test-results/19-tournage.png' });
+  // L'ordre de tournage part dans l'Excel.
+  await page.getByRole('button', { name: 'Exporter…' }).first().click();
+  await expect(page.getByLabel('Ordre de tournage (installations), en PDF et Excel')).toBeChecked();
+  const dl = page.waitForEvent('download');
+  await page.getByRole('dialog', { name: 'Exporter' }).getByRole('button', { name: 'Excel', exact: true }).click();
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(readFileSync(await (await dl).path()).buffer as ArrayBuffer);
+  const sh = wb.getWorksheet('Ordre de tournage')!;
+  const vals: unknown[] = [];
+  sh.eachRow((r) => r.eachCell((c) => vals.push(c.value)));
+  expect(vals).toContain('Installation 1 · Champ 1');
+  expect(vals).toContain('À ranger');
+});

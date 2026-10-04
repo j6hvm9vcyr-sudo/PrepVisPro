@@ -347,6 +347,87 @@ export async function renderFloorPdf(title: string, director: string, floors: Pd
   return new Uint8Array(await blob.arrayBuffer());
 }
 
+// ------------------------------------------------------------------ ordre de tournage
+
+const SH_COLS: { k: string; label: string; w: number }[] = [
+  { k: 'order', label: 'ORDRE', w: 0.5 },
+  { k: 'code', label: 'PLAN', w: 0.7 },
+  { k: 'size', label: 'VALEUR', w: 1.3 },
+  { k: 'axis', label: 'AXE', w: 0.8 },
+  { k: 'focal', label: 'FOCALE', w: 1 },
+  { k: 'movement', label: 'MOUVEMENT', w: 1.3 },
+  { k: 'grip', label: 'MACHINERIE', w: 1.2 },
+  { k: 'action', label: 'ACTION', w: 3 },
+];
+
+function shotValue(p: ExportPlan, k: string): string {
+  if (k === 'code') return p.code;
+  if (k === 'action') return p.action;
+  return p.cameras.map((c) => (p.cameras.length > 1 ? `${c.label} : ` : '') + (c.values[k as ColumnId] ?? '')).join('\n');
+}
+
+function ShootingPages({ m, opts, date, pageW }: { m: ExportModel; opts: ExportOptions; date: string; pageW: number }) {
+  const total = SH_COLS.reduce((n, c) => n + c.w, 0);
+  const w = (c: (typeof SH_COLS)[number]) => (pageW * c.w) / total;
+  const row = (order: number | null, p: ExportPlan, tint: string) => (
+    <View key={p.id} style={[dt.row, { backgroundColor: tint }]} wrap={false}>
+      {SH_COLS.map((c, i) => (
+        <View key={c.k} style={[dt.td, { width: w(c) }, i === SH_COLS.length - 1 ? { borderRightWidth: 0 } : {}]}>
+          <Text style={[dt.text, ...(c.k === 'code' ? [s.code] : c.k === 'order' ? [s.mono, s.muted] : c.k === 'focal' ? [s.mono] : [])]}>{c.k === 'order' ? (order ?? '–') : shotValue(p, c.k)}</Text>
+        </View>
+      ))}
+    </View>
+  );
+  return (
+    <Page size="A4" orientation={opts.orientation} style={s.page}>
+      <View style={s.head} fixed>
+        <Text>
+          {m.title} — Ordre de tournage{m.version ? ` · ${m.version}` : ''}
+        </Text>
+        <Text>{date}</Text>
+      </View>
+      <View style={dt.head} fixed>
+        {SH_COLS.map((c) => (
+          <Text key={c.k} style={[dt.th, { width: w(c) }]}>
+            {c.label}
+          </Text>
+        ))}
+      </View>
+      {m.sequences
+        .filter((x) => x.shooting)
+        .map((seq) => (
+          <View key={seq.id}>
+            <View style={[dt.band, { backgroundColor: seq.tint }]} wrap={false} minPresenceAhead={60}>
+              <Text style={dt.bandTitle}>{seq.heading}</Text>
+              {seq.address ? <Text style={dt.bandAddr}>{seq.address}</Text> : null}
+            </View>
+            {seq.shooting!.installations.map((ins, i) => (
+              <View key={i}>
+                <View style={{ flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 6, borderBottomWidth: 0.5, borderColor: DT_LINE }} wrap={false} minPresenceAhead={30}>
+                  <Text style={{ fontSize: 9, fontWeight: 700 }}>
+                    Installation {i + 1} · {ins.name}
+                  </Text>
+                  {ins.note ? <Text style={{ fontSize: 8, color: INK2, marginLeft: 10, flex: 1 }}>{ins.note}</Text> : null}
+                </View>
+                {ins.plans.map((x) => row(x.order, x.plan, seq.tint))}
+              </View>
+            ))}
+            {seq.shooting!.loose.length > 0 && (
+              <View>
+                <Text style={{ fontSize: 9, fontWeight: 700, paddingVertical: 4, paddingHorizontal: 6, color: '#9A4F00' }}>À ranger</Text>
+                {seq.shooting!.loose.map((p) => row(null, p, '#FFFFFF'))}
+              </View>
+            )}
+          </View>
+        ))}
+      <View style={s.foot} fixed>
+        <Text>PrepVisPro</Text>
+        <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
+      </View>
+    </Page>
+  );
+}
+
 export function DecoupagePdf({ m, opts, images, floors = [] }: { m: ExportModel; opts: ExportOptions; images: Map<string, PdfImage>; floors?: PdfFloorPage[] }): ReactElement {
   const pageW = (opts.orientation === 'landscape' ? 841.89 : 595.28) - 52;
   const w = widths(opts, pageW, m.multiCamera && opts.showCamera);
@@ -449,6 +530,7 @@ export function DecoupagePdf({ m, opts, images, floors = [] }: { m: ExportModel;
           </View>
         </Page>
       )}
+      {opts.shootingOrder && m.sequences.some((x) => x.shooting) && <ShootingPages m={m} opts={opts} date={date} pageW={pageW} />}
       {opts.breakdown && (
         <Page size="A4" orientation={opts.orientation} style={s.page}>
           <View style={s.head} fixed>
