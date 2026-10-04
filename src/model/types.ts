@@ -79,6 +79,8 @@ export interface Sequence {
   location: string;
   address: string;
   comments: string;
+  /** Texte de la scène, importé du scénario (vide si saisi à la main). */
+  scriptText: string;
   plans: Plan[];
 }
 
@@ -121,7 +123,7 @@ export interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 1 as const;
+export const SCHEMA_VERSION = 2 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;

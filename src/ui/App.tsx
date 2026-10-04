@@ -9,6 +9,8 @@ import { DropChoice, Preview, SequenceDialog, Shortcuts } from './Overlays';
 import { SettingsDialog } from './Settings';
 import { Welcome } from './Welcome';
 import { ExportDialog } from './ExportDialog';
+import { ImportDialog } from './ImportDialog';
+import { startScriptImport } from '../import/flow';
 import { useProject, saveNow, newProjectDialog, openDialog } from '../state/project';
 import { focusGrid, isTypingTarget } from './focus';
 import { isMenuShortcut, isTauri } from '../platform/menu';
@@ -78,6 +80,11 @@ function useGlobalShortcuts(settingsOpen: boolean) {
       if (meta && !e.shiftKey && e.key.toLowerCase() === 'e') {
         e.preventDefault();
         st.setShowExport(true);
+        return;
+      }
+      if (meta && e.shiftKey && e.key.toLowerCase() === 'i') {
+        e.preventDefault();
+        void startScriptImport();
         return;
       }
       if (meta && e.key === ',') {
@@ -153,7 +160,8 @@ function Workspace() {
   const inspector = useApp((s) => s.inspector);
   const settings = useApp((s) => s.showSettings);
   const exporting = useApp((s) => s.showExport);
-  useGlobalShortcuts(settings || exporting);
+  const importing = useApp((s) => !!s.importing);
+  useGlobalShortcuts(settings || exporting || importing);
 
   // Empêche le navigateur d'ouvrir une image lâchée hors d'une zone prévue.
   useEffect(() => {
@@ -183,6 +191,7 @@ function Workspace() {
       <SequenceDialog />
       {settings && <SettingsDialog onClose={() => useApp.getState().setShowSettings(false)} />}
       {exporting && <ExportDialog onClose={() => useApp.getState().setShowExport(false)} />}
+      <ImportDialog />
     </div>
   );
 }

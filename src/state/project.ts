@@ -212,10 +212,24 @@ export async function newProjectDialog(): Promise<boolean> {
   return newProjectAt(dir);
 }
 
-/** Crée un projet vide dans `dir` (dossier .prepvis) et l'ouvre. */
-export async function newProjectAt(dir: string): Promise<boolean> {
+/** Crée un projet à partir d'un document déjà préparé (import de scénario). */
+export async function newProjectWithDoc(doc: ProjectDoc, suggestedName: string): Promise<boolean> {
   backend ??= await getBackend();
-  const doc = newProject(baseName(dir));
+  if (backend.kind === 'memory') {
+    // Navigateur : projet non enregistré.
+    if (!(await closeProject())) return false;
+    openDoc(doc, 'unsaved', null);
+    return true;
+  }
+  const dir = await backend.pickNew(suggestedName);
+  if (!dir) return false;
+  return newProjectAt(dir, doc);
+}
+
+/** Crée un projet dans `dir` (dossier .prepvis) et l'ouvre. */
+export async function newProjectAt(dir: string, prepared?: ProjectDoc): Promise<boolean> {
+  backend ??= await getBackend();
+  const doc = prepared ?? newProject(baseName(dir));
   try {
     // Créé d'abord sur disque : en cas d'échec, le projet en cours reste ouvert.
     const real = await backend.create(dir, serializeProject(doc));

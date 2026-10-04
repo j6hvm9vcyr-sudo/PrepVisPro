@@ -42,6 +42,8 @@ export function Inspector() {
           L’image principale s’affiche dans le tableau et les exports. Par défaut c’est la première photo de repérage, sinon la première référence.
         </p>
 
+        {loc.seq.scriptText && <SceneText planId={plan.id} text={loc.seq.scriptText} number={loc.seq.number} />}
+
         <label className="sec">
           <span className="sec-h">Extrait du scénario</span>
           <textarea
@@ -183,6 +185,38 @@ function CameraList({ plan }: { plan: Plan }) {
       <p className="note" style={{ margin: 0 }}>
         Champ horizontal calculé à partir de la largeur active du capteur (Réglages), mise au point à l’infini.
       </p>
+    </section>
+  );
+}
+
+/** Texte de la scène importée : on y sélectionne l'extrait qui correspond au plan. */
+function SceneText({ planId, text, number }: { planId: string; text: string; number: string }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const [open, setOpen] = useState(true);
+  const use = () => {
+    const el = ref.current;
+    if (!el) return;
+    const sel = el.value.slice(el.selectionStart, el.selectionEnd).trim();
+    if (!sel) {
+      useApp.getState().setMessage('Sélectionnez d’abord un passage dans le texte de la scène.', 'warn');
+      return;
+    }
+    useApp.getState().setPlanText(planId, 'scriptExcerpt', sel);
+    useApp.getState().setMessage('Extrait du plan mis à jour · ⌘Z pour annuler');
+  };
+  return (
+    <section className="sec" aria-label="Scène du scénario">
+      <div className="sec-h">
+        <button type="button" className="linkbtn" style={{ padding: 0, color: 'var(--text)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: 11 }} onClick={() => setOpen(!open)} aria-expanded={open}>
+          {open ? '▾' : '▸'} Scène {number} (scénario)
+        </button>
+        {open && (
+          <button type="button" className="linkbtn" onClick={use}>
+            Sélection → extrait
+          </button>
+        )}
+      </div>
+      {open && <textarea ref={ref} className="scene-text" readOnly rows={7} value={text} aria-label={`Texte de la scène ${number}`} />}
     </section>
   );
 }

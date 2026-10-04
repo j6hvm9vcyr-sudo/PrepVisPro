@@ -15,6 +15,17 @@ export async function install() {
   mutable.confirm = async () => true;
   (window as unknown as Record<string, unknown>).__prepvis = {
     alerts,
+    async exportTo(path: string, format: 'pdf' | 'xlsx' | 'csv') {
+      const { buildExport } = await import('./export/service');
+      const { BUILTIN_PRESETS } = await import('./export/model');
+      const built = await buildExport(selectDoc(useApp.getState()), format, BUILTIN_PRESETS[0]!.options);
+      await b.writeExport(path, built.bytes);
+      return built.failedImages;
+    },
+    async readScript(path: string) {
+      const { invoke } = await import('@tauri-apps/api/core');
+      return invoke<string>('script_read', { path });
+    },
     newProjectAt,
     openPath,
     closeProject,

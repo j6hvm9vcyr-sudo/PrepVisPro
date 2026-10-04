@@ -217,6 +217,20 @@ pub fn write_export(path: &Path, bytes: &[u8]) -> Result<()> {
     atomic_write(path, bytes)
 }
 
+/// Lit un scénario (Final Draft .fdx) choisi par l'utilisateur. Taille limitée à 20 Mo.
+pub fn read_script(path: &Path) -> Result<String> {
+    let ext = path.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
+    if !["fdx", "xml"].contains(&ext.as_str()) {
+        return Err("Format de scénario non pris en charge (attendu : Final Draft .fdx)".into());
+    }
+    let meta = fs::metadata(path).map_err(err("Scénario introuvable"))?;
+    if meta.len() > 20 * 1024 * 1024 {
+        return Err("Fichier trop lourd pour un scénario".into());
+    }
+    let bytes = fs::read(path).map_err(err("Lecture du scénario impossible"))?;
+    String::from_utf8(bytes).map_err(|_| "Le scénario n'est pas encodé en UTF-8".into())
+}
+
 /// Normalise le chemin choisi : un fichier project.json désigne son dossier.
 pub fn project_dir_from_pick(p: &Path) -> PathBuf {
     if p.file_name().map(|n| n == PROJECT_FILE).unwrap_or(false) {

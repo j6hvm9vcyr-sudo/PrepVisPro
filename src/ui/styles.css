@@ -281,3 +281,14 @@ table.cams input { width: 100%; border: 1px solid var(--border); border-radius: 
 .export-actions .btn.big { flex: 1; }
 .export-done { display: flex; flex-direction: column; gap: 8px; background: color-mix(in srgb, var(--ok) 10%, var(--panel)); border: 1px solid color-mix(in srgb, var(--ok) 35%, var(--panel)); border-radius: 8px; padding: 10px 12px; user-select: text; -webkit-user-select: text; }
 .field-input { flex: 1; border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; background: var(--field); }
+
+/* ---------- import ---------- */
+.import-table { display: flex; flex-direction: column; max-height: 380px; overflow: auto; border: 1px solid var(--border-soft); border-radius: 8px; }
+.import-row { display: grid; grid-template-columns: 28px 70px minmax(0, 1fr) 90px; gap: 8px; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--sep); font-size: 13px; }
+.import-row.head { position: sticky; top: 0; background: var(--head); font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text2); z-index: 1; }
+.import-row.same { color: var(--text3); }
+.import-row .doubt { color: var(--warn-text); font-weight: 600; }
+.status-pill { justify-self: start; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: var(--border-soft); color: var(--text2); }
+.status-pill.new { background: var(--accent-soft); color: var(--accent); }
+.status-pill.changed { background: color-mix(in srgb, var(--warn) 18%, var(--panel)); color: var(--warn-text); }
+.scene-text { font-family: var(--mono); font-size: 12px; line-height: 18px; white-space: pre-wrap; background: var(--side); border: 1px solid var(--border); border-radius: 6px; padding: 8px; max-height: 220px; overflow: auto; user-select: text; -webkit-user-select: text; color: var(--text2); width: 100%; resize: vertical; }

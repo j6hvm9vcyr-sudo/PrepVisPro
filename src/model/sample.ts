@@ -44,6 +44,7 @@ export function sampleProject(): ProjectDoc {
     location,
     address: '',
     comments: '',
+    scriptText: '',
     plans,
   });
 

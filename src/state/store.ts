@@ -38,6 +38,7 @@ export interface AppState {
   editingSequenceId: Id | null;
   showSettings: boolean;
   showExport: boolean;
+  importing: { name: string; scenes: import('../import/fdx').ScriptScene[] } | null;
 }
 
 const MESSAGE_CLEAR = null;
@@ -59,6 +60,7 @@ export function initialState(doc: ProjectDoc): AppState {
     editingSequenceId: null,
     showSettings: false,
     showExport: false,
+    importing: null,
   };
 }
 
@@ -122,6 +124,9 @@ interface Actions {
   setEditingSequence(id: Id | null): void;
   setShowSettings(v: boolean): void;
   setShowExport(v: boolean): void;
+  setImporting(v: AppState['importing']): void;
+  /** Remplace le document (import), en une étape annulable. */
+  replaceDoc(doc: ProjectDoc, message: string): void;
   setShowSettings(v: boolean): void;
   /** Modification libre du document (réglages, infos projet). */
   updateDoc(fn: (d: Draft<ProjectDoc>) => void, mergeKey?: string, message?: string): void;
@@ -583,6 +588,17 @@ export function createAppStore(doc: ProjectDoc) {
 
       setShowExport(v) {
         set({ showExport: v, editing: null });
+      },
+
+      setImporting(v) {
+        set({ importing: v, editing: null });
+      },
+
+      replaceDoc(doc, message) {
+        const c = cur();
+        const keep = c && ops.locatePlan(doc, c.planId);
+        const first = allLines(doc)[0];
+        commit(doc, keep ? c : first ? { planId: first.planId, setupId: first.setupId, col: 'size' } : null, message);
       },
 
       updateDoc(fn, mergeKey, message) {

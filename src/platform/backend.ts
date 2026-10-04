@@ -24,6 +24,8 @@ export interface Backend {
   pickExportPath(defaultName: string, ext: 'pdf' | 'xlsx' | 'csv'): Promise<string | null>;
   writeExport(path: string, bytes: Uint8Array): Promise<void>;
   openFile(path: string): Promise<void>;
+  /** Choisit et lit un scénario Final Draft ; null si annulé. */
+  pickScript(): Promise<{ name: string; text: string } | null>;
   alert(title: string, text: string): Promise<void>;
   confirm(title: string, text: string, ok: string, cancel: string): Promise<boolean>;
   quitNow(): Promise<void>;
@@ -133,6 +135,15 @@ class TauriBackend implements Backend {
     await invoke('open_file', { path });
   }
 
+  async pickScript() {
+    const { open } = await this.dialog();
+    const p = await open({ title: 'Importer un scénario', multiple: false, directory: false, filters: [{ name: 'Final Draft', extensions: ['fdx'] }] });
+    if (typeof p !== 'string') return null;
+    const { invoke } = await this.core();
+    const text = await invoke<string>('script_read', { path: p });
+    return { name: p.split('/').pop() ?? p, text };
+  }
+
   async alert(title: string, text: string) {
     const { message } = await this.dialog();
     await message(text, { title, kind: 'error' });
@@ -224,6 +235,22 @@ export class MemoryBackend implements Backend {
     }
   }
   async openFile() {}
+  /** Pour les tests : prochain scénario « choisi ». */
+  nextScript: { name: string; text: string } | null = null;
+  async pickScript() {
+    if (this.nextScript) return this.nextScript;
+    // Navigateur : sélecteur de fichier classique.
+    return new Promise<{ name: string; text: string } | null>((resolve) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.fdx';
+      input.onchange = async () => {
+        const f = input.files?.[0];
+        resolve(f ? { name: f.name, text: await f.text() } : null);
+      };
+      input.click();
+    });
+  }
   async alert() {}
   async confirm() {
     return true;

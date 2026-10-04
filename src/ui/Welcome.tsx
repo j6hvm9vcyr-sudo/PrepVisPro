@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { baseName, getBackend } from '../platform/backend';
+import { newProjectFromScript } from '../import/flow';
 import { forgetRecent, newProjectDialog, openBlankUnsaved, openDialog, openPath, openSample, recentProjects, useProject } from '../state/project';
 
 export function Welcome() {
@@ -78,6 +79,9 @@ export function Welcome() {
         )}
 
         <div className="welcome-foot">
+          <button type="button" className="linkbtn" onClick={() => void newProjectFromScript()} style={{ display: 'block', marginBottom: 6 }}>
+            Nouveau projet depuis un scénario Final Draft…
+          </button>
           {mac ? (
             <button type="button" className="linkbtn" onClick={() => void openSample()}>
               Découvrir avec un projet d’exemple

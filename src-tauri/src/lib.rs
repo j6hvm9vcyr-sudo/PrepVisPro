@@ -107,6 +107,11 @@ fn export_write(request: Request<'_>) -> Result<(), String> {
     storage::write_export(Path::new(&path), bytes)
 }
 
+#[tauri::command]
+fn script_read(path: String) -> Result<String, String> {
+    storage::read_script(Path::new(&path))
+}
+
 /// Ouvre un fichier avec l'application par défaut (Aperçu, Excel…).
 #[tauri::command]
 fn open_file(path: String) -> Result<(), String> {
@@ -189,6 +194,7 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
         .item(&item("file_save", "Enregistrer", "CmdOrCtrl+S")?)
         .item(&plain("file_reveal", "Afficher dans le Finder")?)
         .separator()
+        .item(&item("file_import_script", "Importer un scénario (Final Draft)…", "CmdOrCtrl+Shift+I")?)
         .item(&item("file_export", "Exporter…", "CmdOrCtrl+E")?)
         .separator()
         .item(&item("file_close", "Fermer le projet", "CmdOrCtrl+Shift+W")?)
@@ -259,7 +265,7 @@ fn request_quit(app: &AppHandle) {
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![project_create, project_load, project_save, image_write, reveal_in_finder, quit_ack, quit_now, take_pending_open, image_read, export_write, open_file])
+        .invoke_handler(tauri::generate_handler![project_create, project_load, project_save, image_write, reveal_in_finder, quit_ack, quit_now, take_pending_open, image_read, export_write, open_file, script_read])
         .setup(|app| {
             build_menu(app)?;
             Ok(())

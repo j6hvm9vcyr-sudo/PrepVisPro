@@ -55,6 +55,7 @@ const sequence = z.object({
   location: z.string(),
   address: z.string(),
   comments: z.string(),
+  scriptText: z.string(),
   plans: z.array(plan).min(1),
 });
 

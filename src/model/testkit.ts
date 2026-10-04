@@ -29,7 +29,7 @@ export function plan(camId: string, partial: Partial<Plan> = {}): Plan {
 }
 
 export function seq(number: string, plans: Plan[], partial: Partial<Sequence> = {}): Sequence {
-  return { id: uid('s'), number, intExt: 'INT', dayNight: 'JOUR', location: '', address: '', comments: '', plans, ...partial };
+  return { id: uid('s'), number, intExt: 'INT', dayNight: 'JOUR', location: '', address: '', comments: '', scriptText: '', plans, ...partial };
 }
 
 export function doc(build: (camId: string) => Sequence[]): ProjectDoc {

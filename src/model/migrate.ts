@@ -14,6 +14,18 @@ export function migrate(raw: unknown): MigrateResult {
   if (v > SCHEMA_VERSION) {
     return { ok: false, error: `Ce projet a été créé avec une version plus récente de PrepVisPro (format ${v}). Mettez l’application à jour.` };
   }
-  // Format 1 : courant. Les prochaines étapes s'ajouteront ici : if (v === 1) raw = from1to2(raw) …
-  return { ok: true, raw };
+  let doc = raw as Record<string, unknown>;
+  // Étapes successives, de version en version.
+  if (v <= 1) doc = from1to2(doc);
+  return { ok: true, raw: doc };
+}
+
+/** Format 1 → 2 : chaque séquence reçoit le texte de sa scène (vide). */
+function from1to2(doc: Record<string, unknown>): Record<string, unknown> {
+  const seqs = Array.isArray(doc.sequences) ? doc.sequences : [];
+  return {
+    ...doc,
+    schemaVersion: 2,
+    sequences: seqs.map((s) => (s && typeof s === 'object' ? { scriptText: '', ...(s as object) } : s)),
+  };
 }

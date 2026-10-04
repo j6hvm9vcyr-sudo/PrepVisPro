@@ -5,6 +5,7 @@
 import { useApp } from '../state/appStore';
 import { selectCursor } from '../state/store';
 import { isTypingTarget } from '../ui/focus';
+import { startScriptImport } from '../import/flow';
 
 export { isTauri } from './env';
 import { isTauri } from './env';
@@ -14,7 +15,7 @@ import { closeProject, newProjectDialog, openDialog, openPath, quitApp, revealPr
 export function isMenuShortcut(e: Pick<KeyboardEvent, 'key' | 'code' | 'shiftKey' | 'altKey'>): boolean {
   if (e.altKey) return false;
   const k = e.key.toLowerCase();
-  return k === 'z' || e.code === 'Digit1' || e.code === 'Digit2' || k === 'i' || k === 'enter' || (e.shiftKey && k === 'c') || k === 's' || k === 'o' || k === 'n' || k === ',' || k === 'q' || k === 'e';
+  return k === 'z' || e.code === 'Digit1' || e.code === 'Digit2' || k === 'i' || k === 'enter' || (e.shiftKey && (k === 'c' || k === 'i')) || k === 's' || k === 'o' || k === 'n' || k === ',' || k === 'q' || k === 'e';
 }
 
 /** Exécute une commande de menu. Exporté pour les tests. */
@@ -43,7 +44,7 @@ export function runMenuCommand(id: string) {
   if (useProject.getState().mode === 'none') return;
   const st = useApp.getState();
   const typing = isTypingTarget(document.activeElement);
-  const overlay = !!(st.preview || st.showShortcuts || st.pendingDrop || st.editingSequenceId);
+  const overlay = !!(st.preview || st.showShortcuts || st.pendingDrop || st.editingSequenceId || st.importing || st.showExport || st.showSettings);
   switch (id) {
     case 'undo':
       // Dans un champ de texte, ⌘Z annule la frappe ; ailleurs, la dernière action du projet.
@@ -62,6 +63,9 @@ export function runMenuCommand(id: string) {
       return;
     case 'view_inspector':
       st.toggleInspector();
+      return;
+    case 'file_import_script':
+      void startScriptImport();
       return;
     case 'file_export':
       st.setShowExport(true);

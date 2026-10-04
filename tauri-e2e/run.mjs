@@ -80,6 +80,20 @@ try {
   const loaded = await exec(`return await new Promise((res) => { const i = new Image(); i.onload = () => res(i.naturalWidth); i.onerror = () => res(-1); i.src = ${JSON.stringify(img.url)}; });`);
   ok(loaded === 16, `image affichable depuis le disque (largeur ${loaded})`);
 
+  // Exports écrits sur disque (avec l'image du projet).
+  for (const [fmt, magic] of [['pdf', '%PDF-'], ['xlsx', 'PK'], ['csv', '\uFEFF']]) {
+    const out = join(work, `export.${fmt}`);
+    const failed = await exec(`return await window.__prepvis.exportTo(${JSON.stringify(out)}, '${fmt}');`);
+    const ok1 = existsSync(out) && readFileSync(out).toString('utf8', 0, 5).startsWith(magic);
+    ok(ok1 && failed === 0, `export ${fmt.toUpperCase()} écrit (${failed === 0 ? 'images lues' : `${JSON.stringify(failed)}`})`);
+  }
+  ok(String(await exec(`return await window.__prepvis.exportTo(${JSON.stringify(join(work, 'x.sh'))}, 'csv').then(() => 'écrit', (e) => 'refusé');`)).includes('refusé'), 'type de fichier d’export non autorisé refusé');
+
+  // Lecture d'un scénario Final Draft.
+  const { writeFileSync: wf } = await import('node:fs');
+  wf(join(work, 'scenario.fdx'), '<?xml version="1.0"?><FinalDraft><Content><Paragraph Type="Scene Heading" Number="1"><Text>INT. CHAMBRE - NUIT</Text></Paragraph></Content></FinalDraft>');
+  ok(String(await exec(`return await window.__prepvis.readScript(${JSON.stringify(join(work, 'scenario.fdx'))});`)).includes('CHAMBRE'), 'scénario .fdx lu');
+
   // Fermer puis rouvrir : le projet revient à l'identique.
   await exec('await window.__prepvis.flushSave(); return true;');
   const before = await exec('return JSON.stringify(window.__prepvis.doc());');

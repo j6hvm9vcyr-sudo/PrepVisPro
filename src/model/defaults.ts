@@ -58,6 +58,7 @@ export function newSequence(number: string, cameraId: Id): Sequence {
     location: '',
     address: '',
     comments: '',
+    scriptText: '',
     plans: [newPlan(cameraId)],
   };
 }
