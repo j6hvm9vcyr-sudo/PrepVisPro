@@ -607,3 +607,13 @@ table.modes input:not(.decimal-field input) { border: 1px solid var(--border); b
 .libpick-grid .check { position: absolute; right: 5px; top: 5px; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-size: 12px; font-weight: 700; display: grid; place-items: center; }
 .libpick-grid .badge { position: absolute; left: 5px; top: 5px; font-size: 9px; font-weight: 700; padding: 1px 4px; border-radius: 3px; background: var(--text2); color: var(--panel); }
 .libpick-grid .name { font-size: 11.5px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------------------------------------------------------------- onglets du panneau de droite (plan au sol) */
+.insp-tabs { margin: 10px 12px 0; display: flex; }
+.insp-tabs button { flex: 1; }
+.reading-h { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text3); }
+.catalog { display: flex; flex-direction: column; gap: 6px; }
+.lighting .fixture .modes { width: 100%; border-collapse: collapse; font-size: 12px; }
+.lighting .fixture .modes th { text-align: left; font-weight: 600; color: var(--text3); font-size: 11px; padding: 0 2px 2px; }
+.lighting .fixture .modes td { padding: 1px 2px; }
+.lighting .fixture .modes td:first-child input { width: 100%; min-width: 56px; }

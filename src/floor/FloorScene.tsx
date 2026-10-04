@@ -92,7 +92,7 @@ export function sunMarks(doc: ProjectDoc, fp: FloorPlan, k: number) {
   const box = planBox(fp);
   if (!box || fp.northDeg === null) return null;
   const c = { x: box.x + box.w / 2, y: box.y + box.h / 2 };
-  const compass = { x: box.x + box.w - 34 * k, y: box.y + 40 * k };
+  const compass = { x: box.x + box.w - 22 * k, y: box.y + 34 * k };
   const sun = planSun(doc, fp, false);
   if (!sun.ok || sun.planBearing === null) return { compass, sun: null };
   const r = Math.hypot(box.w, box.h) / 2 + 46 * k;
@@ -102,18 +102,21 @@ export function sunMarks(doc: ProjectDoc, fp: FloorPlan, k: number) {
 function SunLayer({ doc, fp, k }: { doc: ProjectDoc; fp: FloorPlan; k: number }) {
   const m = sunMarks(doc, fp, k);
   if (!m) return null;
+  // Nord : une flèche fine et un « N », sans rose des vents (discret, lisible sur tout fond).
   const n = m.compass;
-  const tip = project(n, fp.northDeg!, 20 * k);
-  const tail = project(n, fp.northDeg! + 180, 14 * k);
-  const left = project(n, fp.northDeg! - 90, 7 * k);
-  const right = project(n, fp.northDeg! + 90, 7 * k);
-  const nLabel = project(n, fp.northDeg!, 31 * k);
+  const N = fp.northDeg!;
+  const tip = project(n, N, 13 * k);
+  const tail = project(n, N + 180, 9 * k);
+  const headL = project(tip, N + 180 - 28, 6 * k);
+  const headR = project(tip, N + 180 + 28, 6 * k);
+  const nLabel = project(n, N, 22 * k);
+  const ink = '#13161B';
+  const arrow = `M${tail.x},${tail.y} L${tip.x},${tip.y} M${headL.x},${headL.y} L${tip.x},${tip.y} L${headR.x},${headR.y}`;
   const out: ReactNode[] = [
     <g key="north" pointerEvents="none" aria-label="Nord">
-      <circle cx={n.x} cy={n.y} r={24 * k} fill="#fff" fillOpacity={0.85} stroke="#13161B" strokeOpacity={0.3} strokeWidth={1 * k} />
-      <polygon points={`${tip.x},${tip.y} ${left.x},${left.y} ${tail.x},${tail.y} ${right.x},${right.y}`} fill="#13161B" />
-      <polygon points={`${tip.x},${tip.y} ${right.x},${right.y} ${n.x},${n.y}`} fill="#fff" stroke="#13161B" strokeWidth={0.8 * k} />
-      <text x={nLabel.x} y={nLabel.y} fontSize={11 * k} fontWeight={700} textAnchor="middle" dominantBaseline="middle" fill="#13161B" stroke="#fff" strokeWidth={3 * k} paintOrder="stroke">
+      <path d={arrow} fill="none" stroke="#fff" strokeOpacity={0.9} strokeWidth={4 * k} strokeLinecap="round" strokeLinejoin="round" />
+      <path d={arrow} fill="none" stroke={ink} strokeWidth={1.4 * k} strokeLinecap="round" strokeLinejoin="round" />
+      <text x={nLabel.x} y={nLabel.y} fontSize={10 * k} fontWeight={600} letterSpacing={0.5 * k} textAnchor="middle" dominantBaseline="middle" fill={ink} stroke="#fff" strokeWidth={3 * k} paintOrder="stroke">
         N
       </text>
     </g>,

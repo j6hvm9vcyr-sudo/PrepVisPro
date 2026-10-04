@@ -14,10 +14,10 @@ import { useLateFocus } from '../ui/focus';
 import { DecimalField } from '../ui/DecimalField';
 import { IconPalette } from './icons';
 import { FramingSuggestion } from './Suggest';
-import { ActorLight, LightInspector, PowerSummary } from './LightPanels';
+import { ActorLight, LightInspector } from './LightPanels';
 import { convertIcon } from './iconConvert';
 import { ReflectorInspector } from './ReflectorPanel';
-import { SunPanel } from './SunPanel';
+import { LightingPanel } from './LightingPanel';
 import { Fold } from '../ui/Fold';
 import { useIcons } from '../platform/iconLibrary';
 import { planSun, sunForCamera } from '../model/sunPlan';
@@ -222,10 +222,21 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
     .filter((s) => fp.sequenceIds.includes(s.id))
     .flatMap((s) => s.plans.flatMap((p) => p.cameras.map((c) => ({ planId: p.id, setupId: c.id, label: cameraLabel(doc, p.id, c.id, numbers) }))));
 
+  const tab = selected.length === 0 && ui.panel === 'light' ? 'light' : 'plan';
   return (
     <aside className="inspector" aria-label="Détails du plan au sol">
+      <div className="insp-tabs seg" role="tablist" aria-label="Panneau">
+        <button type="button" role="tab" aria-selected={tab === 'plan'} aria-pressed={tab === 'plan'} onClick={() => useFloor.getState().set({ panel: 'plan' })}>
+          {selected.length ? 'Sélection' : 'Plan'}
+        </button>
+        <button type="button" role="tab" aria-selected={tab === 'light'} aria-pressed={tab === 'light'} onClick={() => useFloor.getState().set({ panel: 'light', selection: [] })} title="Soleil, projecteurs, réflecteurs, exposition">
+          Lumière
+        </button>
+      </div>
       <div className="insp-body">
-        {el ? (
+        {tab === 'light' ? (
+          <LightingPanel fp={fp} />
+        ) : el ? (
           <section className="sec">
             <div className="sec-h">{{ camera: 'Caméra', actor: 'Personnage', icon: 'Icône', text: 'Texte', light: 'Projecteur', reflector: 'Réflecteur' }[el.kind]}</div>
             {el.kind === 'camera' && (
@@ -393,9 +404,8 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
             </button>
           </Fold>
         )}
-        {!el && selected.length === 0 && <PowerSummary fp={fp} />}
-        {!el && selected.length === 0 && <SunPanel fp={fp} />}
-
+        {tab === 'plan' && (
+          <>
         <Fold id="to-place" title="Caméras à placer" count={unplaced.length}>
           {unplaced.length === 0 ? (
             <p className="note" style={{ margin: 0 }}>
@@ -420,6 +430,8 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
         <Fold id="icons" title="Icônes" label="Bibliothèque d’icônes" count={iconCount || undefined}>
           <IconPalette />
         </Fold>
+          </>
+        )}
       </div>
     </aside>
   );

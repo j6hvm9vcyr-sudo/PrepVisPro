@@ -1,6 +1,5 @@
 /** Plan feux : réglages d'un projecteur, éclairement sur les personnages, puissance électrique. */
 import { Explain } from '../ui/Explain';
-import { Fold } from '../ui/Fold';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
 import type { FloorActor, FloorLight, FloorPlan } from '../model/floor';
@@ -344,11 +343,12 @@ export function PowerSummary({ fp }: { fp: FloorPlan }) {
   if (!fp.elements.some((e) => e.kind === 'light')) return null;
   const p = powerTotals(doc, fp);
   return (
-    <Fold id="power" title="Puissance" label="Puissance électrique">
+    <div className="light-readings" role="region" aria-label="Puissance électrique">
+      <div className="reading-h">Puissance de ce plan</div>
       {p.circuits.map((c) => (
         <div key={c.circuit} className="reading">
           <span>
-            Circuit {c.circuit} · {c.count} proj.
+            {c.circuit === '—' ? 'Sans circuit' : `Circuit ${c.circuit}`} · {c.count} projecteur{c.count > 1 ? 's' : ''}
           </span>
           <b>
             {formatNumber(c.watts)} W · {formatNumber(Math.round(c.amps * 10) / 10)} A
@@ -361,8 +361,8 @@ export function PowerSummary({ fp }: { fp: FloorPlan }) {
           {formatNumber(p.total.watts)} W · {formatNumber(Math.round(p.total.amps * 10) / 10)} A
         </b>
       </div>
-      {p.unknown > 0 && <p className="note" style={{ margin: 0, color: 'var(--warn-text)' }}>{p.unknown} projecteur(s) sans modèle ou sans puissance renseignée : non comptés.</p>}
+      {p.unknown > 0 && <p className="note" style={{ margin: 0, color: 'var(--warn-text)' }}>{p.unknown > 1 ? `${p.unknown} projecteurs sans modèle ou sans puissance renseignée : non comptés.` : '1 projecteur sans modèle ou sans puissance renseignée : non compté.'}</p>}
       <p className="note" style={{ margin: 0, fontSize: 11 }}>À pleine puissance, intensité à 230 V.</p>
-    </Fold>
+    </div>
   );
 }

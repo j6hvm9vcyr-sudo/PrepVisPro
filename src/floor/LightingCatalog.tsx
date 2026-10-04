@@ -1,16 +1,27 @@
 /**
- * Réglages › Lumière : exposition de référence et projecteurs du projet, avec les données des
- * fiches techniques des fabricants (éclairement à une distance donnée, angle du faisceau, puissance).
+ * Listes lumière du projet (vue Plans au sol › Lumière) : exposition de référence, projecteurs
+ * avec les données des fiches techniques (éclairement à une distance donnée, angle du faisceau,
+ * puissance), matières de réflecteurs.
  */
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
 import { newId } from '../model/defaults';
 import { formatStop, luxForStop } from '../model/light';
-import type { Fixture } from '../model/types';
-import { DecimalField } from './DecimalField';
-import { MaterialFields, MaterialOptions, PRESET } from '../floor/ReflectorPanel';
+import type { Fixture, ProjectDoc } from '../model/types';
+
+/** Nombre de réflecteurs placés (tous plans au sol) faits de cette matière. */
+function reflectorUses(doc: ProjectDoc, materialId: string): number {
+  return doc.floorPlans.reduce((n, fp) => n + fp.elements.filter((e) => e.kind === 'reflector' && e.materialId === materialId).length, 0);
+}
+
+/** Nombre de projecteurs placés (tous plans au sol) qui utilisent ce modèle. */
+function usesOf(doc: ProjectDoc, fixtureId: string): number {
+  return doc.floorPlans.reduce((n, fp) => n + fp.elements.filter((e) => e.kind === 'light' && e.fixtureId === fixtureId).length, 0);
+}
+import { DecimalField } from '../ui/DecimalField';
+import { MaterialFields, MaterialOptions, PRESET } from './ReflectorPanel';
 import { materialForPreset } from '../model/reflectorPresets';
-import { Explain } from './Explain';
+import { Explain } from '../ui/Explain';
 
 const KINDS: [Fixture['kind'], string][] = [
   ['led', 'LED'],
@@ -19,11 +30,39 @@ const KINDS: [Fixture['kind'], string][] = [
   ['other', 'Autre'],
 ];
 
-export function LightingTab() {
+/** Exposition de référence : sert au calcul des diaphs (posemètre incident). */
+export function ExposureFields() {
   const doc = useApp(selectDoc);
   const st = useApp.getState;
   const e = doc.settings.exposure;
   const updE = (fn: (x: typeof e) => void, key: string) => st().updateDoc((d) => fn(d.settings.exposure), `exp:${key}`);
+  return (
+    <>
+      <div className="row" style={{ gap: 10, alignItems: 'flex-end' }}>
+        <div className="field small">
+          Sensibilité
+          <DecimalField label="Sensibilité ISO" unit="ISO" width={64} min={25} max={102400} required value={e.iso} onChange={(v) => v !== null && updE((x) => void (x.iso = v), 'iso')} />
+        </div>
+        <div className="field small">
+          Cadence
+          <DecimalField label="Cadence en images par seconde" unit="i/s" width={48} min={1} max={2000} required value={e.fps} onChange={(v) => v !== null && updE((x) => void (x.fps = v), 'fps')} />
+        </div>
+        <div className="field small">
+          Obturation
+          <DecimalField label="Angle d’obturation en degrés" unit="°" width={48} min={1} max={360} required value={e.shutterDeg} onChange={(v) => v !== null && updE((x) => void (x.shutterDeg = v), 'sh')} />
+        </div>
+      </div>
+      <p className="note" style={{ margin: 0 }}>
+        Repère : {formatStop(2.8)} demande {Math.round(luxForStop(2.8, e)).toLocaleString('fr-FR')} lx, {formatStop(4)} {Math.round(luxForStop(4, e)).toLocaleString('fr-FR')} lx (posemètre incident, C = 340).
+      </p>
+    </>
+  );
+}
+
+/** Projecteurs du projet (la liste change à chaque projet). */
+export function FixtureCatalog() {
+  const doc = useApp(selectDoc);
+  const st = useApp.getState;
   const updF = (id: string, fn: (f: Fixture) => void, key: string) =>
     st().updateDoc((d) => {
       const f = d.settings.fixtures.find((x) => x.id === id);
@@ -32,39 +71,17 @@ export function LightingTab() {
 
   return (
     <div className="lighting">
-      <section className="sec">
-        <div className="sec-h">Exposition de référence</div>
-        <div className="row" style={{ gap: 14, alignItems: 'flex-end' }}>
-          <div className="field small">
-            Sensibilité
-            <DecimalField label="Sensibilité ISO" unit="ISO" width={70} min={25} max={102400} required value={e.iso} onChange={(v) => v !== null && updE((x) => void (x.iso = v), 'iso')} />
-          </div>
-          <div className="field small">
-            Cadence
-            <DecimalField label="Cadence en images par seconde" unit="i/s" width={60} min={1} max={2000} required value={e.fps} onChange={(v) => v !== null && updE((x) => void (x.fps = v), 'fps')} />
-          </div>
-          <div className="field small">
-            Obturation
-            <DecimalField label="Angle d’obturation en degrés" unit="°" width={60} min={1} max={360} required value={e.shutterDeg} onChange={(v) => v !== null && updE((x) => void (x.shutterDeg = v), 'sh')} />
-          </div>
-          <p className="note" style={{ margin: 0, flex: 1 }}>
-            Repère : {formatStop(2.8)} demande {Math.round(luxForStop(2.8, e)).toLocaleString('fr-FR')} lx, {formatStop(4)} {Math.round(luxForStop(4, e)).toLocaleString('fr-FR')} lx (posemètre incident, C = 340).
-          </p>
-        </div>
-      </section>
-
-      <section className="sec">
-        <div className="sec-h">Projecteurs de ce projet</div>
+      <section className="catalog" aria-label="Projecteurs du projet">
         <Explain id="fixtures-help" label="Quelles données saisir ?">
           Liste propre à ce projet. Pour chaque projecteur, recopiez de sa fiche technique l’éclairement « x lx à X m » au centre du faisceau et l’angle du faisceau, pour
           chaque mode (spot, flood, optique ou réflecteur). Sans ces valeurs, aucun chiffre n’est calculé. Vous pouvez aussi créer et renseigner un projecteur directement
-          sur le plan au sol (outil Projecteur, L).
+          sur le plan au sol (outil Projecteur, L) : il apparaît alors ici.
         </Explain>
         {doc.settings.fixtures.length === 0 && <p className="note" style={{ margin: 0 }}>Aucun projecteur pour l’instant.</p>}
         {doc.settings.fixtures.map((f) => (
           <div key={f.id} className="fixture">
+            <input className="field-input" aria-label="Nom du projecteur" placeholder="ex. Arri 650 Plus, Aputure 600d" value={f.name} onChange={(ev) => updF(f.id, (x) => void (x.name = ev.target.value), 'n')} />
             <div className="row" style={{ gap: 8, alignItems: 'center' }}>
-              <input className="field-input" aria-label="Nom du projecteur" placeholder="ex. Arri 650 Plus, Aputure 600d" value={f.name} onChange={(ev) => updF(f.id, (x) => void (x.name = ev.target.value), 'n')} />
               <select aria-label="Type de projecteur" value={f.kind} onChange={(ev) => updF(f.id, (x) => void (x.kind = ev.target.value as Fixture['kind']), 'k')}>
                 {KINDS.map(([k, l]) => (
                   <option key={k} value={k}>
@@ -73,7 +90,14 @@ export function LightingTab() {
                 ))}
               </select>
               <DecimalField label="Puissance en watts" unit="W" width={70} min={0} max={100000} value={f.watts} onChange={(v) => updF(f.id, (x) => void (x.watts = v), 'w')} />
-              <button type="button" className="linkbtn danger" onClick={() => st().updateDoc((d) => void (d.settings.fixtures = d.settings.fixtures.filter((x) => x.id !== f.id)))}>
+              <span className="spacer" />
+              <button
+                type="button"
+                className="linkbtn danger"
+                disabled={usesOf(doc, f.id) > 0}
+                title={usesOf(doc, f.id) > 0 ? `Placé ${usesOf(doc, f.id)} fois sur les plans au sol` : undefined}
+                onClick={() => st().updateDoc((d) => void (d.settings.fixtures = d.settings.fixtures.filter((x) => x.id !== f.id)))}
+              >
                 Retirer
               </button>
             </div>
@@ -81,9 +105,9 @@ export function LightingTab() {
               <thead>
                 <tr>
                   <th>Mode</th>
-                  <th>Éclairement (lx)</th>
-                  <th>à (m)</th>
-                  <th>Faisceau (°)</th>
+                  <th title="Éclairement au centre du faisceau, d’après la fiche technique">Éclairement</th>
+                  <th>à</th>
+                  <th>Faisceau</th>
                   <th />
                 </tr>
               </thead>
@@ -96,13 +120,13 @@ export function LightingTab() {
                       <input aria-label="Nom du mode" placeholder="Spot, Flood, 30°…" value={md.label} onChange={(ev) => updF(f.id, (x) => void (x.modes[i]!.label = ev.target.value), `ml${i}`)} />
                     </td>
                     <td>
-                      <DecimalField label="Éclairement en lux" unit="lx" width={76} min={0.1} max={10000000} value={md.lux} onChange={(v) => updF(f.id, (x) => void (x.modes[i]!.lux = v), `mx${i}`)} />
+                      <DecimalField label="Éclairement en lux" unit="lx" width={64} min={0.1} max={10000000} value={md.lux} onChange={(v) => updF(f.id, (x) => void (x.modes[i]!.lux = v), `mx${i}`)} />
                     </td>
                     <td>
-                      <DecimalField label="Distance de référence en mètres" unit="m" width={50} min={0.1} max={100} value={md.distanceM} onChange={(v) => updF(f.id, (x) => void (x.modes[i]!.distanceM = v), `md${i}`)} />
+                      <DecimalField label="Distance de référence en mètres" unit="m" width={40} min={0.1} max={100} value={md.distanceM} onChange={(v) => updF(f.id, (x) => void (x.modes[i]!.distanceM = v), `md${i}`)} />
                     </td>
                     <td>
-                      <DecimalField label="Angle du faisceau en degrés" unit="°" width={50} min={1} max={180} value={md.beamDeg} onChange={(v) => updF(f.id, (x) => void (x.modes[i]!.beamDeg = v), `mb${i}`)} />
+                      <DecimalField label="Angle du faisceau en degrés" unit="°" width={40} min={1} max={180} value={md.beamDeg} onChange={(v) => updF(f.id, (x) => void (x.modes[i]!.beamDeg = v), `mb${i}`)} />
                     </td>
                     <td>
                       <button
@@ -141,9 +165,17 @@ export function LightingTab() {
           + Projecteur
         </button>
       </section>
+    </div>
+  );
+}
 
-      <section className="sec">
-        <div className="sec-h">Réflecteurs de ce projet</div>
+/** Matières de réflecteurs du projet : préréglées (valeurs publiées, sourcées) ou mesurées. */
+export function ReflectorCatalog() {
+  const doc = useApp(selectDoc);
+  const st = useApp.getState;
+  return (
+    <div className="lighting">
+      <section className="catalog" aria-label="Réflecteurs du projet">
         <Explain id="refl-help" label="D’où viennent les valeurs ?">
           Les matières préréglées reprennent des valeurs publiées (source affichée pour chacune) : tables de réflexion de l’éclairagisme pour le papier, la peinture,
           les miroirs et les surfaces naturelles ; essai comparatif de M. Porwoll pour les toiles et le poly, ancré sur la réflectance du coton blanchi. Pour une
@@ -157,6 +189,8 @@ export function LightingTab() {
               type="button"
               className="linkbtn danger"
               style={{ alignSelf: 'flex-start' }}
+              disabled={reflectorUses(doc, mt.id) > 0}
+              title={reflectorUses(doc, mt.id) > 0 ? `Utilisée par ${reflectorUses(doc, mt.id)} réflecteur(s) placé(s)` : undefined}
               onClick={() => st().updateDoc((d) => void (d.settings.reflectors = d.settings.reflectors.filter((x) => x.id !== mt.id)))}
             >
               Retirer

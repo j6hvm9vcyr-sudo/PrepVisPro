@@ -45,8 +45,8 @@ export function MaterialFields({ material, autoFocus }: { material: ReflectorMat
     return (
       <>
         <div className="row" style={{ gap: 8, alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <b>{material.name || preset.name}</b>
-          <span>
+          <b style={{ minWidth: 0 }}>{material.name || preset.name}</b>
+          <span style={{ whiteSpace: 'nowrap', marginLeft: 'auto', paddingLeft: 8 }}>
             ≈ {pct(material.reflectance ?? presetValue(preset))} <span className="note">({presetRange(preset)}{preset.type === 'mirror' ? ', miroir' : ''})</span>
           </span>
         </div>

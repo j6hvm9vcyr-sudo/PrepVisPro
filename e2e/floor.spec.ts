@@ -329,9 +329,11 @@ await page.keyboard.press('ControlOrMeta+3');
   await page.getByLabel('Gradateur').fill('50');
   await expect(page.locator('.light-readings')).toContainText(/2\s?000 lx/);
   await expect(page.locator('.floor-canvas text', { hasText: 'Fresnel 2K' })).toBeVisible();
-  // Puissance (aucun élément sélectionné).
+  // Puissance : onglet Lumière (soleil, projecteurs, réflecteurs au même endroit).
   await canvas.press('Escape');
+  await page.getByRole('tab', { name: 'Lumière' }).click();
   await expect(page.getByRole('region', { name: 'Puissance électrique' })).toContainText(/2\s?000 W · 8,7 A/);
+  await page.getByRole('tab', { name: 'Plan' }).click();
   // Le personnage voit la même lecture.
   await page.mouse.click(who.x, who.y);
   await expect(page.getByRole('region', { name: 'Lumière reçue' })).toContainText(/Fresnel 2K à 2,5 m/);
@@ -377,10 +379,13 @@ await page.keyboard.press('ControlOrMeta+3');
   await page.mouse.click(who.x, who.y);
   await expect(page.getByRole('region', { name: 'Lumière reçue' })).toContainText(/Poly maison ← Fresnel 2K à 2,5 m\s*≈ 28 lx/);
 
-  // La liste du projet (Réglages › Lumière) contient le projecteur saisi sur le plan.
-  await page.getByRole('button', { name: 'Réglages' }).click();
+  // Les listes du projet (onglet Lumière) contiennent le projecteur et la matière saisis sur le plan.
   await page.getByRole('tab', { name: 'Lumière' }).click();
+  await expect(page.getByRole('tab', { name: 'Lumière' })).toHaveAttribute('aria-selected', 'true');
+  await page.screenshot({ path: 'test-results/26-onglet-lumiere.png' });
   await expect(page.getByLabel('Nom du projecteur')).toHaveValue('Fresnel 2K');
+  // Projecteur placé : on ne peut pas le retirer de la liste par mégarde.
+  await expect(page.getByRole('region', { name: 'Projecteurs du projet' }).getByRole('button', { name: 'Retirer', exact: true })).toBeDisabled();
   await expect(page.getByLabel('Éclairement en lux')).toHaveValue('1000');
   await expect(page.getByLabel('Retirer ce mode')).toBeDisabled();
   await expect(page.getByLabel('Nom de la matière')).toHaveValue('Poly maison');
@@ -414,8 +419,11 @@ test('soleil : position GPS du décor, nord du plan, heure simulée, rapport ave
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Importer un fond…' }).click();
   await (await chooser).setFiles(resolve('e2e/plan-decor.png'));
+  await page.getByRole('tab', { name: 'Lumière' }).click();
   const sun = page.getByRole('region', { name: 'Soleil' });
   await expect(sun).toBeVisible();
+  // La position du décor se lit (et se corrige) ici aussi.
+  await expect(sun.getByLabel('Coordonnées GPS du décor')).toHaveValue('48.85661, 2.35219');
   await sun.getByRole('button', { name: 'Nord en haut' }).click();
   await sun.getByRole('button', { name: 'Simuler le soleil' }).click();
   await sun.getByLabel('Date simulée').fill('2026-06-21');
@@ -433,6 +441,7 @@ test('soleil : position GPS du décor, nord du plan, heure simulée, rapport ave
   await sun.getByLabel('Heure simulée').fill('14:00');
 
   // Caméra 2/1 tournée vers le sud (180°) : le soleil (184°, 65° de haut) est devant elle → contre-jour, soleil haut.
+  await page.getByRole('tab', { name: 'Plan' }).click();
   await page.getByRole('button', { name: /^2\/1/ }).click();
   const img = (await page.locator('.floor-canvas image').boundingBox())!;
   await page.mouse.click(img.x + img.width * 0.4, img.y + img.height * 0.4);
@@ -442,6 +451,7 @@ test('soleil : position GPS du décor, nord du plan, heure simulée, rapport ave
   await page.screenshot({ path: 'test-results/23-soleil.png' });
   // À 19 h (azimut 277°, ouest) : la caméra regarde au sud, l'ouest est à sa droite → latéral, à droite.
   await page.getByRole('application', { name: 'Plan au sol' }).press('Escape');
+  await page.getByRole('tab', { name: 'Lumière' }).click();
   await sun.getByLabel('Heure simulée').fill('19:00');
   await expect(sun.getByLabel('Soleil et caméras')).toContainText(/2\/1\s*latéral, à droite/);
 });

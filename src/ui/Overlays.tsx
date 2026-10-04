@@ -466,7 +466,7 @@ export function StampDialog() {
 }
 
 /** Position GPS du décor : collée depuis Plans, Google Maps ou un GPS ; jamais devinée. */
-function GpsField({ value, onChange }: { value: Sequence['gps']; onChange: (g: Sequence['gps']) => void }) {
+export function GpsField({ value, onChange, label = 'Coordonnées GPS' }: { value: Sequence['gps']; onChange: (g: Sequence['gps']) => void; label?: string }) {
   const [draft, setDraft] = useState<string | null>(null);
   const shown = draft ?? (value ? formatCoordinates(value) : '');
   const parsed = draft === null ? value : parseCoordinates(draft);
@@ -482,9 +482,9 @@ function GpsField({ value, onChange }: { value: Sequence['gps']; onChange: (g: S
   };
   return (
     <label className="field">
-      Coordonnées GPS
+      {label}
       <input
-        aria-label="Coordonnées GPS"
+        aria-label={label}
         aria-invalid={bad}
         value={shown}
         placeholder="ex. 48.85837, 2.29448 — pour le soleil"
