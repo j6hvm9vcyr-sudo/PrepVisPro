@@ -94,6 +94,7 @@ const projectCamera = z.object({
   body: z.string(),
   mode: z.string(),
   sensorWidthMm: z.number().finite().positive().nullable(),
+  sensorHeightMm: z.number().finite().positive().nullable(),
   squeeze: z.number().finite().positive(),
 });
 

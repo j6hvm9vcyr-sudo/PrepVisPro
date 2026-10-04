@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Id, ImageKind, ProjectDoc, Sequence } from '../model/types';
 import { computeNumbers } from '../model/numbering';
-import { applyValue, categoryOf, editText as fieldEditText, FIELD_LABEL, parseEntry, suggest, type EditableField, type TermField } from '../model/entry';
+import { applyValue, categoryOf, completeWithPick, editText as fieldEditText, FIELD_LABEL, parseEntry, suggest, type EditableField, type TermField } from '../model/entry';
 import * as ops from '../model/ops';
 import { cleanupFloorRefs } from '../model/floorOps';
 import { newId } from '../model/defaults';
@@ -20,6 +20,10 @@ export interface EditState {
   text: string;
   pick: number;
   error: string | null;
+  /** Une suggestion a été choisie aux flèches (ou à la souris). */
+  navigated?: boolean;
+  /** Saisie groupée : autres lignes de la sélection qui recevront la même valeur (même colonne). */
+  batch?: Line[];
 }
 
 export type MessageKind = 'info' | 'warn';
@@ -334,15 +338,22 @@ export function createAppStore(doc: ProjectDoc) {
         const setup = loc.plan.cameras[setupIndex];
         if (!setup) return;
         const text = initial ?? (c.col === 'action' ? loc.plan.action : fieldEditText(c.col, setup));
-        set({ editing: { text, pick: 0, error: null }, anchor: null });
+        // Plusieurs lignes sélectionnées dans une même colonne : la valeur saisie ira à toutes.
+        const r = rangeOf(get());
+        let batch: Line[] | undefined;
+        if (r && r.r1 > r.r0 && r.c0 === r.c1) {
+          batch = r.lines.slice(r.r0, r.r1 + 1).filter((l) => !(l.planId === c.planId && l.setupId === c.setupId) && !(c.col === 'action' && l.setupIndex > 0));
+          if (!batch.length) batch = undefined;
+        }
+        set({ editing: { text, pick: 0, error: null, batch }, anchor: batch ? get().anchor : null });
       },
 
       setEditText(text) {
-        set((s) => (s.editing ? { editing: { text, pick: 0, error: null } } : {}));
+        set((s) => (s.editing ? { editing: { text, pick: 0, error: null, batch: s.editing.batch } } : {}));
       },
 
       setPick(i) {
-        set((s) => (s.editing ? { editing: { ...s.editing, pick: i } } : {}));
+        set((s) => (s.editing ? { editing: { ...s.editing, pick: i, navigated: true } } : {}));
       },
 
       commitEdit(then = 'stay', pick, strict = false) {
@@ -353,7 +364,10 @@ export function createAppStore(doc: ProjectDoc) {
         if (!field) return false;
         const doc = docNow();
         const terms = field === 'action' || field === 'focal' ? [] : doc.settings.terms[categoryOf(field as TermField)];
-        const r = parseEntry(field, s.editing.text, terms, { pick: pick ?? s.editing.pick, strict });
+        const at = pick ?? s.editing.pick;
+        // Case vide (ou partie vide) + suggestion choisie aux flèches : c'est elle qu'on valide.
+        const text = (!strict && s.editing.navigated && completeWithPick(field, s.editing.text, terms, at)) || s.editing.text;
+        const r = parseEntry(field, text, terms, { pick: at, strict });
         if (!r.ok) {
           set({ editing: { ...s.editing, error: r.error } });
           return false;
@@ -371,7 +385,25 @@ export function createAppStore(doc: ProjectDoc) {
           next = ops.replaceCameraSetup(doc, c.planId, applyValue(setup, r.value));
           if (r.newTerms.length) next = ops.addTerms(next, categoryOf(field as TermField), r.newTerms);
         }
-        const msg = r.newTerms.length ? `Terme ajouté à la liste du projet : ${r.newTerms.join(', ')}` : null;
+        let msg = r.newTerms.length ? `Terme ajouté à la liste du projet : ${r.newTerms.join(', ')}` : null;
+        const batch = s.editing.batch;
+        if (batch?.length) {
+          // Même valeur, telle que retenue pour la cellule active, sur toutes les lignes sélectionnées.
+          const line = linesOf(s).find((l) => l.planId === c.planId && l.setupId === c.setupId);
+          const value = line ? cellText(next, line, c.col) : null;
+          if (value !== null) {
+            const res = writeCells(next, batch.map((l) => ({ line: l, col: c.col, value })), 0);
+            if (!res.ok) {
+              set({ editing: { ...s.editing, error: res.errors[0] ?? 'Saisie groupée impossible' } });
+              return false;
+            }
+            next = res.doc;
+            msg = `${batch.length + 1} cellules remplies · ⌘Z pour annuler${msg ? ` · ${msg}` : ''}`;
+          }
+          set({ editing: null, anchor: null });
+          if (JSON.stringify(next) !== JSON.stringify(doc)) commit(next, c, msg);
+          return true;
+        }
         set({ editing: null });
         // Valeur inchangée : pas d'étape d'annulation vide ni d'enregistrement inutile.
         if (JSON.stringify(next) !== JSON.stringify(doc)) commit(next, c, msg);

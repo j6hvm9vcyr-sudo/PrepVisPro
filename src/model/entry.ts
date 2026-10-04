@@ -354,3 +354,20 @@ export function editText(field: Exclude<EditableField, 'action'>, s: CameraSetup
       return s.grip.join(', ');
   }
 }
+
+/**
+ * Suggestion choisie aux flèches alors que la partie en cours est vide (case vide, ou après
+ * « > » / « , ») : le terme choisi complète le texte. null s'il n'y a rien à compléter.
+ */
+export function completeWithPick(field: EditableField, text: string, terms: readonly string[], pick: number): string | null {
+  if (field === 'action' || field === 'focal') return null;
+  const parts = splitParts(field, text);
+  const last = parts[parts.length - 1] ?? '';
+  const fragment = field === 'angle' ? splitAnglePart(last) : null;
+  const empty = fragment ? !fragment.word && fragment.tilt === null : last.trim() === '';
+  if (!empty) return null;
+  const s = suggest(field, text, terms)[pick];
+  if (!s || s.create) return null;
+  const head = text.replace(/\s+$/, '');
+  return head ? `${head} ${s.term}` : s.term;
+}

@@ -153,7 +153,10 @@ export function StatusBar() {
     const r = rangeOf(useApp.getState());
     if (r && (r.r1 > r.r0 || r.c1 > r.c0)) {
       const n = (r.r1 - r.r0 + 1) * (r.c1 - r.c0 + 1);
-      hint = `${n} cellules sélectionnées — ⌘V colle partout · ⌫ efface · ⌘D recopie la première ligne · ⌘C copie · esc annule la sélection`;
+      hint =
+        r.c0 === r.c1
+          ? `${n} cellules sélectionnées — tapez une valeur (ou ↩) pour toutes les remplir · ⌘D recopie la première · ⌫ efface · esc annule`
+          : `${n} cellules sélectionnées — ⌘V colle partout · ⌫ efface · ⌘D recopie la première ligne · ⌘C copie · esc annule la sélection`;
     }
   }
   return (

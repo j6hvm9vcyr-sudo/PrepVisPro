@@ -106,7 +106,11 @@ test('images : dépôt sur la vignette, choix Repérage, aperçu à l’espace',
 });
 
 test('multicaméra et évolutif visibles, vue fiches, thème sombre', async ({ page }) => {
+  // Une seule caméra au départ ; ⇧⌘C ajoute la caméra B au plan.
+  await expect(page.locator('.camtag')).toHaveCount(0);
+  await page.keyboard.press('ControlOrMeta+Shift+c');
   await expect(page.locator('.camtag', { hasText: 'B' })).toHaveCount(1);
+  await page.keyboard.press('ControlOrMeta+z');
   await page.keyboard.press('Meta+2');
   await expect(page.locator('.card')).toHaveCount(8);
   await page.screenshot({ path: 'test-results/05-fiches.png' });
@@ -134,6 +138,13 @@ test('réglages : largeur capteur donne un angle de champ', async ({ page }) => 
   await page.getByRole('button', { name: 'Réglages' }).click();
   await page.getByRole('tab', { name: 'Caméras' }).click();
   await page.getByLabel('Largeur capteur').first().fill('36');
+  await page.getByLabel('Hauteur capteur').fill('24');
+  // Outil de vérification : 35 mm, cadre 1,85:1 dans un capteur 36 × 24 → 2·atan(36/70) et 2·atan((36/1,85)/70).
+  const angles = page.locator('.camtab-angles');
+  await expect(angles.locator('tr', { hasText: 'Horizontal' }).locator('td')).toHaveText('54,4°');
+  await expect(angles.locator('tr', { hasText: 'Vertical' }).locator('td')).toHaveText('31,1°');
+  await expect(page.getByText(/le ratio 1,85:1 rogne le haut et le bas/)).toBeVisible();
+  await page.screenshot({ path: 'test-results/16-cameras.png' });
   await page.getByRole('button', { name: 'Terminé' }).click();
   // 1/1 : 32 mm sur 36 mm de large → 2·atan(36/64) = 58,7°
   await expect(page.locator('.camrow .fov .mono').first()).toHaveText('58,7°');
@@ -231,4 +242,39 @@ test('fenêtres Réglages et Export : Esc ferme, et le clavier ne touche pas au 
   // Le clavier revient au tableau.
   await page.keyboard.press('ArrowRight');
   await expect(cell(page, 0, 'axis')).toHaveClass(/active/);
+});
+
+test('case vide : ↩, choix aux flèches, ↩ → la valeur choisie est appliquée (aussi au clic)', async ({ page }) => {
+  // Plan 4/1 : cellules vides.
+  await page.locator('.line', { hasText: '4/1' }).locator('[id$="-axis"]').click();
+  await page.keyboard.press('Enter');
+  await expect(page.getByLabel('Saisie')).toHaveValue('');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowDown');
+  const chosen = await page.locator('.pop .sug.on').innerText();
+  await page.keyboard.press('Enter');
+  const axis = page.locator('.line', { hasText: '4/1' }).locator('[id$="-axis"]');
+  await expect(axis).toHaveText(chosen);
+  // Au clic sur une suggestion, case vide.
+  await page.locator('.line', { hasText: '4/1' }).locator('[id$="-angle"]').click();
+  await page.keyboard.press('Enter');
+  await page.locator('.pop .sug', { hasText: 'Plongée' }).click();
+  await expect(page.locator('.line', { hasText: '4/1' }).locator('[id$="-angle"]')).toHaveText('Plongée');
+});
+
+test('saisie groupée : plusieurs lignes sélectionnées dans une colonne, une seule frappe les remplit', async ({ page }) => {
+  // Valeur des plans 1/1, 1/2, 1/3.
+  await page.keyboard.press('Shift+ArrowDown');
+  await page.keyboard.press('Shift+ArrowDown');
+  await expect(page.getByText(/3 cellules sélectionnées — tapez une valeur/)).toBeVisible();
+  await page.keyboard.type('gp');
+  await expect(page.getByText('↩ remplit les 3 cellules sélectionnées')).toBeVisible();
+  await page.keyboard.press('Enter');
+  for (const i of [0, 1, 2]) await expect(cell(page, i, 'size')).toHaveText('GP');
+  await expect(cell(page, 3, 'size')).toHaveText('Poitrine');
+  await expect(page.locator('.status .msg')).toContainText('3 cellules remplies');
+  // Une seule annulation remet tout.
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(cell(page, 0, 'size')).toHaveText('Ensemble');
+  await expect(cell(page, 2, 'size')).toHaveText('Général → Poitrine');
 });

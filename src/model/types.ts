@@ -102,8 +102,10 @@ export interface ProjectCamera {
   body: string;
   /** Mode d'enregistrement (ex. « 6K 3:2 »). */
   mode: string;
-  /** Largeur active du capteur dans ce mode, en mm. null = inconnue (pas de calcul de champ). */
+  /** Largeur active (horizontale) du capteur dans ce mode, en mm. null = inconnue (pas de calcul de champ). */
   sensorWidthMm: number | null;
+  /** Hauteur active (verticale) du capteur dans ce mode, en mm. null = inconnue (pas d'angle vertical). */
+  sensorHeightMm: number | null;
   /** Coefficient anamorphique (1 = sphérique). */
   squeeze: number;
 }
@@ -132,7 +134,7 @@ export interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 4 as const;
+export const SCHEMA_VERSION = 5 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;

@@ -3,10 +3,10 @@ import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
 import { REQUIRED_LABEL } from '../model/completeness';
 import { REQUIRED_FIELDS, TERM_CATEGORIES, type TermCategory } from '../model/types';
-import { newId, newProjectCamera } from '../model/defaults';
+import { newId } from '../model/defaults';
 import { norm } from '../model/text';
 import { isComposing, focusGrid, useDialogFocus } from './focus';
-import { DecimalField } from './DecimalField';
+import { CamerasTab } from './CamerasTab';
 import { useTheme } from './theme';
 
 const CAT_LABEL: Record<TermCategory, string> = { size: 'Valeurs', axis: 'Axes', angle: 'Angles', movement: 'Mouvements', grip: 'Machinerie' };
@@ -21,7 +21,6 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
     onClose();
     focusGrid();
   };
-  const camUsage = (camId: string) => doc.sequences.reduce((n, s) => n + s.plans.filter((p) => p.cameras.some((c) => c.cameraId === camId)).length, 0);
 
   return (
     <div
@@ -37,7 +36,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         if (e.key === 'Escape') close();
       }}
     >
-      <div className="dialog" style={{ width: 800, maxWidth: 'calc(100vw - 32px)', height: 560 }} onClick={(e) => e.stopPropagation()}>
+      <div className="dialog" style={{ width: 800, maxWidth: 'calc(100vw - 32px)', height: 640, maxHeight: 'calc(100vh - 40px)' }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <h3 style={{ whiteSpace: 'nowrap' }}>Réglages</h3>
           <div className="seg" role="tablist">
@@ -112,76 +111,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
           </>
         )}
 
-        {tab === 'cameras' && (
-          <>
-            <table className="cams">
-              <thead>
-                <tr>
-                  <th style={{ width: 60 }}>Nom</th>
-                  <th>Boîtier</th>
-                  <th>Mode</th>
-                  <th style={{ width: 120 }}>Largeur capteur (mm)</th>
-                  <th style={{ width: 90 }}>Anamorphose</th>
-                  <th style={{ width: 70 }} />
-                </tr>
-              </thead>
-              <tbody>
-                {doc.settings.cameras.map((c, i) => {
-                  const used = camUsage(c.id);
-                  return (
-                    <tr key={c.id}>
-                      <td>
-                        <input aria-label="Nom" value={c.label} onChange={(e) => st().updateDoc((d) => void (d.settings.cameras[i]!.label = e.target.value || '?'), `cam:${c.id}:l`)} />
-                      </td>
-                      <td>
-                        <input aria-label="Boîtier" value={c.body} placeholder="ex. Sony Venice 2" onChange={(e) => st().updateDoc((d) => void (d.settings.cameras[i]!.body = e.target.value), `cam:${c.id}:b`)} />
-                      </td>
-                      <td>
-                        <input aria-label="Mode" value={c.mode} placeholder="ex. 6K 3:2" onChange={(e) => st().updateDoc((d) => void (d.settings.cameras[i]!.mode = e.target.value), `cam:${c.id}:m`)} />
-                      </td>
-                      <td>
-                        <NumberInput label="Largeur capteur" value={c.sensorWidthMm} min={1} max={80} onChange={(v) => st().updateDoc((d) => void (d.settings.cameras[i]!.sensorWidthMm = v), `cam:${c.id}:w`)} />
-                      </td>
-                      <td>
-                        <NumberInput label="Anamorphose" value={c.squeeze} min={1} max={2} required onChange={(v) => st().updateDoc((d) => void (d.settings.cameras[i]!.squeeze = v ?? 1), `cam:${c.id}:s`)} />
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="linkbtn danger"
-                          disabled={used > 0 || doc.settings.cameras.length <= 1}
-                          title={used ? `Utilisée par ${used} plan${used > 1 ? 's' : ''}` : ''}
-                          onClick={() => st().updateDoc((d) => void d.settings.cameras.splice(i, 1))}
-                        >
-                          Retirer
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            <div>
-              <button
-                type="button"
-                className="btn"
-                onClick={() =>
-                  st().updateDoc((d) => {
-                    const labels = d.settings.cameras.map((c) => c.label);
-                    const next = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').find((l) => !labels.includes(l)) ?? String(labels.length + 1);
-                    d.settings.cameras.push(newProjectCamera(next));
-                  })
-                }
-              >
-                + Caméra
-              </button>
-            </div>
-            <p className="note" style={{ margin: 0, fontSize: 12, lineHeight: '17px' }}>
-              La largeur capteur est la largeur <b>active</b> dans le mode d’enregistrement utilisé, d’après la documentation du fabricant. Tant qu’elle n’est pas renseignée,
-              aucun angle de champ n’est affiché. Anamorphose : 1 pour une optique sphérique, 2 pour un anamorphique 2x.
-            </p>
-          </>
-        )}
+        {tab === 'cameras' && <CamerasTab />}
 
         {tab === 'termes' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, overflow: 'auto' }}>
@@ -228,9 +158,6 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
-function NumberInput(props: { label: string; value: number | null; onChange: (v: number | null) => void; min: number; max: number; required?: boolean }) {
-  return <DecimalField {...props} />;
-}
 
 function TermEditor({ cat }: { cat: TermCategory }) {
   const terms = useApp((s) => s.hist.present.doc.settings.terms[cat]);

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import ExcelJS from 'exceljs';
 import { BUILTIN_PRESETS, buildCsv, buildExportModel, exportFileName } from './model';
 import { buildWorkbook, type PreparedImage } from './excel';
-import { sampleProject } from '../model/sample';
+import { sampleProjectMultiCam as sampleProject } from '../model/sample';
 import { produce } from 'immer';
 import { PNG_160x90_B64 } from '../test/fixtures';
 

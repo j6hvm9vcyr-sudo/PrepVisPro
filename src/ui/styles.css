@@ -338,3 +338,27 @@ table.cams input { width: 100%; border: 1px solid var(--border); border-radius: 
 /* Le défilement suit la cellule active : elle ne passe pas sous l’en-tête collant. */
 .grid [role="gridcell"] { scroll-margin-top: 64px; scroll-margin-bottom: 8px; scroll-margin-left: 8px; }
 .seg button { white-space: nowrap; }
+.pop .hint.batch { color: var(--accent); font-weight: 600; }
+/* Réglages › Caméras */
+.camtab { display: grid; grid-template-columns: 190px 1fr; gap: 18px; min-height: 0; }
+.camtab-list { display: flex; flex-direction: column; gap: 4px; border-right: 1px solid var(--sep); padding-right: 12px; }
+.camtab-item { display: flex; gap: 10px; align-items: center; text-align: left; padding: 8px; border-radius: 8px; border: 1px solid transparent; background: none; color: var(--text); cursor: pointer; }
+.camtab-item:hover { background: var(--head); }
+.camtab-item.on { background: var(--accent-soft); border-color: var(--accent); }
+.camtab-label { font-size: 15px; font-weight: 700; width: 22px; text-align: center; }
+.camtab-meta { display: flex; flex-direction: column; min-width: 0; font-size: 12.5px; }
+.camtab-meta span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.camtab-meta small { color: var(--text3); font-size: 11.5px; }
+.camtab-detail { display: flex; flex-direction: column; gap: 12px; min-width: 0; overflow-y: auto; padding-right: 4px; }
+.camtab-sensor { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px 8px; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.camtab-sensor legend { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text3); padding: 0 4px; }
+.camtab-sensor .note { margin: 0; font-size: 11.5px; line-height: 16px; }
+.camtab-sensor .decimal-field input { border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-size: 13px; background: var(--field); }
+.camtab-x { padding-bottom: 8px; color: var(--text3); }
+.camtab-cmp { display: grid; grid-template-columns: 300px 1fr; gap: 6px 18px; align-items: start; }
+.camtab-cmp svg { background: var(--head); border-radius: 8px; }
+.camtab-calc { display: flex; flex-direction: column; gap: 8px; }
+.camtab-angles { border-collapse: collapse; font-size: 13px; }
+.camtab-angles th { text-align: left; font-weight: 500; color: var(--text2); padding: 3px 14px 3px 0; }
+.camtab-angles td { font-weight: 600; text-align: right; }
+.camtab-formula { grid-column: 1 / -1; font-size: 11.5px; line-height: 16px; color: var(--text2); background: var(--head); border-radius: 8px; padding: 8px 10px; }

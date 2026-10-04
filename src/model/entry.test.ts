@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_TERMS } from './defaults';
-import { applyValue, displayText, editText, isEvolving, parseEntry, splitAnglePart, suggest } from './entry';
+import { applyValue, completeWithPick, displayText, editText, isEvolving, parseEntry, splitAnglePart, suggest } from './entry';
 import type { FieldValue } from './entry';
 import { fr, setup } from './testkit';
 
@@ -162,5 +162,20 @@ describe('application au plan', () => {
     expect(displayText('size', s)).toBe('');
     expect(displayText('focal', s)).toBe('');
     expect(displayText('angle', s)).toBe('');
+  });
+});
+
+describe('choix aux flèches sur une partie vide', () => {
+  const terms = ['TGP', 'GP', 'Poitrine', 'Ensemble'];
+  it('case vide : le terme choisi devient la valeur', () => {
+    expect(completeWithPick('size', '', terms, 2)).toBe('Poitrine');
+  });
+  it('après « > » ou « , » : complète la partie suivante', () => {
+    expect(completeWithPick('size', 'Ensemble >', terms, 1)).toBe('Ensemble > GP');
+    expect(completeWithPick('movement', 'Fixe,', ['Fixe', 'Pan'], 1)).toBe('Fixe, Pan');
+  });
+  it('partie déjà commencée : rien à compléter (la suggestion surlignée s’applique déjà)', () => {
+    expect(completeWithPick('size', 'po', terms, 0)).toBeNull();
+    expect(completeWithPick('focal', '', terms, 0)).toBeNull();
   });
 });

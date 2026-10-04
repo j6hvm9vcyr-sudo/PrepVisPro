@@ -6,7 +6,7 @@ import { computeNumbers } from '../model/numbering';
 import { missingFields } from '../model/completeness';
 import { coverImage } from '../model/images';
 import { displayText } from '../model/entry';
-import { formatDeg, horizontalFovDeg } from '../model/optics';
+import { fieldOfView, formatDeg, parseAspectRatio } from '../model/optics';
 import { imageStore } from '../platform/images';
 import type { ImageKind, Plan } from '../model/types';
 
@@ -163,9 +163,9 @@ function CameraList({ plan }: { plan: Plan }) {
       {plan.cameras.map((c) => {
         const cam = doc.settings.cameras.find((k) => k.id === c.cameraId);
         const w = cam?.sensorWidthMm ?? null;
-        const sq = cam?.squeeze ?? 1;
-        const a = horizontalFovDeg(w, c.start.focalMm, sq);
-        const b = c.end && c.end.focalMm !== c.start.focalMm ? horizontalFovDeg(w, c.end.focalMm, sq) : null;
+        const ratio = parseAspectRatio(doc.meta.aspectRatio);
+        const a = fieldOfView(cam, c.start.focalMm, ratio).horizontal;
+        const b = c.end && c.end.focalMm !== c.start.focalMm ? fieldOfView(cam, c.end.focalMm, ratio).horizontal : null;
         const summary = [displayText('size', c), displayText('axis', c), displayText('focal', c)].filter(Boolean).join(' · ') || '—';
         return (
           <div className="camrow" key={c.id}>
@@ -203,7 +203,7 @@ function CameraList({ plan }: { plan: Plan }) {
         );
       })}
       <p className="note" style={{ margin: 0 }}>
-        Champ horizontal calculé à partir de la largeur active du capteur (Réglages), mise au point à l’infini.
+        Angle de champ horizontal de l’image cadrée : 2 × arctan(largeur ÷ (2 × focale)), d’après le capteur et le ratio du projet (Réglages › Caméras), mise au point à l’infini.
       </p>
     </section>
   );

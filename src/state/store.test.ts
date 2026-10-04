@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createAppStore, linesOf, selectCursor, selectDoc } from './store';
-import { sampleProject } from '../model/sample';
+import { sampleProjectMultiCam as sampleProject } from '../model/sample';
 import { computeNumbers } from '../model/numbering';
 import { displayText } from '../model/entry';
 import { validateProject } from '../model/schema';

@@ -19,6 +19,7 @@ export function migrate(raw: unknown): MigrateResult {
   if (v <= 1) doc = from1to2(doc);
   if (v <= 2) doc = from2to3(doc);
   if (v <= 3) doc = { ...doc, schemaVersion: 4, floorPlans: [] };
+  if (v <= 4) doc = from4to5(doc);
   return { ok: true, raw: doc };
 }
 
@@ -39,5 +40,17 @@ function from2to3(doc: Record<string, unknown>): Record<string, unknown> {
     ...doc,
     schemaVersion: 3,
     sequences: seqs.map((s) => (s && typeof s === 'object' ? { breakdown: { camera: '', grip: '', lighting: '', other: '' }, ...(s as object) } : s)),
+  };
+}
+
+/** Format 4 → 5 : chaque caméra du projet reçoit une hauteur capteur (inconnue). */
+function from4to5(doc: Record<string, unknown>): Record<string, unknown> {
+  const settings = doc.settings && typeof doc.settings === 'object' ? (doc.settings as Record<string, unknown>) : null;
+  if (!settings) return { ...doc, schemaVersion: 5 };
+  const cams = Array.isArray(settings.cameras) ? settings.cameras : [];
+  return {
+    ...doc,
+    schemaVersion: 5,
+    settings: { ...settings, cameras: cams.map((c) => (c && typeof c === 'object' ? { sensorHeightMm: null, ...(c as object) } : c)) },
   };
 }

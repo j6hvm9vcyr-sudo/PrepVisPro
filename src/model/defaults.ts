@@ -69,7 +69,7 @@ export function newSequence(number: string, cameraId: Id): Sequence {
 }
 
 export function newProjectCamera(label: string): ProjectCamera {
-  return { id: newId('cam'), label, body: '', mode: '', sensorWidthMm: null, squeeze: 1 };
+  return { id: newId('cam'), label, body: '', mode: '', sensorWidthMm: null, sensorHeightMm: null, squeeze: 1 };
 }
 
 export function defaultSettings(): ProjectSettings {

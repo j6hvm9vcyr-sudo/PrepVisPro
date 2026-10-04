@@ -6,7 +6,7 @@
  * Rotation en degrés, 0 = vers le haut du plan, sens horaire.
  */
 import type { CameraSetup, Id, ProjectDoc } from './types';
-import { horizontalFovDeg } from './optics';
+import { fieldOfView, parseAspectRatio } from './optics';
 
 export interface Point {
   x: number;
@@ -134,11 +134,11 @@ export function fovCone(at: Point, rotation: number, fovDeg: number | null, leng
 
 /** Champs de début et de fin (plan évolutif) d'une caméra du découpage. */
 export function setupFov(doc: ProjectDoc, setup: CameraSetup): { start: number | null; end: number | null } {
+  // Champ horizontal de l'image cadrée (ratio du projet), comme dans Réglages › Caméras.
   const cam = doc.settings.cameras.find((c) => c.id === setup.cameraId);
-  const w = cam?.sensorWidthMm ?? null;
-  const sq = cam?.squeeze ?? 1;
-  const start = horizontalFovDeg(w, setup.start.focalMm, sq);
-  const end = setup.end && setup.end.focalMm !== null && setup.end.focalMm !== setup.start.focalMm ? horizontalFovDeg(w, setup.end.focalMm, sq) : null;
+  const ratio = parseAspectRatio(doc.meta.aspectRatio);
+  const start = fieldOfView(cam, setup.start.focalMm, ratio).horizontal;
+  const end = setup.end && setup.end.focalMm !== null && setup.end.focalMm !== setup.start.focalMm ? fieldOfView(cam, setup.end.focalMm, ratio).horizontal : null;
   return { start, end };
 }
 

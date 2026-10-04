@@ -1,21 +1,25 @@
 /** Projet d'exemple (contenu fictif) pour découvrir l'application. */
 import type { CameraSetup, Framing, Plan, ProjectDoc, Sequence } from './types';
-import { defaultSettings, newId, newProjectCamera } from './defaults';
+import { defaultSettings, newId } from './defaults';
+import { addCameraToPlan } from './ops';
 import { SCHEMA_VERSION } from './types';
 
 function f(size: string, axis: string, angle: string, tiltDeg: number | null, focalMm: number | null): Framing {
   return { size, axis, angle, tiltDeg, focalMm };
 }
 
+/** Exemple avec une deuxième caméra (B) sur le plan 2/2 : pour les tests du multicaméra. */
+export function sampleProjectMultiCam(): ProjectDoc {
+  const d = sampleProject();
+  return addCameraToPlan(d, d.sequences[1]!.plans[1]!.id).doc;
+}
+
 export function sampleProject(): ProjectDoc {
   const settings = defaultSettings();
   const A = settings.cameras[0]!;
-  A.body = 'Caméra A';
-  A.mode = 'Super 35 (exemple)';
+  A.body = '';
+  A.mode = '';
   A.sensorWidthMm = null;
-  const B = newProjectCamera('B');
-  B.body = 'Caméra B';
-  settings.cameras.push(B);
   settings.terms.grip.push('Colonnettes');
 
   const cs = (start: Framing, movements: string[], grip: string[], end: Framing | null = null, cameraId = A.id): CameraSetup => ({
@@ -68,10 +72,7 @@ export function sampleProject(): ProjectDoc {
       ]),
       s('2', 'INT', 'JOUR', 'Wagon', [
         p('Travelling latéral le long des sièges vides.', 'Le wagon est presque vide.', [cs(f('Demi-ensemble', 'Profil', 'À niveau', null, 25), ['Trav latéral', 'Fixe'], ['Steadicam'])]),
-        p('Il lit, ne la voit pas arriver.', 'MARC (35) lit, absorbé.', [
-          cs(f('Taille', '3/4', 'Plongée', -10, 50), ['Fixe'], ['Épaule']),
-          cs(f('GP', 'Face', 'À niveau', null, 85), ['Fixe'], ['Branches'], null, B.id),
-        ]),
+        p('Il lit, ne la voit pas arriver.', 'MARC (35) lit, absorbé.', [cs(f('Taille', '3/4', 'Plongée', -10, 50), ['Fixe'], ['Épaule'])]),
       ]),
       s('3', 'INT', 'NUIT', 'Appartement de Léa', [
         p('Elle allume la lampe, la pièce se révèle.', 'Le noir. Une lampe s’allume.', [cs(f('Ensemble', 'Face', '', null, null), ['Fixe'], [])]),

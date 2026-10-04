@@ -138,6 +138,7 @@ export function CellEditor({ field }: { field: EditableField }) {
               className={`sug ${i === pick ? 'on' : ''} ${sg.create ? 'create' : ''}`}
               onMouseDown={(e) => {
                 e.preventDefault();
+                st().setPick(i);
                 done(st().commitEdit('right', i));
               }}
             >
@@ -145,13 +146,15 @@ export function CellEditor({ field }: { field: EditableField }) {
               {sg.create && <small>nouveau terme</small>}
             </button>
           ))}
+          {editing.batch && <div className="hint batch">↩ remplit les {editing.batch.length + 1} cellules sélectionnées</div>}
           <div className="hint">{HINTS[field]}</div>
           {editing.error && <div className="err">{editing.error}</div>}
         </div>
       )}
-      {field === 'action' && editing.error && (
+      {field === 'action' && (editing.error || editing.batch) && (
         <div className="pop">
-          <div className="err">{editing.error}</div>
+          {editing.batch && <div className="hint batch">↩ remplit les {editing.batch.length + 1} cellules sélectionnées</div>}
+          {editing.error && <div className="err">{editing.error}</div>}
         </div>
       )}
     </div>
