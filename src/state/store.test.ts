@@ -174,3 +174,57 @@ describe('copier-coller', () => {
     expect(st().message?.kind).toBe('warn');
   });
 });
+
+describe('sélection de plusieurs cellules', () => {
+  it('une valeur collée remplit toute la sélection, en une étape d’annulation', () => {
+    const { st } = setup();
+    const c = selectCursor(st())!;
+    st().setCursor({ ...c, col: 'grip' });
+    st().move(3, 0, false, true);
+    expect(st().pasteText('Dolly')).toBe(true);
+    const plans = selectDoc(st()).sequences[0]!.plans;
+    expect(plans.map((p) => p.cameras[0]!.grip)).toEqual([['Dolly'], ['Dolly'], ['Dolly'], ['Dolly']]);
+    expect(st().anchor).not.toBeNull();
+    st().undo();
+    expect(selectDoc(st()).sequences[0]!.plans[1]!.cameras[0]!.grip).toEqual(['Branches']);
+  });
+
+  it('⌘D recopie la première ligne de la sélection', () => {
+    const { st } = setup();
+    const c = selectCursor(st())!;
+    st().setCursor({ ...c, col: 'focal' });
+    st().move(2, 0, false, true);
+    st().fillDown();
+    const plans = selectDoc(st()).sequences[0]!.plans;
+    expect(plans.slice(0, 3).map((p) => p.cameras[0]!.start.focalMm)).toEqual([32, 32, 32]);
+  });
+
+  it('⌘D sans sélection recopie la ligne du dessus', () => {
+    const { st } = setup();
+    const c = selectCursor(st())!;
+    st().setCursor({ ...c, col: 'axis' });
+    st().move(1, 0);
+    st().fillDown();
+    expect(selectDoc(st()).sequences[0]!.plans[1]!.cameras[0]!.start.axis).toBe('Face');
+  });
+
+  it('⌫ efface toute la sélection ; ⌘C copie un bloc', () => {
+    const { st } = setup();
+    const c = selectCursor(st())!;
+    st().setCursor({ ...c, col: 'size' });
+    st().move(1, 1, false, true);
+    expect(st().copyCell()).toBe('Ensemble\tFace\nPoitrine\t3/4');
+    st().clearCell();
+    const plans = selectDoc(st()).sequences[0]!.plans;
+    expect([plans[0]!.cameras[0]!.start.size, plans[1]!.cameras[0]!.start.axis]).toEqual(['', '']);
+    expect(st().message?.text).toMatch(/4 cellules effacées/);
+  });
+
+  it('un déplacement sans ⇧ annule la sélection', () => {
+    const { st } = setup();
+    st().move(1, 0, false, true);
+    expect(st().anchor).not.toBeNull();
+    st().move(1, 0);
+    expect(st().anchor).toBeNull();
+  });
+});

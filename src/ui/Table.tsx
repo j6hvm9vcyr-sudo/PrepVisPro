@@ -1,6 +1,7 @@
 import { memo, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from 'react';
 import { useApp } from '../state/appStore';
-import { selectCursor, selectDoc } from '../state/store';
+import { rangeOf, selectCursor, selectDoc } from '../state/store';
+import { COLUMNS } from '../state/lines';
 import type { Column } from '../state/lines';
 import type { Plan, ProjectSettings, Sequence } from '../model/types';
 import { computeNumbers } from '../model/numbering';
@@ -43,6 +44,21 @@ export function DecoupageTable() {
   const collapsed = useApp((s) => s.collapsed);
   const onlyIncomplete = useApp((s) => s.onlyIncomplete);
   const numbers = useMemo(() => computeNumbers(doc), [doc]);
+  const anchor = useApp((s) => s.anchor);
+  // Sélection de plusieurs cellules : pour chaque plan concerné, colonnes sélectionnées par caméra.
+  const selection = useMemo(() => {
+    if (!anchor || !cursor) return null;
+    const r = rangeOf({ ...useApp.getState(), cursor, anchor });
+    if (!r || (r.r0 === r.r1 && r.c0 === r.c1)) return null;
+    const m = new Map<string, Record<string, [number, number]>>();
+    for (let i = r.r0; i <= r.r1; i++) {
+      const l = r.lines[i]!;
+      const rec = m.get(l.planId) ?? {};
+      rec[l.setupId] = [r.c0, r.c1];
+      m.set(l.planId, rec);
+    }
+    return { map: m, cells: (r.r1 - r.r0 + 1) * (r.c1 - r.c0 + 1) };
+  }, [anchor, cursor, doc, collapsed, onlyIncomplete]); // eslint-disable-line react-hooks/exhaustive-deps
   const gridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -58,27 +74,76 @@ export function DecoupageTable() {
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const st = useApp.getState();
-    if (st.editing || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (st.editing) return;
     // Une fenêtre superposée (aperçu, aide…) a la main sur le clavier.
     if (st.preview || st.showShortcuts || st.pendingDrop || st.editingSequenceId) return;
     if (e.nativeEvent.isComposing) return;
+    const meta = e.metaKey || e.ctrlKey;
+    const ext = e.shiftKey;
+    if (meta && !e.altKey) {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        st.jump('top', ext);
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        st.jump('bottom', ext);
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        st.jump('home', ext);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        st.jump('end', ext);
+      } else if (e.key.toLowerCase() === 'd' && !ext) {
+        e.preventDefault();
+        st.fillDown();
+      } else if (e.key.toLowerCase() === 'a' && !ext) {
+        // ⌘A : toute la colonne visible.
+        e.preventDefault();
+        st.jump('top');
+        st.jump('bottom', true);
+      }
+      return;
+    }
+    if (e.altKey) return;
     const c = selectCursor(st);
     switch (e.key) {
       case 'ArrowUp':
         e.preventDefault();
-        st.move(-1, 0);
+        st.move(-1, 0, false, ext);
         return;
       case 'ArrowDown':
         e.preventDefault();
-        st.move(1, 0);
+        st.move(1, 0, false, ext);
         return;
       case 'ArrowLeft':
         e.preventDefault();
-        st.move(0, -1);
+        st.move(0, -1, false, ext);
         return;
       case 'ArrowRight':
         e.preventDefault();
-        st.move(0, 1);
+        st.move(0, 1, false, ext);
+        return;
+      case 'Home':
+        e.preventDefault();
+        st.jump(meta ? 'top' : 'home', ext);
+        return;
+      case 'End':
+        e.preventDefault();
+        st.jump(meta ? 'bottom' : 'end', ext);
+        return;
+      case 'PageDown':
+        e.preventDefault();
+        st.move(12, 0, false, ext);
+        return;
+      case 'PageUp':
+        e.preventDefault();
+        st.move(-12, 0, false, ext);
+        return;
+      case 'Escape':
+        if (st.anchor) {
+          e.preventDefault();
+          st.setCursor(c!);
+        }
         return;
       case 'Tab':
         e.preventDefault();
@@ -164,6 +229,7 @@ export function DecoupageTable() {
             cursorSetupId={cursor?.setupId ?? null}
             cursorCol={cursor?.col ?? null}
             editing={!!editing}
+            selection={selection?.map ?? null}
           />
         ))}
         <div style={{ height: 160 }} />
@@ -182,6 +248,7 @@ interface BlockProps {
   cursorSetupId: string | null;
   cursorCol: Column | null;
   editing: boolean;
+  selection: Map<string, Record<string, [number, number]>> | null;
 }
 
 function SequenceBlock(p: BlockProps) {
@@ -229,6 +296,7 @@ function SequenceBlock(p: BlockProps) {
               activeSetupId={here ? p.cursorSetupId : null}
               activeCol={here ? p.cursorCol : null}
               editing={here && p.editing}
+              sel={p.selection?.get(plan.id) ?? null}
             />
           );
         })}
@@ -245,9 +313,10 @@ interface RowsProps {
   activeSetupId: string | null;
   activeCol: Column | null;
   editing: boolean;
+  sel: Record<string, [number, number]> | null;
 }
 
-const PlanRows = memo(function PlanRows({ plan, settings, code, global, isReprise, activeSetupId, activeCol, editing }: RowsProps) {
+const PlanRows = memo(function PlanRows({ plan, settings, code, global, isReprise, activeSetupId, activeCol, editing, sel }: RowsProps) {
   const missing = missingFields(plan, settings);
   const multi = plan.cameras.length > 1;
   const cover = coverImage(plan);
@@ -256,8 +325,12 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
   const st = useApp.getState;
   const req = settings.required;
 
-  const select = (setupId: string, col: Column) => {
+  const select = (setupId: string, col: Column, shift = false) => {
     let s = st();
+    if (shift && !s.editing) {
+      s.extendTo({ planId: plan.id, setupId, col });
+      return;
+    }
     if (s.editing) {
       // Clic ailleurs pendant une saisie : validation stricte (rien de deviné), puis on se déplace.
       if (!s.commitEdit('stay', undefined, true)) {
@@ -291,7 +364,12 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
         const first = i === 0;
         const lineActive = setup.id === activeSetupId;
         const label = settings.cameras.find((k) => k.id === setup.cameraId)?.label ?? '?';
-        const cls = (col: Column, extra = '') => `c cell ${extra} ${lineActive && activeCol === col ? 'active' : ''}`;
+        const range = sel?.[setup.id];
+        const cls = (col: Column, extra = '') => {
+          const k = COLUMNS.indexOf(col);
+          const inRange = range && k >= range[0] && k <= range[1];
+          return `c cell ${extra} ${lineActive && activeCol === col ? 'active' : ''} ${inRange ? 'inrange' : ''}`;
+        };
         const techMissing: Record<string, boolean> = {
           size: req.size && !setup.start.size,
           axis: req.axis && !setup.start.axis,
@@ -324,7 +402,7 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
               id={cellId(setup.id, 'image')}
               role="gridcell"
               className={cls('image', 'img')}
-              onMouseDown={() => select(setup.id, 'image')}
+              onMouseDown={(e) => select(setup.id, 'image', e.shiftKey)}
               onDoubleClick={() => st().openPreview(plan.id)}
               onDragOver={(e) => {
                 e.preventDefault();
@@ -344,7 +422,7 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
               id={cellId(setup.id, 'action')}
               role="gridcell"
               className={cls('action', `action ${first ? (plan.action ? '' : req.action ? 'missing' : 'empty') : 'dim'}`)}
-              onMouseDown={() => select(setup.id, 'action')}
+              onMouseDown={(e) => select(setup.id, 'action', e.shiftKey)}
               onDoubleClick={() => st().startEdit()}
               title={first ? plan.action : ''}
             >
@@ -365,7 +443,7 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
                   id={cellId(setup.id, col)}
                   role="gridcell"
                   className={cls(col, flags)}
-                  onMouseDown={() => select(setup.id, col)}
+                  onMouseDown={(e) => select(setup.id, col, e.shiftKey)}
                   onDoubleClick={() => st().startEdit()}
                   title={txt}
                 >

@@ -26,6 +26,8 @@ export type MessageKind = 'info' | 'warn';
 export interface AppState {
   hist: History<Snapshot>;
   cursor: Cursor | null;
+  /** Début d'une sélection de plusieurs cellules (⇧ + flèches, ⇧ + clic). */
+  anchor: Cursor | null;
   editing: EditState | null;
   view: 'table' | 'cards';
   inspector: boolean;
@@ -48,6 +50,7 @@ export function initialState(doc: ProjectDoc): AppState {
   return {
     hist: createHistory<Snapshot>({ doc, at: null }),
     cursor: first ? { planId: first.planId, setupId: first.setupId, col: 'size' } : null,
+    anchor: null,
     editing: null,
     view: 'table',
     inspector: true,
@@ -77,12 +80,99 @@ function fieldOf(col: Column): EditableField | null {
   return col === 'image' ? null : col;
 }
 
+export interface Range {
+  lines: Line[];
+  r0: number;
+  r1: number;
+  c0: number;
+  c1: number;
+}
+
+/** Rectangle sélectionné (une seule cellule s'il n'y a pas de sélection étendue). */
+export function rangeOf(s: AppState): Range | null {
+  const c = s.cursor;
+  if (!c) return null;
+  const lines = linesOf(s);
+  const i = lines.findIndex((l) => l.planId === c.planId && l.setupId === c.setupId);
+  if (i < 0) return null;
+  const a = s.anchor;
+  const j = a ? lines.findIndex((l) => l.planId === a.planId && l.setupId === a.setupId) : -1;
+  const ci = COLUMNS.indexOf(c.col);
+  const cj = a && j >= 0 ? COLUMNS.indexOf(a.col) : ci;
+  const jj = j >= 0 ? j : i;
+  return { lines, r0: Math.min(i, jj), r1: Math.max(i, jj), c0: Math.min(ci, cj), c1: Math.max(ci, cj) };
+}
+
+/** Texte d'une cellule, tel qu'on le retaperait. null : cellule sans texte (image, action d'une 2e caméra). */
+function cellText(doc: ProjectDoc, line: Line, col: Column): string | null {
+  if (col === 'image') return null;
+  const loc = ops.locatePlan(doc, line.planId);
+  const setup = loc?.plan.cameras.find((x) => x.id === line.setupId);
+  if (!loc || !setup) return null;
+  if (col === 'action') return line.setupIndex === 0 ? loc.plan.action : null;
+  return fieldEditText(col, setup);
+}
+
+/**
+ * Écrit plusieurs cellules, en lecture stricte (rien de deviné ni créé).
+ * Tout ou rien : à la moindre erreur, aucune cellule n'est modifiée.
+ */
+function writeCells(doc: ProjectDoc, targets: { line: Line; col: Column; value: string }[], firstRow: number): { ok: true; doc: ProjectDoc; count: number } | { ok: false; errors: string[] } {
+  const errors: string[] = [];
+  let count = 0;
+  let next = doc;
+  const rowOf = new Map<string, number>();
+  targets.forEach((t) => {
+    const key = `${t.line.planId}|${t.line.setupId}`;
+    if (!rowOf.has(key)) rowOf.set(key, rowOf.size + firstRow);
+  });
+  for (const t of targets) {
+    const where = `ligne ${(rowOf.get(`${t.line.planId}|${t.line.setupId}`) ?? 0) - firstRow + 1}, ${t.col === 'image' ? 'image' : FIELD_LABEL[t.col].toLowerCase()}`;
+    if (t.col === 'image') {
+      if (t.value.trim()) errors.push(`${where} : une image ne se colle pas comme du texte`);
+      continue;
+    }
+    const loc = ops.locatePlan(next, t.line.planId);
+    const setup = loc?.plan.cameras.find((x) => x.id === t.line.setupId);
+    if (!loc || !setup) continue;
+    if (t.col === 'action') {
+      if (t.line.setupIndex > 0) {
+        if (t.value.trim()) errors.push(`${where} : l’action se colle sur la ligne de la première caméra`);
+        continue;
+      }
+      if (loc.plan.action !== t.value.trim()) {
+        next = ops.updatePlan(next, t.line.planId, (p) => {
+          p.action = t.value.trim();
+        });
+      }
+      count++;
+      continue;
+    }
+    const terms = t.col === 'focal' ? [] : next.settings.terms[categoryOf(t.col as TermField)];
+    const res = parseEntry(t.col, t.value, terms, { strict: true });
+    if (!res.ok) {
+      errors.push(`${where} : ${res.error}`);
+      continue;
+    }
+    if (res.value.field === 'action') continue;
+    next = ops.replaceCameraSetup(next, t.line.planId, applyValue(setup, res.value));
+    count++;
+  }
+  return errors.length ? { ok: false, errors } : { ok: true, doc: next, count };
+}
+
 // ------------------------------------------------------------------ store
 
 interface Actions {
   load(doc: ProjectDoc): void;
   setCursor(c: Cursor): void;
-  move(dRow: number, dCol: number, wrap?: boolean): void;
+  move(dRow: number, dCol: number, wrap?: boolean, extend?: boolean): void;
+  /** Saut : début/fin de ligne, premier/dernier plan. */
+  jump(to: 'home' | 'end' | 'top' | 'bottom', extend?: boolean): void;
+  /** Étend la sélection jusqu'à cette cellule. */
+  extendTo(c: Cursor): void;
+  /** Recopie vers le bas (⌘D) : la première ligne de la sélection, ou la ligne du dessus. */
+  fillDown(): void;
   startEdit(initial?: string): void;
   setEditText(text: string): void;
   setPick(i: number): void;
@@ -145,6 +235,7 @@ export function createAppStore(doc: ProjectDoc) {
       set((s) => ({
         hist: pushHistory(s.hist, { doc, at }, mergeKey),
         cursor: after ?? at ?? s.cursor,
+        anchor: null,
         message: message ? { text: message, kind: 'info' } : message === null ? MESSAGE_CLEAR : s.message,
       }));
     };
@@ -165,13 +256,32 @@ export function createAppStore(doc: ProjectDoc) {
 
       setCursor(c) {
         if (get().editing) return;
-        setCursorOnly(c);
+        set({ cursor: c, anchor: null });
       },
 
-      move(dRow, dCol, wrap = false) {
+      extendTo(c) {
+        if (get().editing) return;
+        set((s) => ({ anchor: s.anchor ?? s.cursor, cursor: c }));
+      },
+
+      move(dRow, dCol, wrap = false, extend = false) {
         const s = get();
-        setCursorOnly(moveCursor(linesOf(s), cur(), dRow, dCol, wrap));
-        if (s.message) set({ message: null });
+        const anchor = extend ? (s.anchor ?? s.cursor) : null;
+        set({ cursor: moveCursor(linesOf(s), cur(), dRow, dCol, wrap && !extend), anchor, message: null });
+      },
+
+      jump(to, extend = false) {
+        const s = get();
+        const c = cur();
+        const lines = linesOf(s);
+        if (!c || !lines.length) return;
+        const anchor = extend ? (s.anchor ?? c) : null;
+        let next: Cursor = c;
+        if (to === 'home') next = { ...c, col: 'image' };
+        if (to === 'end') next = { ...c, col: 'grip' };
+        if (to === 'top') next = { planId: lines[0]!.planId, setupId: lines[0]!.setupId, col: c.col };
+        if (to === 'bottom') next = { planId: lines[lines.length - 1]!.planId, setupId: lines[lines.length - 1]!.setupId, col: c.col };
+        set({ cursor: next, anchor, message: null });
       },
 
       startEdit(initial) {
@@ -191,7 +301,7 @@ export function createAppStore(doc: ProjectDoc) {
         const setup = loc.plan.cameras[setupIndex];
         if (!setup) return;
         const text = initial ?? (c.col === 'action' ? loc.plan.action : fieldEditText(c.col, setup));
-        set({ editing: { text, pick: 0, error: null } });
+        set({ editing: { text, pick: 0, error: null }, anchor: null });
       },
 
       setEditText(text) {
@@ -242,97 +352,108 @@ export function createAppStore(doc: ProjectDoc) {
       },
 
       copyCell() {
-        const c = cur();
-        if (!c || c.col === 'image') return null;
-        const loc = ops.locatePlan(docNow(), c.planId);
-        const setup = loc?.plan.cameras.find((x) => x.id === c.setupId);
-        if (!loc || !setup) return null;
-        if (c.col === 'action') return loc.plan.cameras[0]!.id === setup.id ? loc.plan.action : null;
-        return fieldEditText(c.col, setup);
+        const s = get();
+        const r = rangeOf(s);
+        if (!r) return null;
+        const doc = docNow();
+        const rows: string[] = [];
+        for (let i = r.r0; i <= r.r1; i++) {
+          const line = r.lines[i]!;
+          const vals: string[] = [];
+          for (let k = r.c0; k <= r.c1; k++) vals.push(cellText(doc, line, COLUMNS[k]!) ?? '');
+          rows.push(vals.join('\t'));
+        }
+        const out = rows.join('\n');
+        return r.r0 === r.r1 && r.c0 === r.c1 && COLUMNS[r.c0] === 'image' ? null : out;
       },
 
       pasteText(text) {
+        const s = get();
         const c = cur();
-        if (!c) return false;
-        const rows = text.replace(/\r\n?/g, '\n').replace(/\n+$/, '').split('\n').map((r) => r.split('\t'));
-        const lines = linesOf(get());
-        const i0 = lines.findIndex((l) => l.planId === c.planId && l.setupId === c.setupId);
-        const c0 = COLUMNS.indexOf(c.col);
-        if (i0 < 0) return false;
-        const width = Math.max(...rows.map((r) => r.length));
-        if (i0 + rows.length > lines.length) {
-          warn(`Collage impossible : ${rows.length} lignes à coller, mais seulement ${lines.length - i0} plans à partir d’ici. Créez d’abord les plans manquants (⌘↩).`);
+        const r = rangeOf(s);
+        if (!c || !r) return false;
+        const rows = text.replace(/\r\n?/g, '\n').replace(/\n+$/, '').split('\n').map((x) => x.split('\t'));
+        const single = rows.length === 1 && rows[0]!.length === 1;
+        // Une seule valeur et plusieurs cellules sélectionnées : la valeur remplit toute la sélection.
+        const targets: { line: Line; col: Column; value: string }[] = [];
+        if (single && (r.r1 > r.r0 || r.c1 > r.c0)) {
+          for (let i = r.r0; i <= r.r1; i++) for (let k = r.c0; k <= r.c1; k++) targets.push({ line: r.lines[i]!, col: COLUMNS[k]!, value: rows[0]![0]! });
+        } else {
+          const width = Math.max(...rows.map((x) => x.length));
+          if (r.r0 + rows.length > r.lines.length) {
+            warn(`Collage impossible : ${rows.length} lignes à coller, mais seulement ${r.lines.length - r.r0} plans à partir d’ici. Créez d’abord les plans manquants (⌘↩).`);
+            return false;
+          }
+          if (r.c0 + width > COLUMNS.length) {
+            warn(`Collage impossible : ${width} colonnes à coller, le tableau n’en a que ${COLUMNS.length - r.c0} à partir d’ici.`);
+            return false;
+          }
+          rows.forEach((row, i) => row.forEach((value, k) => targets.push({ line: r.lines[r.r0 + i]!, col: COLUMNS[r.c0 + k]!, value })));
+        }
+        const res = writeCells(docNow(), targets, r.r0);
+        if (!res.ok) {
+          warn(`Rien n’a été collé. ${res.errors.slice(0, 3).join(' · ')}${res.errors.length > 3 ? ` · et ${res.errors.length - 3} autre(s)` : ''}`);
           return false;
         }
-        if (c0 + width > COLUMNS.length) {
-          warn(`Collage impossible : ${width} colonnes à coller, le tableau n’en a que ${COLUMNS.length - c0} à partir d’ici.`);
-          return false;
-        }
-        let doc = docNow();
-        const errors: string[] = [];
-        let count = 0;
-        rows.forEach((row, r) => {
-          const line = lines[i0 + r]!;
-          row.forEach((value, k) => {
-            const col = COLUMNS[c0 + k]!;
-            const where = `ligne ${r + 1}, ${col === 'image' ? 'image' : FIELD_LABEL[col].toLowerCase()}`;
-            if (col === 'image') {
-              if (value.trim()) errors.push(`${where} : une image ne se colle pas comme du texte`);
-              return;
-            }
-            const loc = ops.locatePlan(doc, line.planId)!;
-            const setup = loc.plan.cameras.find((x) => x.id === line.setupId)!;
-            if (col === 'action') {
-              if (line.setupIndex > 0) {
-                if (value.trim()) errors.push(`${where} : l’action se colle sur la ligne de la première caméra`);
-                return;
-              }
-              doc = ops.updatePlan(doc, line.planId, (p) => {
-                p.action = value.trim();
-              });
-              count++;
-              return;
-            }
-            const terms = col === 'focal' ? [] : doc.settings.terms[categoryOf(col as TermField)];
-            // Collage : lecture stricte, aucun terme créé ni deviné.
-            const res = parseEntry(col, value, terms, { strict: true });
-            if (!res.ok) {
-              errors.push(`${where} : ${res.error}`);
-              return;
-            }
-            if (res.value.field === 'action') return;
-            doc = ops.replaceCameraSetup(doc, line.planId, applyValue(setup, res.value));
-            count++;
-          });
-        });
-        if (errors.length) {
-          warn(`Rien n’a été collé. ${errors.slice(0, 3).join(' · ')}${errors.length > 3 ? ` · et ${errors.length - 3} autre(s)` : ''}`);
-          return false;
-        }
-        if (doc === docNow()) return true;
-        commit(doc, c, `${count} cellule${count > 1 ? 's' : ''} collée${count > 1 ? 's' : ''} · ⌘Z pour annuler`);
+        if (res.doc === docNow()) return true;
+        const keep = s.anchor;
+        commit(res.doc, c, `${res.count} cellule${res.count > 1 ? 's' : ''} collée${res.count > 1 ? 's' : ''} · ⌘Z pour annuler`);
+        set({ anchor: keep });
         return true;
       },
 
-      clearCell() {
+      fillDown() {
+        const s = get();
         const c = cur();
-        if (!c || c.col === 'image') return;
+        const r = rangeOf(s);
+        if (!c || !r) return;
         const doc = docNow();
-        const loc = ops.locatePlan(doc, c.planId);
-        const setup = loc?.plan.cameras.find((x) => x.id === c.setupId);
-        if (!loc || !setup) return;
-        let next: ProjectDoc;
-        if (c.col === 'action') {
-          if (loc.plan.cameras[0]!.id !== setup.id) return;
-          next = ops.updatePlan(doc, c.planId, (p) => {
-            p.action = '';
-          });
-        } else {
-          const r = parseEntry(c.col, '', []);
-          if (!r.ok || r.value.field === 'action') return;
-          next = ops.replaceCameraSetup(doc, c.planId, applyValue(setup, r.value));
+        const targets: { line: Line; col: Column; value: string }[] = [];
+        let src = r.r0;
+        let from = r.r0 + 1;
+        if (r.r0 === r.r1) {
+          // Sans sélection verticale : on recopie la ligne du dessus.
+          if (r.r0 === 0) return;
+          src = r.r0 - 1;
+          from = r.r0;
         }
-        commit(next, c, `${FIELD_LABEL[c.col]} effacé · ⌘Z pour annuler`);
+        for (let k = r.c0; k <= r.c1; k++) {
+          const col = COLUMNS[k]!;
+          if (col === 'image') continue;
+          const v = cellText(doc, r.lines[src]!, col);
+          if (v === null) continue;
+          for (let i = from; i <= r.r1; i++) targets.push({ line: r.lines[i]!, col, value: v });
+        }
+        if (!targets.length) return;
+        const res = writeCells(doc, targets, from);
+        if (!res.ok) {
+          warn(`Recopie impossible. ${res.errors.slice(0, 2).join(' · ')}`);
+          return;
+        }
+        if (res.doc !== doc) {
+          const keep = s.anchor;
+          commit(res.doc, c, `Recopié vers le bas (${res.count} cellule${res.count > 1 ? 's' : ''}) · ⌘Z pour annuler`);
+          set({ anchor: keep });
+        }
+      },
+
+      clearCell() {
+        const s = get();
+        const c = cur();
+        const r = rangeOf(s);
+        if (!c || !r) return;
+        const targets: { line: Line; col: Column; value: string }[] = [];
+        for (let i = r.r0; i <= r.r1; i++)
+          for (let k = r.c0; k <= r.c1; k++) {
+            const col = COLUMNS[k]!;
+            if (col === 'image' || (col === 'action' && r.lines[i]!.setupIndex > 0)) continue;
+            targets.push({ line: r.lines[i]!, col, value: '' });
+          }
+        if (!targets.length) return;
+        const res = writeCells(docNow(), targets, r.r0);
+        if (!res.ok || res.doc === docNow()) return;
+        const one = targets.length === 1;
+        commit(res.doc, c, one ? `${FIELD_LABEL[targets[0]!.col as EditableField]} effacé · ⌘Z pour annuler` : `${targets.length} cellules effacées · ⌘Z pour annuler`);
       },
 
       newPlan(reprise) {

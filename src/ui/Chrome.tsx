@@ -1,13 +1,12 @@
 import { useMemo } from 'react';
 import { useApp } from '../state/appStore';
-import { selectCursor, selectDoc } from '../state/store';
+import { rangeOf, selectCursor, selectDoc } from '../state/store';
 import { missingFields } from '../model/completeness';
 import { computeNumbers } from '../model/numbering';
 import { locatePlan } from '../model/ops';
 import { FIELD_LABEL } from '../model/entry';
 import { stripColors } from './strip';
 import { focusGrid } from './focus';
-import { useTheme, type ThemeChoice } from './theme';
 import { flushSave, saveAsDialog, useProject } from '../state/project';
 
 export function Toolbar() {
@@ -18,7 +17,6 @@ export function Toolbar() {
   const canUndo = useApp((s) => s.hist.past.length > 0);
   const canRedo = useApp((s) => s.hist.future.length > 0);
   const st = useApp.getState;
-  const [theme, setTheme] = useTheme();
   const { total, incomplete } = useMemo(() => {
     let total = 0;
     let incomplete = 0;
@@ -29,8 +27,6 @@ export function Toolbar() {
       }
     return { total, incomplete };
   }, [doc]);
-  const nextTheme: Record<ThemeChoice, ThemeChoice> = { auto: 'light', light: 'dark', dark: 'auto' };
-  const themeLabel: Record<ThemeChoice, string> = { auto: 'Thème : auto', light: 'Thème : clair', dark: 'Thème : sombre' };
 
   return (
     <header className="toolbar">
@@ -79,9 +75,6 @@ export function Toolbar() {
       </button>
       <button type="button" className="btn" onClick={() => st().setShowSettings(true)} title="⌘,">
         Réglages
-      </button>
-      <button type="button" className="btn" onClick={() => setTheme(nextTheme[theme])}>
-        {themeLabel[theme]}
       </button>
       <button type="button" className="btn icon" onClick={() => st().setShowShortcuts(true)} aria-label="Raccourcis clavier" title="Raccourcis (?)">
         ?
@@ -136,6 +129,7 @@ export function SequenceIndex() {
 
 export function StatusBar() {
   const message = useApp((s) => s.message);
+  const anchor = useApp((s) => s.anchor);
   const doc = useApp(selectDoc);
   const cursor = useApp(selectCursor);
   const view = useApp((s) => s.view);
@@ -150,6 +144,13 @@ export function StatusBar() {
       hint =
         `${code}${loc.plan.cameras.length > 1 ? ` · Cam ${label}` : ''} · ${col} — ` +
         (cursor.col === 'image' ? 'espace : aperçu · glissez une image sur la vignette' : 'tapez pour remplacer · ↩ modifier · ⌫ effacer');
+    }
+  }
+  if (anchor && cursor && view === 'table') {
+    const r = rangeOf(useApp.getState());
+    if (r && (r.r1 > r.r0 || r.c1 > r.c0)) {
+      const n = (r.r1 - r.r0 + 1) * (r.c1 - r.c0 + 1);
+      hint = `${n} cellules sélectionnées — ⌘V colle partout · ⌫ efface · ⌘D recopie la première ligne · ⌘C copie · esc annule la sélection`;
     }
   }
   return (

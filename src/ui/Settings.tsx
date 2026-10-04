@@ -6,13 +6,15 @@ import { REQUIRED_FIELDS, TERM_CATEGORIES, type TermCategory } from '../model/ty
 import { newId, newProjectCamera } from '../model/defaults';
 import { norm, parseDecimal } from '../model/text';
 import { focusGrid } from './focus';
+import { useTheme } from './theme';
 
 const CAT_LABEL: Record<TermCategory, string> = { size: 'Valeurs', axis: 'Axes', angle: 'Angles', movement: 'Mouvements', grip: 'Machinerie' };
 
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const doc = useApp(selectDoc);
   const st = useApp.getState;
-  const [tab, setTab] = useState<'projet' | 'cameras' | 'termes' | 'complet'>('projet');
+  const [tab, setTab] = useState<'projet' | 'cameras' | 'termes' | 'complet' | 'apparence'>('projet');
+  const [theme, setTheme] = useTheme();
   const close = () => {
     onClose();
     focusGrid();
@@ -41,6 +43,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
                 ['cameras', 'Caméras'],
                 ['termes', 'Listes de termes'],
                 ['complet', 'Plan complet'],
+                ['apparence', 'Apparence'],
               ] as const
             ).map(([k, l]) => (
               <button key={k} type="button" role="tab" aria-pressed={tab === k} aria-selected={tab === k} onClick={() => setTab(k)}>
@@ -184,6 +187,24 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
             <p className="note" style={{ margin: 0, fontSize: 12 }}>
               Retirer un terme ne modifie pas les plans qui l’utilisent déjà : il y reste, souligné en pointillé.
             </p>
+          </div>
+        )}
+
+        {tab === 'apparence' && (
+          <div className="sec">
+            <p style={{ margin: 0, color: 'var(--text2)' }}>Réglage propre à cet ordinateur (il ne fait pas partie du projet).</p>
+            {(
+              [
+                ['auto', 'Automatique (suit macOS)'],
+                ['light', 'Clair'],
+                ['dark', 'Sombre'],
+              ] as const
+            ).map(([k, l]) => (
+              <label className="check" key={k}>
+                <input type="radio" name="theme" checked={theme === k} onChange={() => setTheme(k)} />
+                {l}
+              </label>
+            ))}
           </div>
         )}
 

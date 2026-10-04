@@ -79,3 +79,23 @@ export function sampleProject(): ProjectDoc {
     ],
   };
 }
+
+/** Grand projet fictif (performances) : `sequences` séquences de `perSeq` plans. */
+export function largeSampleProject(sequences = 30, perSeq = 12): ProjectDoc {
+  const base = sampleProject();
+  const proto = base.sequences[0]!;
+  const out: Sequence[] = [];
+  for (let i = 0; i < sequences; i++) {
+    const src = base.sequences[i % base.sequences.length]!;
+    out.push({
+      ...src,
+      id: newId('sq'),
+      number: String(i + 1),
+      plans: Array.from({ length: perSeq }, (_, k) => {
+        const p = proto.plans[k % proto.plans.length]!;
+        return { ...p, id: newId('pl'), repriseOf: null, cameras: p.cameras.map((c) => ({ ...c, id: newId('cs') })) };
+      }),
+    });
+  }
+  return { ...base, meta: { ...base.meta, title: 'Exemple — grand projet' }, sequences: out };
+}

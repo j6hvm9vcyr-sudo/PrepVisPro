@@ -111,8 +111,11 @@ test('multicaméra et évolutif visibles, vue fiches, thème sombre', async ({ p
   await expect(page.locator('.card')).toHaveCount(8);
   await page.screenshot({ path: 'test-results/05-fiches.png' });
   await page.keyboard.press('Meta+1');
-  await page.getByRole('button', { name: /Thème/ }).click();
-  await page.getByRole('button', { name: /Thème/ }).click();
+  await page.getByRole('button', { name: 'Réglages' }).click();
+  await page.getByRole('tab', { name: 'Apparence' }).click();
+  await page.getByLabel('Sombre').check();
+  await page.getByRole('button', { name: 'Terminé' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.screenshot({ path: 'test-results/06-sombre.png' });
 });
 

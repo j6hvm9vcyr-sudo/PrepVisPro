@@ -41,6 +41,9 @@ const SHORTCUTS: { title: string; items: [string, string][] }[] = [
     items: [
       ['Cellule voisine', '← ↑ → ↓'],
       ['Cellule suivante / précédente', '⇥ / ⇧⇥'],
+      ['Premier / dernier plan', '⌘↑ / ⌘↓'],
+      ['Début / fin de ligne', '⌘← / ⌘→'],
+      ['Sélectionner plusieurs cellules', '⇧ + flèches, ⇧ + clic'],
       ['Vue Tableau / Fiches', '⌘1 / ⌘2'],
       ['Afficher / masquer Détails', '⌘I'],
     ],
@@ -56,6 +59,7 @@ const SHORTCUTS: { title: string; items: [string, string][] }[] = [
       ['Annuler la saisie', 'esc'],
       ['Effacer la cellule', '⌫'],
       ['Copier / couper / coller', '⌘C / ⌘X / ⌘V'],
+      ['Recopier vers le bas', '⌘D'],
     ],
   },
   {

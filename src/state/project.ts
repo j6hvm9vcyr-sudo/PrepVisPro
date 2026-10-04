@@ -13,7 +13,7 @@ import type { ProjectDoc } from '../model/types';
 import { validateProject } from '../model/schema';
 import { migrate } from '../model/migrate';
 import { newProject } from '../model/defaults';
-import { sampleProject } from '../model/sample';
+import { largeSampleProject, sampleProject } from '../model/sample';
 import { getBackend, baseName, type Backend } from '../platform/backend';
 import { imageStore } from '../platform/images';
 import { useApp } from './appStore';
@@ -266,10 +266,10 @@ export async function saveAsDialog(): Promise<boolean> {
   }
 }
 
-export async function openSample(): Promise<void> {
+export async function openSample(large = false): Promise<void> {
   backend ??= await getBackend();
   if (!(await closeProject())) return;
-  openDoc(sampleProject(), 'unsaved', null);
+  openDoc(large ? largeSampleProject() : sampleProject(), 'unsaved', null);
 }
 
 export async function openBlankUnsaved(): Promise<void> {
@@ -345,10 +345,10 @@ export async function quitApp(): Promise<void> {
 }
 
 /** Au lancement : rouvre le dernier projet, s'il existe encore. */
-export async function startup(opts: { sample?: boolean } = {}): Promise<void> {
+export async function startup(opts: { sample?: boolean; large?: boolean } = {}): Promise<void> {
   backend ??= await getBackend();
   if (opts.sample) {
-    await openSample();
+    await openSample(opts.large);
     return;
   }
   if (backend.kind !== 'tauri') return;

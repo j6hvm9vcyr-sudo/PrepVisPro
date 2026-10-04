@@ -292,3 +292,5 @@ table.cams input { width: 100%; border: 1px solid var(--border); border-radius: 
 .status-pill.new { background: var(--accent-soft); color: var(--accent); }
 .status-pill.changed { background: color-mix(in srgb, var(--warn) 18%, var(--panel)); color: var(--warn-text); }
 .scene-text { font-family: var(--mono); font-size: 12px; line-height: 18px; white-space: pre-wrap; background: var(--side); border: 1px solid var(--border); border-radius: 6px; padding: 8px; max-height: 220px; overflow: auto; user-select: text; -webkit-user-select: text; color: var(--text2); width: 100%; resize: vertical; }
+.cell.inrange { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.cell.inrange.active { background: color-mix(in srgb, var(--accent) 8%, transparent); }
