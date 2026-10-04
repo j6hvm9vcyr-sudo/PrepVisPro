@@ -297,3 +297,13 @@ table.cams input { width: 100%; border: 1px solid var(--border); border-radius: 
 .breakdown-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
 .seq-comments { padding: 6px 12px 8px 46px; font-size: 12px; color: var(--text2); border-bottom: 1px solid var(--sep); background: var(--panel); white-space: pre-wrap; }
 .seq-comments b { color: var(--text); font-weight: 600; }
+
+/* ---------- menu contextuel ---------- */
+.ctx { position: fixed; z-index: 50; min-width: 240px; background: var(--pop); border: 1px solid var(--border); border-radius: 9px; box-shadow: var(--shadow); padding: 4px; }
+.ctx-group + .ctx-group { border-top: 1px solid var(--border-soft); margin-top: 4px; padding-top: 4px; }
+.ctx button { display: flex; justify-content: space-between; gap: 16px; width: 100%; border: 0; background: transparent; padding: 6px 10px; border-radius: 5px; text-align: left; }
+.ctx button:hover:not(:disabled), .ctx button:focus-visible { background: var(--accent); color: var(--on-accent); outline: none; }
+.ctx button.danger { color: var(--danger); }
+.ctx button.danger:hover:not(:disabled), .ctx button.danger:focus-visible { background: var(--danger); color: #fff; }
+.ctx-keys { font-family: var(--mono); font-size: 11px; opacity: 0.7; }
+.cam-select { border: 1px solid var(--border); border-radius: 5px; padding: 1px 4px; background: var(--field); font-weight: 700; }

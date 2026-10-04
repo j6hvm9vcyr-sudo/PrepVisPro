@@ -170,7 +170,22 @@ function CameraList({ plan }: { plan: Plan }) {
         return (
           <div className="camrow" key={c.id}>
             <div className="top">
-              <span className="lbl mono">{cam?.label ?? '?'}</span>
+              {doc.settings.cameras.length > 1 ? (
+                <select
+                  className="cam-select mono"
+                  aria-label="Caméra du projet"
+                  value={c.cameraId}
+                  onChange={(e) => st().setSetupCamera(plan.id, c.id, e.target.value)}
+                >
+                  {doc.settings.cameras.map((k) => (
+                    <option key={k.id} value={k.id} disabled={plan.cameras.some((x) => x.id !== c.id && x.cameraId === k.id)}>
+                      {k.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <span className="lbl mono">{cam?.label ?? '?'}</span>
+              )}
               <span className="sum">{summary}</span>
               {plan.cameras.length > 1 && (
                 <button type="button" className="linkbtn danger" onClick={() => st().removeCamera(plan.id, c.id)}>

@@ -418,6 +418,14 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
             key={setup.id}
             role="row"
             aria-selected={lineActive}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              const s = st();
+              if (s.editing) return;
+              const col = ((e.target as HTMLElement).closest('[id^="cell-"]')?.id.split('-').pop() ?? 'action') as Column;
+              s.setCursor({ planId: plan.id, setupId: setup.id, col });
+              s.setContextMenu({ x: e.clientX, y: e.clientY, planId: plan.id, setupId: setup.id });
+            }}
             className={`grid-cols line ${first ? 'first' : 'cont'} ${lineActive ? 'sel' : ''} ${i < plan.cameras.length - 1 ? 'joined' : ''}`}
           >
             <span className="c n mono">{first ? global : ''}</span>

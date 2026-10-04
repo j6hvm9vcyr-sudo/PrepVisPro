@@ -10,6 +10,7 @@ import { SettingsDialog } from './Settings';
 import { Welcome } from './Welcome';
 import { ExportDialog } from './ExportDialog';
 import { ImportDialog } from './ImportDialog';
+import { ContextMenu } from './ContextMenu';
 import { startScriptImport } from '../import/flow';
 import { useProject, saveNow, newProjectDialog, openDialog } from '../state/project';
 import { focusGrid, isTypingTarget } from './focus';
@@ -206,6 +207,7 @@ function Workspace() {
       {settings && <SettingsDialog onClose={() => useApp.getState().setShowSettings(false)} />}
       {exporting && <ExportDialog onClose={() => useApp.getState().setShowExport(false)} />}
       <ImportDialog />
+      <ContextMenu />
     </div>
   );
 }

@@ -228,3 +228,16 @@ describe('sélection de plusieurs cellules', () => {
     expect(st().anchor).toBeNull();
   });
 });
+
+describe('numéro de nouvelle séquence', () => {
+  it('propose le suivant, ou une variante lettrée si on insère entre deux séquences', async () => {
+    const { suggestSequenceNumber } = await import('./store');
+    const { doc, seq, plan } = await import('../model/testkit');
+    const d = doc((c) => [seq('1', [plan(c)]), seq('2', [plan(c)]), seq('4', [plan(c)])]);
+    expect(suggestSequenceNumber(d, d.sequences[2]!.id)).toBe('5');
+    expect(suggestSequenceNumber(d, d.sequences[0]!.id)).toBe('1A');
+    expect(suggestSequenceNumber(d, d.sequences[1]!.id)).toBe('3');
+    const d2 = doc((c) => [seq('3', [plan(c)]), seq('3A', [plan(c)]), seq('4', [plan(c)])]);
+    expect(suggestSequenceNumber(d2, d2.sequences[0]!.id)).toBe('3B');
+  });
+});

@@ -158,3 +158,15 @@ test('copier-coller d’une cellule au clavier', async ({ page, context }) => {
   await expect(cell(page, 1, 'size')).toHaveText('Ensemble');
   await expect(page.locator('.status .msg')).toContainText('1 cellule collée');
 });
+
+test('menu contextuel : supprimer un plan, puis annuler', async ({ page }) => {
+  const before = await page.locator('.line.first').count();
+  await cell(page, 1, 'action').click({ button: 'right' });
+  const menu = page.getByRole('menu');
+  await expect(menu).toBeVisible();
+  await page.screenshot({ path: 'test-results/11-menu.png' });
+  await menu.getByRole('menuitem', { name: /Supprimer le plan/ }).click();
+  await expect(page.locator('.line.first')).toHaveCount(before - 1);
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(page.locator('.line.first')).toHaveCount(before);
+});

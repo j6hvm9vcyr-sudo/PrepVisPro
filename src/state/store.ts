@@ -41,6 +41,7 @@ export interface AppState {
   showSettings: boolean;
   showExport: boolean;
   importing: { name: string; scenes: import('../import/fdx').ScriptScene[] } | null;
+  contextMenu: { x: number; y: number; planId: Id; setupId: Id } | null;
 }
 
 const MESSAGE_CLEAR = null;
@@ -64,6 +65,7 @@ export function initialState(doc: ProjectDoc): AppState {
     showSettings: false,
     showExport: false,
     importing: null,
+    contextMenu: null,
   };
 }
 
@@ -86,6 +88,29 @@ export interface Range {
   r1: number;
   c0: number;
   c1: number;
+}
+
+/**
+ * Numéro proposé pour une nouvelle séquence insérée après `afterSeqId` :
+ * le suivant s'il est libre (« 4 » → « 5 »), sinon une variante (« 4A », « 4B »…).
+ */
+export function suggestSequenceNumber(doc: ProjectDoc, afterSeqId: Id | null): string {
+  const used = new Set(doc.sequences.map((s) => s.number.trim().toUpperCase()));
+  const prev = afterSeqId ? doc.sequences.find((s) => s.id === afterSeqId) : doc.sequences[doc.sequences.length - 1];
+  const base = prev?.number.trim().toUpperCase() ?? '';
+  const m = base.match(/^(\d+)([A-Z]*)$/);
+  if (!m) return used.has('1') ? '' : '1';
+  const n = Number(m[1]);
+  const idx = prev ? doc.sequences.indexOf(prev) : -1;
+  const nextSeq = doc.sequences[idx + 1];
+  const candidate = String(n + 1);
+  // Insérée entre deux séquences : variante lettrée pour ne pas casser la numérotation.
+  if (!used.has(candidate) && (!nextSeq || nextSeq.number.trim().toUpperCase() !== candidate)) return candidate;
+  for (let i = 0; i < 26; i++) {
+    const v = `${n}${String.fromCharCode(65 + i)}`;
+    if (!used.has(v) && v !== base) return v;
+  }
+  return '';
 }
 
 /** Rectangle sélectionné (une seule cellule s'il n'y a pas de sélection étendue). */
@@ -215,6 +240,9 @@ interface Actions {
   setShowSettings(v: boolean): void;
   setShowExport(v: boolean): void;
   setImporting(v: AppState['importing']): void;
+  setContextMenu(v: AppState['contextMenu']): void;
+  /** Change la caméra du projet utilisée par une caméra du plan. */
+  setSetupCamera(planId: Id, setupId: Id, cameraId: Id): void;
   /** Remplace le document (import), en une étape annulable. */
   replaceDoc(doc: ProjectDoc, message: string): void;
   setShowSettings(v: boolean): void;
@@ -557,7 +585,7 @@ export function createAppStore(doc: ProjectDoc) {
 
       addSequence(afterSeqId) {
         const doc = docNow();
-        const r = ops.insertSequenceAfter(doc, afterSeqId, '');
+        const r = ops.insertSequenceAfter(doc, afterSeqId, suggestSequenceNumber(doc, afterSeqId));
         const p = ops.locatePlan(r.doc, r.planId)!.plan;
         commit(r.doc, { planId: p.id, setupId: p.cameras[0]!.id, col: 'action' }, 'Séquence ajoutée');
         set({ editingSequenceId: r.seqId });
@@ -713,6 +741,25 @@ export function createAppStore(doc: ProjectDoc) {
 
       setImporting(v) {
         set({ importing: v, editing: null });
+      },
+
+      setContextMenu(v) {
+        set({ contextMenu: v });
+      },
+
+      setSetupCamera(planId, setupId, cameraId) {
+        const doc = docNow();
+        const loc = ops.locatePlan(doc, planId);
+        if (!loc) return;
+        if (loc.plan.cameras.some((c) => c.id !== setupId && c.cameraId === cameraId)) {
+          warn('Cette caméra est déjà utilisée sur ce plan.');
+          return;
+        }
+        const next = ops.updatePlan(doc, planId, (p) => {
+          const c = p.cameras.find((x) => x.id === setupId);
+          if (c) c.cameraId = cameraId;
+        });
+        commit(next, cur(), 'Caméra du plan changée');
       },
 
       replaceDoc(doc, message) {
