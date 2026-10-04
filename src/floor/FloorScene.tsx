@@ -300,8 +300,8 @@ export function FloorScene({ doc, fp, k, numbers, selection = [], urlFor }: Scen
         const h = project(el.at, el.rotation, (el.size / 2 + 22) * k);
         bodies.push(<circle key={`h-${el.id}`} data-rotate={el.id} cx={h.x} cy={h.y} r={6 * k} fill="#fff" stroke={LIGHT_COLOR} strokeWidth={2 * k} style={{ cursor: 'grab' }} />);
       }
-      const name = el.label || fixture?.name || 'Projecteur ?';
-      const detail = [fixture?.modes[el.mode]?.label, el.gels.map((g) => gelById(g)?.short).filter(Boolean).join(' + '), el.circuit ? `circ. ${el.circuit}` : '', el.dimmer < 1 ? `${Math.round(el.dimmer * 100)} %` : ''].filter(Boolean).join(' · ');
+      const name = el.label || fixture?.name || 'Projecteur';
+      const detail = [fixture ? '' : 'modèle à choisir', fixture?.modes[el.mode]?.label, el.gels.map((g) => gelById(g)?.short).filter(Boolean).join(' + '), el.circuit ? `circ. ${el.circuit}` : '', el.dimmer < 1 ? `${Math.round(el.dimmer * 100)} %` : ''].filter(Boolean).join(' · ');
       labels.push(
         <g key={`l-${el.id}`} transform={`translate(${el.at.x} ${el.at.y}) scale(${k})`} pointerEvents="none">
           <g transform={`translate(${el.size / 2 + 6} 6)`}>

@@ -31,6 +31,12 @@ test('jours de tournage : séquences du jour, ordre, soleil à la date du jour, 
   await expect(page.getByRole('heading', { level: 3 })).toHaveText('J1 — dimanche 21 juin 2026');
   const seqs = page.getByRole('region', { name: 'Séquences du jour' });
   await expect(seqs).toContainText('SÉQ. 1 — EXT. QUAI DE GARE — JOUR');
+  // ⌥↑ / ⌥↓ sur une ligne la déplace (comme les plans du tableau).
+  await seqs.getByRole('button', { name: 'Retirer la séquence 2 du jour' }).focus();
+  await page.keyboard.press('Alt+ArrowUp');
+  await expect(seqs.locator('.day-seq-h b')).toHaveText([/SÉQ\. 2/, /SÉQ\. 1/]);
+  await page.keyboard.press('Alt+ArrowDown');
+  await expect(seqs.locator('.day-seq-h b')).toHaveText([/SÉQ\. 1/, /SÉQ\. 2/]);
   await expect(seqs.getByRole('button', { name: 'Ordre de tournage à établir (vue Tournage)' }).first()).toBeVisible();
   // Soleil à la date du jour (référence NREL SPA : lever 05:46:56, coucher 21:57:51).
   const sun = page.getByRole('region', { name: 'Soleil du jour' });

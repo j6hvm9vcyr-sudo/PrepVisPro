@@ -3,6 +3,7 @@
  * les horaires du soleil, les plans au sol et le matériel — tout est déduit, rien n'est ressaisi.
  */
 import { Picker } from './Picker';
+import { reorderKeys } from './reorder';
 import { create } from 'zustand';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
@@ -191,7 +192,7 @@ function DayPage({ doc, day, label, labels }: { doc: ProjectDoc; day: ShootingDa
             .map((d) => labels.get(d.id));
           return (
             <div key={s.id} className="day-seq">
-              <div className="day-seq-h">
+              <div className="day-seq-h reorder" onKeyDown={reorderKeys((d) => upd((x) => void x.sequenceIds.splice(k + d, 0, x.sequenceIds.splice(k, 1)[0]!)), { up: k > 0, down: k < seqs.length - 1 })}>
                 <span className="strip" style={{ background: c.fill, borderColor: c.edge }} />
                 <b>
                   SÉQ. {s.number || '?'} — {sequenceTitle(s)}
@@ -201,13 +202,13 @@ function DayPage({ doc, day, label, labels }: { doc: ProjectDoc; day: ShootingDa
                 </span>
                 {also.length > 0 && <span className="day-also">aussi au {also.join(', ')}</span>}
                 <span className="spacer" />
-                <button type="button" className="icon-btn" aria-label={`Monter la séquence ${s.number}`} disabled={k === 0} onClick={() => upd((x) => void x.sequenceIds.splice(k - 1, 0, x.sequenceIds.splice(k, 1)[0]!))}>
+                <button type="button" className="icon-btn mv" aria-label={`Monter la séquence ${s.number}`} disabled={k === 0} onClick={() => upd((x) => void x.sequenceIds.splice(k - 1, 0, x.sequenceIds.splice(k, 1)[0]!))}>
                   ↑
                 </button>
-                <button type="button" className="icon-btn" aria-label={`Descendre la séquence ${s.number}`} disabled={k === seqs.length - 1} onClick={() => upd((x) => void x.sequenceIds.splice(k + 1, 0, x.sequenceIds.splice(k, 1)[0]!))}>
+                <button type="button" className="icon-btn mv" aria-label={`Descendre la séquence ${s.number}`} disabled={k === seqs.length - 1} onClick={() => upd((x) => void x.sequenceIds.splice(k + 1, 0, x.sequenceIds.splice(k, 1)[0]!))}>
                   ↓
                 </button>
-                <button type="button" className="icon-btn danger" aria-label={`Retirer la séquence ${s.number} du jour`} onClick={() => upd((x) => void (x.sequenceIds = x.sequenceIds.filter((y) => y !== s.id)))}>
+                <button type="button" className="icon-btn danger mv" aria-label={`Retirer la séquence ${s.number} du jour`} onClick={() => upd((x) => void (x.sequenceIds = x.sequenceIds.filter((y) => y !== s.id)))}>
                   ×
                 </button>
               </div>
@@ -345,7 +346,7 @@ function EquipmentPanel({ eq }: { eq: Equipment }) {
           {eq.focals.length === 0 && <p className="note">Aucune focale renseignée.</p>}
           {eq.focals.map((f) => (
             <div key={f.focal} className="equip-row">
-              <b className="mono">{formatNumber(f.focal)} mm</b>{' '}
+              <b className="qty">{formatNumber(f.focal)} mm</b>{' '}
               {f.offKit ? <span className="warn-tag">hors des optiques du projet</span> : f.series.length ? <span>{f.series.join(' ou ')}</span> : null} {plans(f.plans)}
             </div>
           ))}

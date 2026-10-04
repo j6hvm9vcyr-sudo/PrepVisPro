@@ -103,7 +103,7 @@ test('images : dépôt sur la vignette, choix Repérage, aperçu à l’espace',
   await expect(page.getByRole('dialog', { name: 'Type d’image' })).toBeVisible();
   await page.keyboard.press('r');
   await expect(page.locator('.line.first').first().locator('.thumb img')).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Repérage' }).locator('img')).toHaveCount(1);
+  await expect(page.getByRole('region', { name: 'Images' }).locator('.imgcard[data-kind="scouting"] img')).toHaveCount(1);
   await page.keyboard.press(' ');
   await expect(page.getByRole('dialog', { name: 'Aperçu de l’image' })).toBeVisible();
   await page.keyboard.press(' ');

@@ -2,6 +2,7 @@
  * Vue Tournage : installations et ordre de tournage, séquence par séquence.
  * L'ordre est proposé d'après les plans au sol, puis ajusté à la main (glisser-déposer).
  */
+import { reorderKeys } from './reorder';
 import { plural } from '../model/text';
 import { useState, type DragEvent } from 'react';
 import { create } from 'zustand';
@@ -105,20 +106,20 @@ function SequenceShooting({ doc, seq, numbers }: { doc: ProjectDoc; seq: Sequenc
         <>
           {e.installations.map((ins, i) => (
             <section key={ins.id} className="install" aria-label={`Installation ${ins.name}`} onDragOver={(ev) => dragged && ev.preventDefault()} onDrop={(ev) => drop(ev, seq.id, ins.id)}>
-              <div className="install-h">
+              <div className="install-h reorder" onKeyDown={reorderKeys((d) => apply((x) => moveInstallation(x, seq.id, ins.id, d)), { up: i > 0, down: i < e.installations.length - 1 })}>
                 <span className="install-n">{i + 1}</span>
                 <input className="install-name" aria-label="Nom de l’installation" value={ins.name} onChange={(ev) => apply((d) => updateInstallation(d, seq.id, ins.id, (x) => void (x.name = ev.target.value)), undefined, `insname-${ins.id}`)} />
                 <span className="note">
                   {ins.plans.length} plan{ins.plans.length > 1 ? 's' : ''}
                 </span>
                 <span className="spacer" />
-                <button type="button" className="icon-btn" aria-label="Monter l’installation" disabled={i === 0} onClick={() => apply((d) => moveInstallation(d, seq.id, ins.id, -1))}>
+                <button type="button" className="icon-btn mv" aria-label="Monter l’installation" disabled={i === 0} onClick={() => apply((d) => moveInstallation(d, seq.id, ins.id, -1))}>
                   ↑
                 </button>
-                <button type="button" className="icon-btn" aria-label="Descendre l’installation" disabled={i === e.installations.length - 1} onClick={() => apply((d) => moveInstallation(d, seq.id, ins.id, 1))}>
+                <button type="button" className="icon-btn mv" aria-label="Descendre l’installation" disabled={i === e.installations.length - 1} onClick={() => apply((d) => moveInstallation(d, seq.id, ins.id, 1))}>
                   ↓
                 </button>
-                <button type="button" className="icon-btn danger" aria-label={`Supprimer l’installation ${ins.name}`} title="Ses plans passent dans « À ranger »" onClick={() => apply((d) => removeInstallation(d, seq.id, ins.id), 'Installation supprimée · ses plans sont à ranger · ⌘Z pour annuler')}>
+                <button type="button" className="icon-btn danger mv" aria-label={`Supprimer l’installation ${ins.name}`} title="Ses plans passent dans « À ranger »" onClick={() => apply((d) => removeInstallation(d, seq.id, ins.id), 'Installation supprimée · ses plans sont à ranger · ⌘Z pour annuler')}>
                   ×
                 </button>
               </div>
@@ -172,7 +173,8 @@ function PlanRow({ p, code, order, seqId, installationId, index, count, doc }: {
   const cams = multi ? p.cameras.map((x) => doc.settings.cameras.find((k) => k.id === x.cameraId)?.label ?? '?').join('+') : '';
   return (
     <div
-      className={`shot-row ${over ? 'over' : ''}`}
+      className={`shot-row reorder ${over ? 'over' : ''}`}
+      onKeyDown={installationId ? reorderKeys((d) => apply((x) => movePlanToInstallation(x, seqId, p.id, installationId, index + d)), { up: index > 0, down: index < count - 1 }) : undefined}
       draggable
       onDragStart={(ev) => {
         dragged = p.id;
@@ -202,15 +204,15 @@ function PlanRow({ p, code, order, seqId, installationId, index, count, doc }: {
       {multi ? <span className="camtag">{cams}</span> : <span />}
       <span className="shot-v">{displayText('size', c) || '—'}</span>
       <span className="shot-v">{displayText('axis', c) || '—'}</span>
-      <span className="shot-v mono">{displayText('focal', c) || '—'}</span>
+      <span className="shot-v qty">{displayText('focal', c) || '—'}</span>
       <span className="shot-v">{displayText('movement', c) || '—'}</span>
       <span className="shot-action">{p.action || '—'}</span>
       {installationId && (
-        <span className="shot-move">
-          <button type="button" className="icon-btn" aria-label={`Monter ${code}`} disabled={index === 0} onClick={() => apply((d) => movePlanToInstallation(d, seqId, p.id, installationId, index - 1))}>
+        <span className="shot-move mv">
+          <button type="button" className="icon-btn mv" aria-label={`Monter ${code}`} disabled={index === 0} onClick={() => apply((d) => movePlanToInstallation(d, seqId, p.id, installationId, index - 1))}>
             ↑
           </button>
-          <button type="button" className="icon-btn" aria-label={`Descendre ${code}`} disabled={index === count - 1} onClick={() => apply((d) => movePlanToInstallation(d, seqId, p.id, installationId, index + 1))}>
+          <button type="button" className="icon-btn mv" aria-label={`Descendre ${code}`} disabled={index === count - 1} onClick={() => apply((d) => movePlanToInstallation(d, seqId, p.id, installationId, index + 1))}>
             ↓
           </button>
         </span>

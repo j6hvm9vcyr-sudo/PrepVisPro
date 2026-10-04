@@ -123,7 +123,7 @@ button:disabled { opacity: 0.45; }
 /* ---------- tableau ---------- */
 .table-scroll { flex: 1; min-height: 0; overflow: auto; background: var(--panel); outline: none; }
 .grid { min-width: 900px; outline: none; }
-.grid-cols { display: grid; grid-template-columns: 34px 64px 82px minmax(150px, 1fr) 100px 72px 104px 86px 112px 96px; }
+.grid-cols { display: grid; grid-template-columns: 34px 64px 82px minmax(150px, 1fr) 100px 72px 104px 98px 112px 96px; }
 .grid-head { position: sticky; top: 0; z-index: 4; height: 30px; align-items: center; background: var(--head); border-bottom: 1px solid var(--border); font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text2); }
 .grid-head > span { padding-left: 8px; }
 .band { display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; background: var(--band); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); scroll-margin-top: 30px; }
@@ -541,7 +541,9 @@ table.modes input:not(.decimal-field input) { border: 1px solid var(--border); b
 .insp-body > .fold + .fold { border-top: 1px solid var(--border-soft); padding-top: 10px; }
 
 /* Focales : chiffres alignés, sans retour à la ligne entre le nombre et « mm ». */
-.cell.num { font-variant-numeric: tabular-nums; }
+.cell.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Chiffres et unités : police du texte, chiffres alignés, jamais coupés de leur unité. La police à chasse fixe est réservée aux numéros de plan. */
+.qty { font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* Positions successives d'un élément (plan au sol) */
 .positions { display: flex; flex-direction: column; gap: 3px; }
@@ -672,3 +674,13 @@ table.modes input:not(.decimal-field input) { border: 1px solid var(--border); b
 .term-chip .term-name small { color: var(--text3); font-size: 11px; }
 .term-chip.on { border-color: var(--accent); background: var(--accent-soft); }
 .alias-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+/* Images du plan : une seule zone */
+.img-kind { display: flex; align-items: center; gap: 8px; margin: 2px 0 6px; font-size: 12px; }
+.seg.small button { padding: 2px 9px; font-size: 12px; }
+.imgcard .acts button.kind-tag { font-weight: 600; border-radius: 4px; }
+.imgcard .acts button.kind-tag.scouting { color: var(--ok); }
+.imgcard .acts button.kind-tag.reference { color: var(--accent); }
+/* Listes réordonnables : flèches et retrait visibles au survol ou au clavier seulement. */
+.reorder .mv { opacity: 0; transition: opacity 0.12s; }
+.reorder:hover .mv, .reorder:focus-within .mv { opacity: 1; }
+@media (hover: none) { .reorder .mv { opacity: 1; } }

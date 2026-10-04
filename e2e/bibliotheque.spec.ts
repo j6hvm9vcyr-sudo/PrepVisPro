@@ -40,22 +40,25 @@ test('bibliothèque : importer une fois, réutiliser dans plusieurs plans, jamai
   // Depuis les détails d'un autre plan : choisir dans la bibliothèque.
   await page.keyboard.press('ControlOrMeta+1');
   await page.locator('.line [id$="-action"]').nth(4).click();
-  await page.getByRole('region', { name: 'Références' }).getByRole('button', { name: 'Bibliothèque…' }).click();
+  const imgs = page.getByRole('region', { name: 'Images' });
+  await imgs.getByRole('radio', { name: 'Référence' }).click();
+  await imgs.getByRole('button', { name: 'Bibliothèque…' }).click();
   const pick = page.getByRole('dialog', { name: 'Bibliothèque d’images' });
   await expect(pick).toContainText('Images pour le plan 2/1');
   await expect(pick.getByRole('radio', { name: 'Référence' })).toHaveAttribute('aria-checked', 'true');
   await pick.getByRole('option').first().getByRole('button').click();
   await pick.getByRole('button', { name: 'Ajouter' }).click();
   await expect(pick).toBeHidden();
-  await expect(page.getByRole('region', { name: 'Références' }).locator('img')).toHaveCount(1);
+  await expect(imgs.locator('.imgcard[data-kind="reference"] img')).toHaveCount(1);
   // La même image dans le même plan : proposée comme « déjà là ».
-  await page.getByRole('region', { name: 'Références' }).getByRole('button', { name: 'Bibliothèque…' }).click();
+  await imgs.getByRole('button', { name: 'Bibliothèque…' }).click();
   await expect(pick.getByRole('option').first()).toHaveAttribute('aria-disabled', 'true');
   await page.keyboard.press('Escape');
   await expect(pick).toBeHidden();
 
   // Une image glissée directement sur un plan entre aussi dans la bibliothèque (et n'y est pas dupliquée).
-  await page.getByRole('region', { name: 'Repérage' }).locator('input[type=file]').setInputFiles([{ ...png, name: 'encore.png' }]);
+  await imgs.getByRole('radio', { name: 'Repérage' }).click();
+  await imgs.locator('input[type=file]').setInputFiles([{ ...png, name: 'encore.png' }]);
   await expect(page.getByRole('status')).toContainText('déjà dans la bibliothèque');
   await page.keyboard.press('ControlOrMeta+6');
   await expect(lib.locator('.libcard')).toHaveCount(1);

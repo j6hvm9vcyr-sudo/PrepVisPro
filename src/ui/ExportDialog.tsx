@@ -1,3 +1,4 @@
+import { reorderKeys } from './reorder';
 import { plural } from '../model/text';
 import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../state/appStore';
@@ -162,14 +163,14 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                   const on = opts.columns.includes(c);
                   const i = opts.columns.indexOf(c);
                   return (
-                    <div key={c} className={`col-row ${on ? '' : 'off'}`}>
+                    <div key={c} className={`col-row reorder ${on ? '' : 'off'}`} onKeyDown={on ? reorderKeys((d) => moveCol(c, d), { up: i > 0, down: i < opts.columns.length - 1 }) : undefined}>
                       <label className="check">
                         <input type="checkbox" checked={on} onChange={() => toggleCol(c)} />
                         {COLUMN_DEFS[c].label}
                         {opts.layout === 'dt' && COLUMN_DEFS[c].perCamera && on && <span className="note"> → Description</span>}
                       </label>
                       {on && (
-                        <span className="col-move">
+                        <span className="col-move mv">
                           <button type="button" aria-label={`Monter ${COLUMN_DEFS[c].label}`} disabled={i === 0} onClick={() => moveCol(c, -1)}>
                             ↑
                           </button>

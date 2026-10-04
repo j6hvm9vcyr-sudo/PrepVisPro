@@ -45,11 +45,7 @@ export function Inspector() {
           <textarea className="area" rows={2} value={plan.action} onChange={(e) => useApp.getState().setPlanText(plan.id, 'action', e.target.value)} />
         </label>
 
-        <ImageGroup plan={plan} kind="scouting" />
-        <ImageGroup plan={plan} kind="reference" />
-        <Explain id="cover" label="Quelle image s’affiche ?">
-          L’image principale s’affiche dans le tableau et les exports. Par défaut c’est la première photo de repérage, sinon la première référence.
-        </Explain>
+        <ImageSection plan={plan} />
 
         {loc.seq.scriptText && <SceneText planId={plan.id} text={loc.seq.scriptText} number={loc.seq.number} />}
 
@@ -76,13 +72,17 @@ export function Inspector() {
   );
 }
 
-function ImageGroup({ plan, kind }: { plan: Plan; kind: ImageKind }) {
+const KIND_LABEL: Record<ImageKind, string> = { scouting: 'Repérage', reference: 'Référence' };
+
+/** Images du plan : une seule zone ; chaque image est un repérage ou une référence. */
+function ImageSection({ plan }: { plan: Plan }) {
   const [over, setOver] = useState(false);
+  const [kind, setKind] = useState<ImageKind>('scouting');
   const input = useRef<HTMLInputElement>(null);
   const st = useApp.getState;
-  const items = plan.images.filter((i) => i.kind === kind);
+  // Repérages d'abord, puis références (ordre d'import conservé dans chaque groupe).
+  const items = [...plan.images.filter((i) => i.kind === 'scouting'), ...plan.images.filter((i) => i.kind === 'reference')];
   const cover = coverImage(plan);
-  const label = kind === 'scouting' ? 'Repérage' : 'Références';
   const onDrop = (e: DragEvent) => {
     e.preventDefault();
     setOver(false);
@@ -97,11 +97,11 @@ function ImageGroup({ plan, kind }: { plan: Plan; kind: ImageKind }) {
       }}
       onDragLeave={() => setOver(false)}
       onDrop={onDrop}
-      aria-label={label}
+      aria-label="Images"
     >
       <div className="sec-h">
         <span>
-          {label}
+          Images
           <span className="count">{items.length}</span>
         </span>
         <span className="sec-acts">
@@ -125,26 +125,41 @@ function ImageGroup({ plan, kind }: { plan: Plan; kind: ImageKind }) {
           }}
         />
       </div>
+      <div className="img-kind">
+        <span className="note">Ajouter comme</span>
+        <span className="seg small" role="radiogroup" aria-label="Type des images ajoutées">
+          {(['scouting', 'reference'] as const).map((k) => (
+            <button key={k} type="button" role="radio" aria-checked={kind === k} aria-pressed={kind === k} onClick={() => setKind(k)}>
+              {KIND_LABEL[k]}
+            </button>
+          ))}
+        </span>
+      </div>
       {items.length > 0 ? (
         <div className="imgs">
           {items.map((img) => {
             const url = imageStore.url(img.file);
             const isCover = cover?.id === img.id;
             return (
-              <div className="imgcard" key={img.id}>
+              <div className="imgcard" key={img.id} data-kind={img.kind}>
                 <button type="button" className={`pic ${isCover ? 'cover' : ''}`} onClick={() => st().openPreview(plan.id, plan.images.indexOf(img))} aria-label={`Agrandir ${img.originalName}`}>
                   {url ? <img src={url} alt="" draggable={false} /> : <span className="note">introuvable</span>}
                   {isCover && <span className="badge">PRINCIPALE</span>}
                 </button>
                 <span className="acts">
+                  <button
+                    type="button"
+                    className={`kind-tag ${img.kind}`}
+                    title={`${KIND_LABEL[img.kind]} : cliquer pour en faire une ${img.kind === 'scouting' ? 'référence' : 'photo de repérage'}`}
+                    onClick={() => st().setImageKind(plan.id, img.id, img.kind === 'scouting' ? 'reference' : 'scouting')}
+                  >
+                    {KIND_LABEL[img.kind]}
+                  </button>
                   {!isCover && (
-                    <button type="button" onClick={() => st().setCover(plan.id, img.id)}>
+                    <button type="button" onClick={() => st().setCover(plan.id, img.id)} title="Image affichée dans le tableau et les exports">
                       Principale
                     </button>
                   )}
-                  <button type="button" onClick={() => st().setImageKind(plan.id, img.id, kind === 'scouting' ? 'reference' : 'scouting')}>
-                    {kind === 'scouting' ? '→ Référence' : '→ Repérage'}
-                  </button>
                   <button type="button" className="danger" onClick={() => st().removeImage(plan.id, img.id)}>
                     Retirer
                   </button>
@@ -154,7 +169,7 @@ function ImageGroup({ plan, kind }: { plan: Plan; kind: ImageKind }) {
           })}
         </div>
       ) : (
-        <div className="dropzone">{kind === 'scouting' ? 'Glissez ici les photos de repérage' : 'Glissez ici films, storyboard, photos'}</div>
+        <div className="dropzone">Glissez ici repérages, films, storyboard, photos</div>
       )}
     </section>
   );

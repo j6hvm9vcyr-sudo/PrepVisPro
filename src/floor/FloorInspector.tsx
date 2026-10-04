@@ -295,6 +295,8 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
         )}
         {tab === 'plan' && (
           <>
+        {/* Avec une sélection, seulement ce qui la concerne : caméras à placer après une caméra, icônes après une icône. */}
+        {selected.every((x) => x.kind === 'camera') && (
         <Fold id="to-place" title="Caméras à placer" count={unplaced.length}>
           {unplaced.length === 0 ? (
             <p className="note" style={{ margin: 0 }}>
@@ -316,9 +318,12 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
           )}
           {ui.placing && <p className="note" style={{ margin: 0, color: 'var(--accent)', fontWeight: 600 }}>Cliquez sur le plan pour placer la caméra (esc pour annuler).</p>}
         </Fold>
+        )}
+        {selected.every((x) => x.kind === 'icon') && (
         <Fold id="icons" title="Icônes" label="Bibliothèque d’icônes" count={iconCount || undefined}>
           <IconPalette />
         </Fold>
+        )}
           </>
         )}
       </div>
