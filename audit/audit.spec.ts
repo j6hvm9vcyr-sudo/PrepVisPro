@@ -41,7 +41,7 @@ test('audit', async ({ page }) => {
   await shot(page, '09-fiches');
   // Réglages
   await page.getByRole('button', { name: 'Réglages' }).click();
-  for (const tab of ['Projet', 'Caméras', 'Optiques', 'Listes de termes', 'Plan complet', 'Apparence']) {
+  for (const tab of ['Projet', 'Caméras', 'Optiques', 'Listes de termes', 'Saisie des plans', 'Mon matériel', 'Apparence']) {
     await page.getByRole('tab', { name: tab }).click();
     await shot(page, `10-reglages-${tab.replace(/ /g, '-')}`);
   }

@@ -22,7 +22,21 @@ describe('mise à niveau des fichiers', () => {
     if (!m.ok) return;
     const r = validateProject(m.raw);
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.doc).toEqual(v2);
+    // Les anciens projets gardent leur comportement : le plan suivant reprend tout (format 16).
+    if (r.ok) expect(r.doc).toEqual({ ...v2, settings: { ...v2.settings, carryOver: { size: true, axis: true, angle: true, focal: true, movement: true, grip: true } } });
+  });
+  it('format 15 → 16 : le plan suivant reprend tout (comme avant), clés dans l’ordre du format', () => {
+    const cur = newProject('X');
+    const { carryOver: _c, ...oldSettings } = cur.settings;
+    const v15 = JSON.parse(JSON.stringify({ ...cur, schemaVersion: 15, settings: oldSettings }));
+    const m = migrate(v15);
+    expect(m.ok).toBe(true);
+    if (!m.ok) return;
+    const r = validateProject(m.raw);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.doc.settings.carryOver).toEqual({ size: true, axis: true, angle: true, focal: true, movement: true, grip: true });
+    expect(Object.keys(r.doc.settings)).toEqual(Object.keys(cur.settings));
   });
   it('format 9 → 10 : projecteurs sans gélatine, aucune matière de réflecteur', () => {
     const cur = newProject('X');

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
 import { REQUIRED_LABEL } from '../model/completeness';
-import { REQUIRED_FIELDS, TERM_CATEGORIES, type TermCategory } from '../model/types';
+import { CARRY_FIELDS, REQUIRED_FIELDS, TERM_CATEGORIES, type CarryField, type TermCategory } from '../model/types';
 import { newId } from '../model/defaults';
 import { norm } from '../model/text';
 import { isComposing, focusGrid, useDialogFocus } from './focus';
@@ -12,6 +12,8 @@ import { LensesTab } from './LensesTab';
 import { KitTab } from './KitTab';
 import { newProjectFromCurrent } from '../state/project';
 import { useTheme } from './theme';
+
+const CARRY_LABEL: Record<CarryField, string> = { size: 'Valeur', axis: 'Axe', angle: 'Angle (et inclinaison)', focal: 'Focale', movement: 'Mouvement', grip: 'Machinerie' };
 
 const CAT_LABEL: Record<TermCategory, string> = { size: 'Valeurs', axis: 'Axes', angle: 'Angles', movement: 'Mouvements', grip: 'Machinerie' };
 
@@ -56,7 +58,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
                 ['cameras', 'Caméras'],
                 ['optiques', 'Optiques'],
                 ['termes', 'Listes de termes'],
-                ['complet', 'Plan complet'],
+                ['complet', 'Saisie des plans'],
                 ['materiel', 'Mon matériel'],
                 ['apparence', 'Apparence'],
               ] as const
@@ -168,15 +170,35 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         )}
 
         {tab === 'complet' && (
-          <div className="sec">
-            <p style={{ margin: 0, color: 'var(--text2)' }}>Un plan est « complet » quand ces champs sont renseignés (pour chaque caméra) :</p>
-            {REQUIRED_FIELDS.map((f) => (
-              <label className="check" key={f}>
-                <input type="checkbox" checked={doc.settings.required[f]} onChange={(e) => st().updateDoc((d) => void (d.settings.required[f] = e.target.checked))} />
-                {REQUIRED_LABEL[f].charAt(0).toUpperCase() + REQUIRED_LABEL[f].slice(1)}
-              </label>
-            ))}
-          </div>
+          <>
+            <div className="sec" aria-label="Plan suivant" role="group">
+              <div className="sec-h">
+                <span>Plan suivant (⌘↩, ↩ en fin de ligne)</span>
+              </div>
+              <p style={{ margin: 0, color: 'var(--text2)' }}>Le nouveau plan reprend du plan précédent, pour chaque caméra :</p>
+              {CARRY_FIELDS.map((f) => (
+                <label className="check" key={f}>
+                  <input type="checkbox" checked={doc.settings.carryOver[f]} onChange={(e) => st().updateDoc((d) => void (d.settings.carryOver[f] = e.target.checked))} />
+                  {CARRY_LABEL[f]}
+                </label>
+              ))}
+              <p className="note" style={{ margin: 0 }}>
+                Le reste part vide, à saisir. Une reprise (4/2B) reprend toujours tout ; ⌘D duplique le plan à l’identique.
+              </p>
+            </div>
+            <div className="sec" aria-label="Plan complet" role="group">
+              <div className="sec-h">
+                <span>Plan complet</span>
+              </div>
+              <p style={{ margin: 0, color: 'var(--text2)' }}>Un plan est « complet » quand ces champs sont renseignés (pour chaque caméra) :</p>
+              {REQUIRED_FIELDS.map((f) => (
+                <label className="check" key={f}>
+                  <input type="checkbox" checked={doc.settings.required[f]} onChange={(e) => st().updateDoc((d) => void (d.settings.required[f] = e.target.checked))} />
+                  {REQUIRED_LABEL[f].charAt(0).toUpperCase() + REQUIRED_LABEL[f].slice(1)}
+                </label>
+              ))}
+            </div>
+          </>
         )}
           </div>
         </div>

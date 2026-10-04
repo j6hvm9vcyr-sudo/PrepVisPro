@@ -66,7 +66,10 @@ test('⌘↩ nouveau plan hérité, renumérotation, ⌘Z', async ({ page }) => 
   await expect(page.locator('.line.first')).toHaveCount(before + 1);
   await expect(page.locator('.line.first .code b').nth(1)).toHaveText('1/2');
   await expect(cell(page, 1, 'action')).toHaveText('Nouveau plan de test');
-  await expect(cell(page, 1, 'size')).toHaveText('Ensemble');
+  // Repris par défaut : focale, mouvement, machinerie ; le cadrage est à saisir (Réglages › Saisie des plans).
+  await expect(cell(page, 1, 'focal')).toHaveText('32 mm');
+  await expect(cell(page, 1, 'grip')).toHaveText('Branches');
+  await expect(cell(page, 1, 'size')).not.toHaveText('Ensemble');
   await page.screenshot({ path: 'test-results/03-nouveau-plan.png' });
   await page.keyboard.press('Meta+z');
   await page.keyboard.press('Meta+z');

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { produce } from 'immer';
 import { computeNumbers } from './numbering';
-import { addCameraToPlan, addTerms, deletePlan, insertPlanAfter, movePlan, removeImage, setCover } from './ops';
+import { addCameraToPlan, addTerms, carrySetup, deletePlan, insertPlanAfter, movePlan, removeImage, setCover } from './ops';
 import { doc, fr, plan, seq, setup } from './testkit';
 import { coverImage } from './images';
 import { missingFields } from './completeness';
@@ -14,17 +15,47 @@ const codes = (d: ReturnType<typeof doc>) => {
 };
 
 describe('opérations sur les plans', () => {
-  it('insère un plan qui reprend les réglages caméra, et renumérote', () => {
-    const d = doc((c) => [seq('4', [plan(c, { action: 'A', cameras: [setup(c, { start: fr({ size: 'GP', focalMm: 40 }), grip: ['Branches'] })] }), plan(c)])]);
+  it('insère un plan qui reprend les réglages choisis dans le projet (focale, mouvement, machinerie par défaut), et renumérote', () => {
+    const d = doc((c) => [seq('4', [plan(c, { action: 'A', cameras: [setup(c, { start: fr({ size: 'GP', axis: 'Face', angle: 'Plongée', tiltDeg: -10, focalMm: 40 }), movements: ['Pan'], grip: ['Branches'] })] }), plan(c)])]);
     const first = d.sequences[0]!.plans[0]!;
     const r = insertPlanAfter(d, first.id, { reprise: false });
     expect(codes(r.doc)).toEqual(['4/1', '4/2', '4/3']);
     const np = r.doc.sequences[0]!.plans[1]!;
     expect(np.id).toBe(r.planId);
     expect(np.action).toBe('');
-    expect(np.cameras[0]!.start).toEqual(first.cameras[0]!.start);
+    expect(np.cameras[0]!.start).toEqual(fr({ focalMm: 40 }));
+    expect(np.cameras[0]!.movements).toEqual(['Pan']);
+    expect(np.cameras[0]!.grip).toEqual(['Branches']);
     expect(np.cameras[0]!.id).not.toBe(first.cameras[0]!.id);
     expect(d.sequences[0]!.plans).toHaveLength(2); // original intact
+  });
+
+  it('plan suivant : tout, rien, ou une partie ; un plan évolutif ne garde sa fin que pour les réglages repris', () => {
+    const src = setup('c', { start: fr({ size: 'Large', axis: 'Face', angle: 'Plongée', tiltDeg: -10, focalMm: 25 }), end: fr({ size: 'GP', focalMm: 75 }), movements: ['Trav avant'], grip: ['Dolly'] });
+    const all = { size: true, axis: true, angle: true, focal: true, movement: true, grip: true };
+    const none = { size: false, axis: false, angle: false, focal: false, movement: false, grip: false };
+    const a = carrySetup(src, all);
+    expect({ ...a, id: src.id }).toEqual(src);
+    expect(a.id).not.toBe(src.id);
+    const n = carrySetup(src, none);
+    expect([n.start, n.end, n.movements, n.grip, n.cameraId]).toEqual([fr(), null, [], [], 'c']);
+    // Seulement la valeur : la fin garde la valeur, sans focale.
+    const v = carrySetup(src, { ...none, size: true });
+    expect(v.start).toEqual(fr({ size: 'Large' }));
+    expect(v.end).toEqual(fr({ size: 'GP' }));
+    // Seulement l'axe : la fin n'a rien à reprendre, le plan n'est plus évolutif.
+    expect(carrySetup(src, { ...none, axis: true }).end).toBeNull();
+    // L'angle va avec son inclinaison.
+    expect(carrySetup(src, { ...none, angle: true }).start).toEqual(fr({ angle: 'Plongée', tiltDeg: -10 }));
+  });
+
+  it('une reprise reprend tout, quel que soit le réglage du projet', () => {
+    const d = produce(
+      doc((c) => [seq('4', [plan(c, { cameras: [setup(c, { start: fr({ size: 'GP', focalMm: 40 }) })] })])]),
+      (x) => void (x.settings.carryOver = { size: false, axis: false, angle: false, focal: false, movement: false, grip: false }),
+    );
+    const r = insertPlanAfter(d, d.sequences[0]!.plans[0]!.id, { reprise: true });
+    expect(r.doc.sequences[0]!.plans[1]!.cameras[0]!.start).toEqual(fr({ size: 'GP', focalMm: 40 }));
   });
 
   it('crée une reprise rattachée au plan d’origine, même depuis une reprise', () => {

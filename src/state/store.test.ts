@@ -59,7 +59,8 @@ describe('flux de saisie au clavier', () => {
     expect(selectCursor(st())!.col).toBe('action');
     st().setEditText('Nouveau plan');
     st().commitEdit('right');
-    expect(curSetup().start).toEqual(before);
+    // Réglages repris par défaut : la focale (le cadrage, lui, est à saisir).
+    expect(curSetup().start).toEqual({ ...before, size: '', axis: '', angle: '', tiltDeg: null });
     expect(st().message?.text ?? '').toBe('');
     st().undo();
     st().undo();

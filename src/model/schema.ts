@@ -177,6 +177,7 @@ const projectSchema = z.object({
     fixtures: z.array(fixture),
     exposure,
     reflectors: z.array(reflector),
+    carryOver: z.object({ size: z.boolean(), axis: z.boolean(), angle: z.boolean(), focal: z.boolean(), movement: z.boolean(), grip: z.boolean() }),
     timeZone: z.string().min(1).nullable(),
   }),
   sequences: z.array(sequence),

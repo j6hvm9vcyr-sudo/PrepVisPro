@@ -4,7 +4,7 @@
  * l'annulation fiable.
  */
 import { produce, type Draft } from 'immer';
-import type { CameraSetup, Id, ImageAsset, Plan, ProjectDoc, Sequence, TermCategory } from './types';
+import type { CameraSetup, CarryField, Framing, Id, ImageAsset, Plan, ProjectDoc, Sequence, TermCategory } from './types';
 import { newId, newPlan, newProjectCamera, newSequence } from './defaults';
 import { norm } from './text';
 
@@ -36,9 +36,31 @@ function deepCopySetup(c: CameraSetup): CameraSetup {
   return { ...structuredClone(c), id: newId('cs') };
 }
 
+/** Réglages d'une caméra pour le plan suivant : seulement ceux que le projet reprend (settings.carryOver). */
+export function carrySetup(c: CameraSetup, carry: Record<CarryField, boolean>): CameraSetup {
+  const frame = (f: Framing): Framing => ({
+    size: carry.size ? f.size : '',
+    axis: carry.axis ? f.axis : '',
+    angle: carry.angle ? f.angle : '',
+    tiltDeg: carry.angle ? f.tiltDeg : null,
+    focalMm: carry.focal ? f.focalMm : null,
+  });
+  const end = c.end ? frame(c.end) : null;
+  const empty = (f: Framing) => !f.size && !f.axis && !f.angle && f.tiltDeg === null && f.focalMm === null;
+  return {
+    id: newId('cs'),
+    cameraId: c.cameraId,
+    start: frame(c.start),
+    end: end && !empty(end) ? end : null,
+    movements: carry.movement ? [...c.movements] : [],
+    grip: carry.grip ? [...c.grip] : [],
+  };
+}
+
 /**
- * Insère un plan juste après `afterPlanId`, avec les réglages caméra de celui-ci.
- * Reprise : même action, même extrait, mêmes images, rattachée au plan d'origine.
+ * Insère un plan juste après `afterPlanId`, avec les mêmes caméras. Les réglages repris sont
+ * ceux choisis dans le projet (settings.carryOver).
+ * Reprise : tout est repris (même action, même extrait, mêmes images, mêmes réglages), rattachée au plan d'origine.
  */
 export function insertPlanAfter(doc: ProjectDoc, afterPlanId: Id, opts: { reprise: boolean }): { doc: ProjectDoc; planId: Id } {
   const loc = locatePlan(doc, afterPlanId);
@@ -46,7 +68,7 @@ export function insertPlanAfter(doc: ProjectDoc, afterPlanId: Id, opts: { repris
   const src = loc.plan;
   const plan: Plan = {
     ...newPlan(src.cameras[0]!.cameraId),
-    cameras: src.cameras.map(deepCopySetup),
+    cameras: opts.reprise ? src.cameras.map(deepCopySetup) : src.cameras.map((c) => carrySetup(c, doc.settings.carryOver)),
   };
   if (opts.reprise) {
     plan.repriseOf = src.repriseOf ?? src.id;

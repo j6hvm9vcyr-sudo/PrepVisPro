@@ -137,6 +137,10 @@ interface CrewMember {
 export type RequiredField = 'action' | 'size' | 'axis' | 'angle' | 'focal' | 'movement' | 'grip';
 export const REQUIRED_FIELDS: readonly RequiredField[] = ['action', 'size', 'axis', 'angle', 'focal', 'movement', 'grip'];
 
+/** Réglages qu'un nouveau plan peut reprendre du plan précédent. */
+export type CarryField = 'size' | 'axis' | 'angle' | 'focal' | 'movement' | 'grip';
+export const CARRY_FIELDS: readonly CarryField[] = ['size', 'axis', 'angle', 'focal', 'movement', 'grip'];
+
 export interface ProjectSettings {
   terms: Record<TermCategory, string[]>;
   required: Record<RequiredField, boolean>;
@@ -149,6 +153,8 @@ export interface ProjectSettings {
   exposure: Exposure;
   /** Matières de réflecteurs du projet, avec leur taux de réflexion mesuré. */
   reflectors: ReflectorMaterial[];
+  /** Réglages repris par le plan suivant (↩ en fin de plan, « Nouveau plan ») ; les autres partent vides. */
+  carryOver: Record<CarryField, boolean>;
   /** Fuseau horaire des heures du projet (nom IANA, ex. « Europe/Paris ») ; null = celui de cet ordinateur. */
   timeZone: string | null;
 }
@@ -214,7 +220,7 @@ interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 15 as const;
+export const SCHEMA_VERSION = 16 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;
