@@ -68,6 +68,18 @@ const floorElement = z.discriminatedUnion('kind', [
   z.object({ ...elemBase, kind: z.literal('actor'), name: z.string(), color: z.string(), path: z.array(point) }),
   z.object({ ...elemBase, kind: z.literal('icon'), icon: z.string().min(1), label: z.string(), size: z.number().finite().positive() }),
   z.object({ ...elemBase, kind: z.literal('text'), text: z.string(), size: z.number().finite().positive() }),
+  z.object({
+    ...elemBase,
+    kind: z.literal('light'),
+    fixtureId: id.nullable(),
+    mode: z.number().int().min(0),
+    dimmer: z.number().min(0).max(1),
+    lossStops: z.number().min(0).max(20),
+    circuit: z.string(),
+    label: z.string(),
+    icon: z.string().min(1).nullable(),
+    size: z.number().finite().positive(),
+  }),
 ]);
 const floorPlan = z.object({
   id,
@@ -131,6 +143,16 @@ export const projectSchema = z.object({
     }),
     cameras: z.array(projectCamera).min(1),
     lenses: z.array(lensSeries),
+    fixtures: z.array(
+      z.object({
+        id,
+        name: z.string(),
+        watts: z.number().finite().min(0).max(100000),
+        kind: z.enum(['led', 'tungsten', 'hmi', 'other']),
+        modes: z.array(z.object({ label: z.string(), lux: z.number().finite().positive(), distanceM: z.number().finite().positive(), beamDeg: z.number().finite().positive().max(180) })),
+      }),
+    ),
+    exposure: z.object({ iso: z.number().finite().positive(), fps: z.number().finite().positive(), shutterDeg: z.number().finite().positive().max(360) }),
   }),
   sequences: z.array(sequence),
   floorPlans: z.array(floorPlan),

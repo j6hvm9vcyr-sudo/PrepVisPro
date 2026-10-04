@@ -124,7 +124,7 @@ export async function floorPng(doc: ProjectDoc, fp: FloorPlan, maxPx = 4000) {
 }
 
 export async function prepareFloorPages(doc: ProjectDoc, plans: FloorPlan[], onProgress?: (done: number, total: number) => void): Promise<PdfFloorPage[]> {
-  const { renderFloorImage, cameraLegend } = await import('../floor/render');
+  const { renderFloorImage, cameraLegend, lightLegend } = await import('../floor/render');
   const out: PdfFloorPage[] = [];
   let done = 0;
   for (const fp of plans) {
@@ -136,7 +136,7 @@ export async function prepareFloorPages(doc: ProjectDoc, plans: FloorPlan[], onP
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     }
-    out.push({ id: fp.id, name: fp.name, sequences: sequencesLabel(doc, fp), image, error, scaled: !!fp.scale, legend: cameraLegend(doc, fp) });
+    out.push({ id: fp.id, name: fp.name, sequences: sequencesLabel(doc, fp), image, error, scaled: !!fp.scale, legend: cameraLegend(doc, fp), ...lightLegend(doc, fp) });
     onProgress?.(++done, plans.length);
   }
   return out;

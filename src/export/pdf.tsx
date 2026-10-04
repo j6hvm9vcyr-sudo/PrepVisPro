@@ -24,6 +24,9 @@ export interface PdfFloorPage {
   error: string | null;
   scaled: boolean;
   legend: { code: string; detail: string; action: string; missing: boolean }[];
+  /** Projecteurs du plan feux et puissance totale. */
+  lights?: { name: string; detail: string }[];
+  power?: string | null;
 }
 
 export interface FontSources {
@@ -321,6 +324,20 @@ function FloorPages({ title, floors, date }: { title: string; floors: PdfFloorPa
                     <Text style={{ flex: 1, fontSize: 8, color: INK2 }}>{r.action}</Text>
                   </View>
                 ))}
+              </View>
+            )}
+            {f.lights && f.lights.length > 0 && (
+              <View style={{ marginTop: 8 }}>
+                <Text style={{ fontSize: 8.5, fontWeight: 700, color: INK2 }}>PROJECTEURS</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                  {f.lights.map((l, i) => (
+                    <View key={i} style={{ width: '50%', flexDirection: 'row', paddingVertical: 1.5, paddingRight: 10 }} wrap={false}>
+                      <Text style={{ fontSize: 8, fontWeight: 600, width: 110 }}>{l.name}</Text>
+                      <Text style={{ fontSize: 8, color: INK2, flex: 1 }}>{l.detail}</Text>
+                    </View>
+                  ))}
+                </View>
+                {f.power ? <Text style={{ fontSize: 8, marginTop: 3, fontWeight: 600 }}>{f.power}</Text> : null}
               </View>
             )}
             <View style={s.foot} fixed>

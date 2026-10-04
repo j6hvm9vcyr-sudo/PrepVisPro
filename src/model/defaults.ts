@@ -79,6 +79,8 @@ export function defaultSettings(): ProjectSettings {
     required: { action: true, size: true, axis: true, angle: true, focal: true, movement: true, grip: true },
     cameras: [newProjectCamera('A')],
     lenses: [],
+    fixtures: [],
+    exposure: { iso: 800, fps: 24, shutterDeg: 180 },
   };
 }
 

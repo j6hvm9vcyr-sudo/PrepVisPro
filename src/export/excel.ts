@@ -408,6 +408,31 @@ function buildFloorSheet(wb: ExcelJS.Workbook, m: ExportModel, floors: PdfFloorP
         r++;
       }
     }
+    if (f.lights?.length) {
+      r++;
+      const lh = ws.getRow(r);
+      ['PROJECTEUR', '', 'DÉTAIL'].forEach((t, i) => {
+        const c = lh.getCell(i + 1);
+        c.value = t;
+        c.font = { name: DT_FONT, size: 9, color: { argb: 'FFFFFFFF' } };
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF8A5A10' } };
+      });
+      ws.mergeCells(r, 1, r, 2);
+      r++;
+      for (const l of f.lights) {
+        ws.mergeCells(r, 1, r, 2);
+        ws.getCell(r, 1).value = l.name;
+        ws.getCell(r, 1).font = { name: DT_FONT, size: 9, bold: true };
+        ws.getCell(r, 3).value = l.detail;
+        ws.getCell(r, 3).font = { name: DT_FONT, size: 9 };
+        r++;
+      }
+      if (f.power) {
+        ws.getCell(r, 1).value = f.power;
+        ws.getCell(r, 1).font = { name: DT_FONT, size: 9, bold: true };
+        r++;
+      }
+    }
     r += 2;
   }
 }

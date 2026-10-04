@@ -13,11 +13,13 @@ import { useLateFocus } from '../ui/focus';
 import { DecimalField } from '../ui/DecimalField';
 import { IconPalette } from './icons';
 import { FramingSuggestion } from './Suggest';
+import { ActorLight, iconToLight, LightInspector, PowerSummary } from './LightPanels';
 
 const TOOLS: { id: FloorTool; label: string; key: string }[] = [
   { id: 'select', label: 'Sélection', key: 'V' },
   { id: 'camera', label: 'Caméra', key: 'C' },
   { id: 'actor', label: 'Personnage', key: 'P' },
+  { id: 'light', label: 'Projecteur', key: 'L' },
   { id: 'text', label: 'Texte', key: 'T' },
   { id: 'measure', label: 'Mesure', key: 'M' },
   { id: 'scale', label: 'Échelle', key: 'E' },
@@ -203,7 +205,7 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
       <div className="insp-body">
         {el ? (
           <section className="sec">
-            <div className="sec-h">{{ camera: 'Caméra', actor: 'Personnage', icon: 'Icône', text: 'Texte' }[el.kind]}</div>
+            <div className="sec-h">{{ camera: 'Caméra', actor: 'Personnage', icon: 'Icône', text: 'Texte', light: 'Projecteur' }[el.kind]}</div>
             {el.kind === 'camera' && (
               <>
                 <label className="field">
@@ -249,7 +251,14 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
                     <button key={c} type="button" role="radio" aria-checked={el.color === c} aria-label={`Couleur ${c}`} className="swatch" style={{ background: c, outline: el.color === c ? '2px solid var(--text)' : 'none' }} onClick={() => upd((x) => void (x.kind === 'actor' && (x.color = c)), 'color')} />
                   ))}
                 </div>
+                <ActorLight fp={fp} actor={el} />
               </>
+            )}
+            {el.kind === 'light' && <LightInspector fp={fp} el={el} />}
+            {el.kind === 'icon' && (
+              <button type="button" className="linkbtn" style={{ alignSelf: 'flex-start' }} onClick={() => iconToLight(fp, el)} title="Pour un projecteur : faisceau, éclairement et puissance">
+                Utiliser comme projecteur
+              </button>
             )}
             {el.kind === 'text' && (
               <label className="field">
@@ -360,6 +369,7 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
             </button>
           </section>
         )}
+        {!el && selected.length === 0 && <PowerSummary fp={fp} />}
 
         <section className="sec">
           <div className="sec-h">

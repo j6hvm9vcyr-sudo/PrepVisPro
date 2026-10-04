@@ -141,6 +141,37 @@ export interface ProjectSettings {
   cameras: ProjectCamera[];
   /** Optiques du projet (séries fixes ou zooms). Vide : aucune contrainte. */
   lenses: LensSeries[];
+  /** Projecteurs du projet, avec leurs données photométriques (fiches des fabricants). */
+  fixtures: Fixture[];
+  /** Réglages d'exposition pour le calcul des diaphs. */
+  exposure: Exposure;
+}
+
+export interface FixtureMode {
+  /** « Spot », « Flood », « 30° »… */
+  label: string;
+  /** Éclairement au centre du faisceau (lux) à la distance de référence. */
+  lux: number;
+  /** Distance de référence de la mesure du fabricant (m). */
+  distanceM: number;
+  /** Angle du faisceau (degrés, angle total). */
+  beamDeg: number;
+}
+
+export interface Fixture {
+  id: Id;
+  name: string;
+  /** Puissance consommée (W). */
+  watts: number;
+  kind: 'led' | 'tungsten' | 'hmi' | 'other';
+  modes: FixtureMode[];
+}
+
+export interface Exposure {
+  iso: number;
+  fps: number;
+  /** Angle d'obturation (degrés). */
+  shutterDeg: number;
 }
 
 /** Série d'optiques du projet : fixes (liste de focales) ou zoom (plage). */
@@ -163,7 +194,7 @@ export interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 7 as const;
+export const SCHEMA_VERSION = 8 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;

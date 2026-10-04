@@ -11,7 +11,8 @@ import { cameraLabel } from '../model/floorOps';
 import { locatePlan } from '../model/ops';
 import { computeNumbers } from '../model/numbering';
 import { formatNumber } from '../model/text';
-import { FloorMarkers, FloorScene } from './FloorScene';
+import { powerTotals } from '../model/light';
+import { FloorMarkers, FloorScene, LIGHT_BEAM_RATIO } from './FloorScene';
 
 export interface Bounds {
   x: number;
@@ -48,7 +49,10 @@ export function contentBounds(fp: FloorPlan, k: number): Bounds | null {
       if (el.showFov) for (const d of [-60, -30, 0, 30, 60]) add(project(el.at, el.rotation + d, fov), 4 * k, 4 * k, 4 * k, 4 * k);
     } else if (el.kind === 'actor') add(el.at, 70 * k, 25 * k, 70 * k, 40 * k);
     else if (el.kind === 'icon') add(el.at, (el.size / 2 + 40) * k, (el.size / 2) * k, (el.size / 2 + 40) * k, (el.size / 2 + 20) * k);
-    else add(el.at, Math.max(el.text.length, 4) * el.size * 0.35 * k, el.size * k, Math.max(el.text.length, 4) * el.size * 0.35 * k, el.size * k);
+    else if (el.kind === 'light') {
+      add(el.at, 60 * k, 30 * k, 120 * k, 50 * k);
+      for (const d of [-30, 0, 30]) add(project(el.at, el.rotation + d, fov * LIGHT_BEAM_RATIO), 4 * k, 4 * k, 4 * k, 4 * k);
+    } else add(el.at, Math.max(el.text.length, 4) * el.size * 0.35 * k, el.size * k, Math.max(el.text.length, 4) * el.size * 0.35 * k, el.size * k);
     if ('path' in el) for (const p of el.path) add(p, 12 * k, 12 * k, 12 * k, 12 * k);
   }
   if (!Number.isFinite(x0)) return null;
@@ -138,6 +142,23 @@ export function cameraLegend(doc: ProjectDoc, fp: FloorPlan): LegendRow[] {
     return [{ row: { ...lab, action: loc?.plan.action ?? '' }, g }];
   });
   return rows.sort((a, b) => a.g - b.g || a.row.code.localeCompare(b.row.code, 'fr', { numeric: true })).map((r) => r.row);
+}
+
+/** Projecteurs du plan (pour la légende des exports) et puissance totale. */
+export function lightLegend(doc: ProjectDoc, fp: FloorPlan): { lights: { name: string; detail: string }[]; power: string | null } {
+  const lights = fp.elements.flatMap((el) => {
+    if (el.kind !== 'light') return [];
+    const f = doc.settings.fixtures.find((x) => x.id === el.fixtureId);
+    const mode = f?.modes[el.mode];
+    const detail = [f ? `${formatNumber(f.watts)} W` : 'modèle non défini', mode?.label, el.dimmer < 1 ? `gradateur ${Math.round(el.dimmer * 100)} %` : '', el.lossStops ? `−${formatNumber(el.lossStops)} diaph` : '', el.circuit ? `circuit ${el.circuit}` : '']
+      .filter(Boolean)
+      .join(' · ');
+    return [{ name: el.label || f?.name || 'Projecteur', detail }];
+  });
+  if (!lights.length) return { lights, power: null };
+  const p = powerTotals(doc, fp);
+  const circuits = p.circuits.filter((c) => c.circuit !== '—').map((c) => `${c.circuit} : ${formatNumber(c.watts)} W`).join(' · ');
+  return { lights, power: `Puissance totale ${formatNumber(p.total.watts)} W (${formatNumber(Math.round(p.total.amps * 10) / 10)} A à 230 V)${circuits ? ` — ${circuits}` : ''}` };
 }
 
 // ------------------------------------------------------------------ navigateur

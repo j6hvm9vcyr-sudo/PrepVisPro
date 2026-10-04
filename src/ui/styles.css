@@ -450,3 +450,19 @@ table.cams input { width: 100%; border: 1px solid var(--border); border-radius: 
 .icon-btn { width: 24px; height: 22px; border: 1px solid var(--border-soft); border-radius: 5px; background: var(--panel); color: var(--text2); cursor: pointer; font-size: 12px; padding: 0; }
 .icon-btn:disabled { opacity: 0.35; cursor: default; }
 .icon-btn.danger { color: var(--danger); }
+/* Plan feux */
+.light-readings { display: flex; flex-direction: column; gap: 3px; border-top: 1px dashed var(--border-soft); padding-top: 6px; }
+.reading { display: flex; align-items: baseline; gap: 8px; font-size: 12.5px; }
+.reading span { flex: 1; color: var(--text2); }
+.reading b { font-variant-numeric: tabular-nums; }
+.reading small { color: var(--warn-text); font-size: 11px; }
+.reading.total { border-top: 1px solid var(--border-soft); padding-top: 4px; }
+/* Réglages › Lumière */
+.lighting { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
+.lighting .decimal-field input, .fixture select { border: 1px solid var(--border); border-radius: 6px; padding: 5px 7px; font-size: 13px; background: var(--field); }
+.fixture { border: 1px solid var(--border-soft); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
+.fixture .field-input { flex: 1; }
+table.modes { border-collapse: collapse; font-size: 12.5px; }
+table.modes th { text-align: left; font-size: 10.5px; color: var(--text3); font-weight: 700; text-transform: uppercase; padding: 2px 8px 2px 0; }
+table.modes td { padding: 2px 8px 2px 0; }
+table.modes input:not(.decimal-field input) { border: 1px solid var(--border); border-radius: 6px; padding: 5px 7px; width: 120px; background: var(--field); }

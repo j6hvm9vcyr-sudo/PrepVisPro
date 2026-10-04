@@ -69,7 +69,26 @@ export interface FloorText extends Base {
   size: number;
 }
 
-export type FloorElement = FloorCamera | FloorActor | FloorIcon | FloorText;
+/** Projecteur placé sur le plan : son faisceau part dans la direction `rotation`. */
+export interface FloorLight extends Base {
+  kind: 'light';
+  /** Projecteur de la liste du projet (Réglages › Lumière). */
+  fixtureId: Id | null;
+  /** Mode du projecteur (spot, flood…), index dans ses modes. */
+  mode: number;
+  /** Gradateur, de 0 à 1 (1 = pleine puissance). */
+  dimmer: number;
+  /** Pertes saisies (diffusion, gélatine…), en diaphs. */
+  lossStops: number;
+  /** Circuit électrique (A, B…) pour les totaux de puissance. */
+  circuit: string;
+  label: string;
+  /** Icône de la bibliothèque copiée dans le projet (sinon symbole standard). */
+  icon: string | null;
+  size: number;
+}
+
+export type FloorElement = FloorCamera | FloorActor | FloorIcon | FloorText | FloorLight;
 
 export interface FloorPlan {
   id: Id;

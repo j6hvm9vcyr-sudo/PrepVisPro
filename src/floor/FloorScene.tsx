@@ -12,6 +12,9 @@ import { ACTOR_COLORS } from './floorStore';
 
 export const CAM_COLOR = '#2457C5';
 export const CAM_END = '#7A5AF8';
+export const LIGHT_COLOR = '#D98A1C';
+/** Longueur dessinée du faisceau des projecteurs, rapportée à celle des champs caméra. */
+export const LIGHT_BEAM_RATIO = 0.8;
 
 export interface SceneProps {
   doc: ProjectDoc;
@@ -125,6 +128,50 @@ export function FloorScene({ doc, fp, k, numbers, selection = [], urlFor }: Scen
         bodies.push(<circle key={`h-${el.id}`} data-rotate={el.id} cx={h.x} cy={h.y} r={6 * k} fill="#fff" stroke={CAM_COLOR} strokeWidth={2 * k} style={{ cursor: 'grab' }} />);
       }
       if (el.label) labels.push(<text key={`l-${el.id}`} x={el.at.x} y={el.at.y + (el.size / 2 + 14) * k} fontSize={11 * k} textAnchor="middle" fill="#13161B" stroke="#fff" strokeWidth={3 * k} paintOrder="stroke" pointerEvents="none">{el.label}</text>);
+    } else if (el.kind === 'light') {
+      const fixture = doc.settings.fixtures.find((f) => f.id === el.fixtureId);
+      const mode = fixture?.modes[el.mode];
+      if (mode) {
+        const c = fovCone(el.at, el.rotation, mode.beamDeg, fovLen * LIGHT_BEAM_RATIO);
+        if (c) cones.push(<polygon key={`b-${el.id}`} points={`${el.at.x},${el.at.y} ${c.left.x},${c.left.y} ${c.right.x},${c.right.y}`} fill={LIGHT_COLOR} fillOpacity={isSel ? 0.22 : 0.13} stroke={LIGHT_COLOR} strokeOpacity={0.6} strokeWidth={1 * k} strokeDasharray={`${3 * k} ${3 * k}`} />);
+      }
+      const url = el.icon ? urlFor(el.icon) : null;
+      bodies.push(
+        <g key={el.id} data-el={el.id} transform={`translate(${el.at.x} ${el.at.y}) scale(${k}) rotate(${el.rotation})`} style={{ cursor: 'move' }}>
+          {isSel && <circle r={el.size / 2 + 6} fill="none" stroke={LIGHT_COLOR} strokeWidth={2} strokeDasharray="4 3" />}
+          {url ? (
+            <image href={url} x={-el.size / 2} y={-el.size / 2} width={el.size} height={el.size} preserveAspectRatio="xMidYMid meet" />
+          ) : (
+            <>
+              {/* Symbole standard : corps du projecteur et lentille vers l'avant. */}
+              <rect x={-11} y={-6} width={22} height={18} rx={3} fill={fixture ? LIGHT_COLOR : '#8B94A2'} stroke="#fff" strokeWidth={1.5} />
+              <path d="M -9 -6 L -13 -14 L 13 -14 L 9 -6 Z" fill="#FFE7B0" stroke="#fff" strokeWidth={1.5} strokeLinejoin="round" />
+            </>
+          )}
+          <rect x={-el.size / 2 - 4} y={-el.size / 2 - 4} width={el.size + 8} height={el.size + 8} fill="none" pointerEvents="all" />
+        </g>,
+      );
+      if (isSel && ui.selection.length === 1) {
+        const h = project(el.at, el.rotation, (el.size / 2 + 22) * k);
+        bodies.push(<circle key={`h-${el.id}`} data-rotate={el.id} cx={h.x} cy={h.y} r={6 * k} fill="#fff" stroke={LIGHT_COLOR} strokeWidth={2 * k} style={{ cursor: 'grab' }} />);
+      }
+      const name = el.label || fixture?.name || 'Projecteur ?';
+      const detail = [mode?.label, el.circuit ? `circ. ${el.circuit}` : '', el.dimmer < 1 ? `${Math.round(el.dimmer * 100)} %` : ''].filter(Boolean).join(' · ');
+      labels.push(
+        <g key={`l-${el.id}`} transform={`translate(${el.at.x} ${el.at.y}) scale(${k})`} pointerEvents="none">
+          <g transform={`translate(${el.size / 2 + 6} 6)`}>
+            <rect x={0} y={0} width={Math.max(name.length * 6.6, detail.length * 5.9) + 12} height={detail ? 31 : 18} rx={4} fill="#5A3A06" opacity={0.88} />
+            <text x={6} y={13} fontSize={11.5} fontWeight={700} fill="#fff">
+              {name}
+            </text>
+            {detail && (
+              <text x={6} y={26} fontSize={10} fill="#FBE3B5">
+                {detail}
+              </text>
+            )}
+          </g>
+        </g>,
+      );
     } else if (el.kind === 'text') {
       bodies.push(
         <text key={el.id} data-el={el.id} x={el.at.x} y={el.at.y} fontSize={el.size * k} fontWeight={600} fill="#13161B" stroke="#fff" strokeWidth={3 * k} paintOrder="stroke" textAnchor="middle" dominantBaseline="middle" style={{ cursor: 'move' }} textDecoration={isSel ? 'underline' : undefined}>

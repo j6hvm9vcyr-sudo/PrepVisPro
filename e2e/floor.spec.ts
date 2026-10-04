@@ -268,3 +268,58 @@ test('tournage : installations proposées d’après le plan au sol, réorganis�
   expect(vals).toContain('Installation 1 · Champ 1');
   expect(vals).toContain('À ranger');
 });
+
+test('plan feux : projecteur du projet, éclairement et diaph sur le personnage, puissance', async ({ page }) => {
+  await page.goto('/?exemple');
+  await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
+  // Projecteur du projet, d'après sa fiche : 1000 lx à 5 m, faisceau 60°, 2000 W.
+  await page.getByRole('button', { name: 'Réglages' }).click();
+  await page.getByRole('tab', { name: 'Lumière' }).click();
+  await page.getByRole('button', { name: '+ Projecteur' }).click();
+  await page.getByLabel('Nom du projecteur').fill('Fresnel 2K');
+  await page.getByLabel('Type de projecteur').selectOption('tungsten');
+  await page.getByLabel('Puissance en watts').fill('2000');
+  await page.getByLabel('Nom du mode').fill('Flood');
+  await page.getByLabel('Angle du faisceau en degrés').fill('60');
+  await page.screenshot({ path: 'test-results/20-lumiere-reglages.png' });
+  await page.getByRole('button', { name: 'Terminé' }).click();
+
+  await page.keyboard.press('ControlOrMeta+3');
+  await page.getByLabel('Créer un plan au sol pour la séquence').selectOption({ label: '2 — Wagon' });
+  const chooser = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Importer un fond…' }).click();
+  await (await chooser).setFiles(resolve('e2e/plan-decor.png'));
+  const img = (await page.locator('.floor-canvas image').boundingBox())!;
+  const at = (x: number, y: number) => ({ x: img.x + (x / 1200) * img.width, y: img.y + (y / 800) * img.height });
+  const a = at(100, 100);
+  const b = at(1100, 100);
+  await page.mouse.click(a.x, a.y);
+  await page.mouse.click(b.x, b.y);
+  await page.getByLabel('Distance en mètres').fill('10');
+  await page.keyboard.press('Enter');
+  const canvas = page.getByRole('application', { name: 'Plan au sol' });
+
+  // Personnage, puis projecteur à 2,5 m à sa gauche, tourné vers lui.
+  await canvas.press('p');
+  const who = at(600, 400);
+  await page.mouse.click(who.x, who.y);
+  await canvas.press('l');
+  const l = at(350, 400);
+  await page.mouse.click(l.x, l.y);
+  await page.getByLabel('Orientation en degrés').fill('90');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.light-readings')).toContainText(/Personnage 1 à 2,5 m/);
+  // 1000 lx × (5 / 2,5)² = 4000 lx ; ISO 800, 1/48 s : N = √(4000 × 800 / 48 / 340) ≈ 14 → T11 ⅔.
+  await expect(page.locator('.light-readings')).toContainText(/4\s?000 lx · T11 ⅔/);
+  // Gradateur à 50 % : 2000 lx.
+  await page.getByLabel('Gradateur').fill('50');
+  await expect(page.locator('.light-readings')).toContainText(/2\s?000 lx/);
+  await expect(page.locator('.floor-canvas text', { hasText: 'Fresnel 2K' })).toBeVisible();
+  // Puissance (aucun élément sélectionné).
+  await canvas.press('Escape');
+  await expect(page.getByRole('region', { name: 'Puissance électrique' })).toContainText(/2\s?000 W · 8,7 A/);
+  // Le personnage voit la même lecture.
+  await page.mouse.click(who.x, who.y);
+  await expect(page.getByRole('region', { name: 'Lumière reçue' })).toContainText(/Fresnel 2K à 2,5 m/);
+  await page.screenshot({ path: 'test-results/21-plan-feux.png' });
+});

@@ -101,9 +101,27 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
       el = { id: newId('fe'), kind: 'actor', at: p, rotation: 180, name: `Personnage ${n + 1}`, color: ACTOR_COLORS[n % ACTOR_COLORS.length]!, path: [] };
     } else if (st.tool === 'text') {
       el = { id: newId('fe'), kind: 'text', at: p, rotation: 0, text: 'Texte', size: 14 };
+    } else if (st.tool === 'light') {
+      // Même projecteur que le dernier posé (on en pose souvent plusieurs du même modèle).
+      const last = [...fp.elements].reverse().find((x) => x.kind === 'light');
+      const fixtures = docNow().settings.fixtures;
+      el = {
+        id: newId('fe'),
+        kind: 'light',
+        at: p,
+        rotation: 0,
+        fixtureId: last?.kind === 'light' ? last.fixtureId : (fixtures[0]?.id ?? null),
+        mode: last?.kind === 'light' ? last.mode : 0,
+        dimmer: 1,
+        lossStops: 0,
+        circuit: last?.kind === 'light' ? last.circuit : '',
+        label: '',
+        icon: null,
+        size: 40,
+      };
     }
     if (!el) return;
-    apply(addElements(docNow(), fp.id, [el]), el.kind === 'camera' ? 'Caméra placée' : el.kind === 'actor' ? 'Personnage ajouté' : 'Texte ajouté');
+    apply(addElements(docNow(), fp.id, [el]), { camera: 'Caméra placée', actor: 'Personnage ajouté', text: 'Texte ajouté', light: 'Projecteur placé', icon: 'Icône posée' }[el.kind]);
     st.set({ selection: [el.id], tool: 'select', placing: null });
   };
 
@@ -327,7 +345,7 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
       apply(d, undefined, `rot-key-${sel.join()}`);
       return;
     }
-    const tools: Record<string, typeof st.tool> = { v: 'select', c: 'camera', p: 'actor', t: 'text', e: 'scale', m: 'measure' };
+    const tools: Record<string, typeof st.tool> = { v: 'select', c: 'camera', p: 'actor', l: 'light', t: 'text', e: 'scale', m: 'measure' };
     const t = tools[e.key.toLowerCase()];
     if (t) {
       e.preventDefault();
