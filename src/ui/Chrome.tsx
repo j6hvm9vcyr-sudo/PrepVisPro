@@ -8,6 +8,7 @@ import { FIELD_LABEL } from '../model/entry';
 import { stripColors } from './strip';
 import { focusGrid } from './focus';
 import { flushSave, saveAsDialog, useProject } from '../state/project';
+import { IconGear, IconHelp, IconHistory, IconRedo, IconSidebar, IconUndo } from './Icons';
 
 export function Toolbar() {
   const doc = useApp(selectDoc);
@@ -53,45 +54,47 @@ export function Toolbar() {
           Jours
         </button>
       </div>
-      <button
-        type="button"
-        className={`btn ${onlyIncomplete ? 'on' : ''}`}
-        aria-pressed={onlyIncomplete}
-        onClick={() => {
-          st().toggleOnlyIncomplete();
-          focusGrid();
-        }}
-        disabled={!incomplete && !onlyIncomplete}
-      >
-        <span className="dot" style={{ background: incomplete ? 'var(--warn)' : 'var(--ok)' }} />
-        {onlyIncomplete ? `${incomplete} à compléter · tout afficher` : incomplete ? `${incomplete} plan${incomplete > 1 ? 's' : ''} à compléter` : 'Tous les plans sont complets'}
-      </button>
       <span className="spacer" />
-      <button type="button" className="btn icon" onClick={() => st().undo()} disabled={!canUndo} aria-label="Annuler" title="Annuler (⌘Z)">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M9 14L4 9l5-5" />
-          <path d="M4 9h10a6 6 0 010 12h-3" />
-        </svg>
-      </button>
-      <button type="button" className="btn icon" onClick={() => st().redo()} disabled={!canRedo} aria-label="Rétablir" title="Rétablir (⇧⌘Z)">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M15 14l5-5-5-5" />
-          <path d="M20 9H10a6 6 0 000 12h3" />
-        </svg>
-      </button>
-      <button type="button" className={`btn ${inspector ? 'on' : ''}`} aria-pressed={inspector} onClick={() => st().toggleInspector()} title="⌘I">
-        Détails
-      </button>
-      <button type="button" className="btn" onClick={() => st().setShowVersions(true)} title="Enregistrer, comparer, revenir à une version (⇧⌘S)">
-        Versions
-      </button>
-      <button type="button" className="btn" onClick={() => st().setShowSettings(true)} title="⌘,">
-        Réglages
-      </button>
-      <button type="button" className="btn icon" onClick={() => st().setShowShortcuts(true)} aria-label="Raccourcis clavier" title="Raccourcis (?)">
-        ?
-      </button>
-      <button type="button" className="btn primary" onClick={() => st().setShowExport(true)} title="⌘E">
+      {(view === 'table' || view === 'cards') && (
+        <button
+          type="button"
+          className={`chip-btn ${onlyIncomplete ? 'on' : ''}`}
+          aria-pressed={onlyIncomplete}
+          title={onlyIncomplete ? 'Afficher tous les plans' : 'N’afficher que les plans à compléter'}
+          onClick={() => {
+            st().toggleOnlyIncomplete();
+            focusGrid();
+          }}
+          disabled={!incomplete && !onlyIncomplete}
+        >
+          <span className="dot" style={{ background: incomplete ? 'var(--warn)' : 'var(--ok)' }} />
+          {onlyIncomplete ? `${incomplete} à compléter · tout afficher` : incomplete ? `${incomplete} plan${incomplete > 1 ? 's' : ''} à compléter` : 'Plans complets'}
+        </button>
+      )}
+      <div className="tool-icons">
+        <button type="button" className="btn icon" onClick={() => st().undo()} disabled={!canUndo} aria-label="Annuler" title="Annuler (⌘Z)">
+          <IconUndo />
+        </button>
+        <button type="button" className="btn icon" onClick={() => st().redo()} disabled={!canRedo} aria-label="Rétablir" title="Rétablir (⇧⌘Z)">
+          <IconRedo />
+        </button>
+        <span className="tool-sep" />
+        {(view === 'table' || view === 'cards') && (
+          <button type="button" className={`btn icon ${inspector ? 'on' : ''}`} aria-pressed={inspector} aria-label="Détails" onClick={() => st().toggleInspector()} title="Afficher / masquer les détails du plan (⌘I)">
+            <IconSidebar />
+          </button>
+        )}
+        <button type="button" className="btn icon" aria-label="Versions" onClick={() => st().setShowVersions(true)} title="Versions : enregistrer, comparer, revenir (⇧⌘S)">
+          <IconHistory />
+        </button>
+        <button type="button" className="btn icon" aria-label="Réglages" onClick={() => st().setShowSettings(true)} title="Réglages du projet (⌘,)">
+          <IconGear />
+        </button>
+        <button type="button" className="btn icon" onClick={() => st().setShowShortcuts(true)} aria-label="Raccourcis clavier" title="Aide et raccourcis (?)">
+          <IconHelp />
+        </button>
+      </div>
+      <button type="button" className="btn primary" onClick={() => st().setShowExport(true)} title="PDF, Excel, CSV (⌘E)">
         Exporter…
       </button>
     </header>
@@ -177,7 +180,18 @@ export function StatusBar() {
       <span className={`msg ${message ? message.kind : ''}`}>{message ? message.text : hint}</span>
       <span className="spacer" />
       <span className="keys">
-        <span className="kbd">⌘↩</span>nouveau plan<span className="kbd">↩</span>modifier<span className="kbd">espace</span>aperçu<span className="kbd">?</span>raccourcis
+        {view === 'table' || view === 'cards' ? (
+          <>
+            <span className="kbd">⌘↩</span>nouveau plan<span className="kbd">↩</span>modifier<span className="kbd">espace</span>aperçu
+          </>
+        ) : view === 'floor' ? (
+          <>
+            <span className="kbd">V C P L B</span>outils<span className="kbd">R</span>tourner<span className="kbd">0</span>tout afficher
+          </>
+        ) : view === 'shooting' ? (
+          <>glissez les plans entre installations</>
+        ) : null}
+        <span className="kbd">?</span>aide
       </span>
     </footer>
   );

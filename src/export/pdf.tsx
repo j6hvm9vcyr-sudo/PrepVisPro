@@ -2,6 +2,7 @@
  * Export PDF du découpage (mise en page dédiée, pensée pour l'impression et l'écran).
  * Rendu par @react-pdf/renderer : aucune dépendance au navigateur pour la mise en page.
  */
+import { APP_VERSION } from '../version';
 import { Document, Font, Image, Page, StyleSheet, Text, View, pdf } from '@react-pdf/renderer';
 import type { ReactElement } from 'react';
 import { COLUMN_DEFS, describePlan, descriptionFields, dtColumns, planValue, type ColumnId, type DtCol, type ExportModel, type ExportOptions, type ExportPlan, type ExportSequence } from './model';
@@ -344,7 +345,7 @@ function FloorPages({ title, floors, date }: { title: string; floors: PdfFloorPa
               </View>
             )}
             <View style={s.foot} fixed>
-              <Text>PrepVisPro</Text>
+              <Text>PrepVisPro {APP_VERSION}</Text>
               <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
             </View>
           </Page>
@@ -441,7 +442,7 @@ function ShootingPages({ m, opts, date, pageW }: { m: ExportModel; opts: ExportO
           </View>
         ))}
       <View style={s.foot} fixed>
-        <Text>PrepVisPro</Text>
+        <Text>PrepVisPro {APP_VERSION}</Text>
         <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
       </View>
     </Page>
@@ -479,7 +480,7 @@ const dayH = { fontSize: 8, fontWeight: 700 as const, color: INK3, marginTop: 10
 function DaysPages({ m, opts, date }: { m: ExportModel; opts: ExportOptions; date: string }) {
   const foot = (
     <View style={s.foot} fixed>
-      <Text>PrepVisPro</Text>
+      <Text>PrepVisPro {APP_VERSION}</Text>
       <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
     </View>
   );
@@ -604,7 +605,7 @@ export function DecoupagePdf({ m, opts, images, floors = [] }: { m: ExportModel;
             <DtSequence key={seq.id} seq={seq} cols={dtCols} widths={dtW} opts={opts} images={images} fields={fields} />
           ))}
           <View style={s.foot} fixed>
-            <Text>PrepVisPro</Text>
+            <Text>PrepVisPro {APP_VERSION}</Text>
             <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
           </View>
         </Page>
@@ -646,7 +647,7 @@ export function DecoupagePdf({ m, opts, images, floors = [] }: { m: ExportModel;
             </View>
           ))}
           <View style={s.foot} fixed>
-            <Text>PrepVisPro</Text>
+            <Text>PrepVisPro {APP_VERSION}</Text>
             <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
           </View>
         </Page>
@@ -690,7 +691,7 @@ export function DecoupagePdf({ m, opts, images, floors = [] }: { m: ExportModel;
             </View>
           ))}
           <View style={s.foot} fixed>
-            <Text>PrepVisPro</Text>
+            <Text>PrepVisPro {APP_VERSION}</Text>
             <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
           </View>
         </Page>

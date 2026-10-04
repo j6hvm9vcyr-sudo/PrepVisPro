@@ -85,11 +85,6 @@ function SequenceShooting({ doc, seq, numbers }: { doc: ProjectDoc; seq: Sequenc
             + Installation
           </button>
         )}
-        {e && (
-          <button type="button" className="btn" title="L’ordre de tournage est inclus dans l’export PDF et Excel" onClick={() => useApp.getState().setShowExport(true)}>
-            Exporter…
-          </button>
-        )}
         <button type="button" className={`btn ${e ? '' : 'primary'}`} onClick={() => void propose()}>
           {e ? 'Refaire la proposition' : 'Proposer un ordre'}
         </button>

@@ -79,13 +79,15 @@ jobs:
       - run: npm run tauri build
       - name: Préparer les fichiers à télécharger
         run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           mkdir -p livraison
           cp src-tauri/target/release/bundle/dmg/*.dmg livraison/ || true
-          ditto -c -k --keepParent src-tauri/target/release/bundle/macos/PrepVisPro.app livraison/PrepVisPro-app.zip
+          ditto -c -k --keepParent src-tauri/target/release/bundle/macos/PrepVisPro.app "livraison/PrepVisPro-$VERSION-app.zip"
           ls -la livraison
       - uses: actions/upload-artifact@v4
         with:
-          name: PrepVisPro-mac
+          name: PrepVisPro-mac-v${{ env.VERSION }}
           path: livraison/
           retention-days: 30
       - name: Publier la version (tags v*)

@@ -366,3 +366,22 @@ test('optiques du projet : focales proposées à la saisie, focale hors série s
   await expect(cell(page, 0, 'focal')).toHaveText('35 mm');
   await expect(cell(page, 0, 'focal')).not.toHaveClass(/offkit/);
 });
+
+test('↩ sur une case remplie : toute la liste est proposée, les flèches changent la valeur', async ({ page }) => {
+  // 1/1 : Valeur « Ensemble ».
+  await page.keyboard.press('Enter');
+  const list = page.getByRole('listbox', { name: 'Suggestions' });
+  await expect(list.getByRole('option')).toHaveCount(9);
+  await expect(list.getByRole('option', { selected: true })).toHaveText('Ensemble');
+  // ↑ : la valeur précédente de la liste (Demi-ensemble), appliquée par ↩.
+  await page.keyboard.press('ArrowUp');
+  await expect(page.getByLabel('Saisie')).toHaveValue('Demi-ensemble');
+  await page.keyboard.press('Enter');
+  await expect(cell(page, 0, 'size')).toHaveText('Demi-ensemble');
+  // Taper revient à la saisie normale (filtrage).
+  await page.keyboard.press('ArrowUp');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('GP');
+  await expect(list.getByRole('option').first()).toHaveText('GP');
+  await page.keyboard.press('Escape');
+});

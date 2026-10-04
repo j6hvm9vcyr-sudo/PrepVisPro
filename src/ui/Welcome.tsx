@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { APP_VERSION } from '../version';
 import { baseName, getBackend } from '../platform/backend';
 import { isTauri } from '../platform/env';
 import { newProjectFromScript } from '../import/flow';
@@ -30,7 +31,7 @@ export function Welcome() {
           </svg>
           <div>
             <h1>PrepVisPro</h1>
-            <p>Découpage technique, plans au sol, plans feux.</p>
+            <p>Découpage technique, plans au sol, plans feux · version {APP_VERSION}</p>
           </div>
         </div>
 

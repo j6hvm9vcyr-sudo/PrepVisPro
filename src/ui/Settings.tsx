@@ -39,10 +39,16 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         if (e.key === 'Escape') close();
       }}
     >
-      <div className="dialog" style={{ width: 800, maxWidth: 'calc(100vw - 32px)', height: 640, maxHeight: 'calc(100vh - 40px)' }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <h3 style={{ whiteSpace: 'nowrap' }}>Réglages</h3>
-          <div className="seg" role="tablist">
+      <div className="dialog settings-dialog" onClick={(e) => e.stopPropagation()}>
+        <div className="settings-head">
+          <h3>Réglages du projet</h3>
+          <span className="spacer" />
+          <button type="button" className="btn primary" onClick={close}>
+            Terminé
+          </button>
+        </div>
+        <div className="settings-body">
+          <nav className="settings-nav" role="tablist" aria-orientation="vertical">
             {(
               [
                 ['projet', 'Projet'],
@@ -58,13 +64,8 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
                 {l}
               </button>
             ))}
-          </div>
-          <span className="spacer" />
-          <button type="button" className="btn primary" onClick={close}>
-            Terminé
-          </button>
-        </div>
-
+          </nav>
+          <div className="settings-content">
         {tab === 'projet' && (
           <>
             <div className="row">
@@ -171,6 +172,8 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
             ))}
           </div>
         )}
+          </div>
+        </div>
       </div>
     </div>
   );

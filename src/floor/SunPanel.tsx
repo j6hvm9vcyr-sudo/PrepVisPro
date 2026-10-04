@@ -2,6 +2,8 @@
  * Soleil du plan au sol : nord du plan, date et heure simulées, position du soleil,
  * événements de la journée et rapport avec chaque caméra.
  */
+import { Fold } from '../ui/Fold';
+import { Explain } from '../ui/Explain';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
 import type { FloorCamera, FloorPlan } from '../model/floor';
@@ -49,8 +51,7 @@ export function SunPanel({ fp }: { fp: FloorPlan }) {
   const shootDays = doc.shootingDays.filter((d) => d.date && d.sequenceIds.some((id) => fp.sequenceIds.includes(id)));
 
   return (
-    <section className="sec" aria-label="Soleil">
-      <div className="sec-h">Soleil</div>
+    <Fold id="sun" title="Soleil" label="Soleil">
 
       <div className="row" style={{ gap: 8, alignItems: 'flex-end' }}>
         <div className="field small">
@@ -69,14 +70,20 @@ export function SunPanel({ fp }: { fp: FloorPlan }) {
           Nord en haut
         </button>
       </div>
-      {fp.northDeg === null && <p className="note" style={{ margin: 0 }}>Sans nord, la direction du soleil n’est pas dessinée sur le plan (0° = haut du plan, sens horaire).</p>}
+      {fp.northDeg === null && <p className="note" style={{ margin: 0 }}>Sans nord, le soleil n’est pas dessiné (0° = haut du plan).</p>}
 
       {!loc.ok ? (
-        <p className="note" style={{ margin: 0, color: loc.reason === 'mixed' ? 'var(--warn-text)' : undefined }}>
-          {loc.reason === 'none'
-            ? 'Position GPS du décor à renseigner dans la fiche de la séquence (double-clic sur son bandeau).'
-            : 'Les séquences de ce plan ont des positions GPS différentes : le soleil n’est pas calculé.'}
-        </p>
+        loc.reason === 'none' ? (
+          fp.sequenceIds[0] ? (
+            <button type="button" className="btn ghost" style={{ alignSelf: 'flex-start' }} onClick={() => useApp.getState().setEditingSequence(fp.sequenceIds[0]!)}>
+              Renseigner la position GPS du décor…
+            </button>
+          ) : (
+            <p className="note" style={{ margin: 0 }}>Plan rattaché à aucune séquence.</p>
+          )
+        ) : (
+          <p className="note" style={{ margin: 0, color: 'var(--warn-text)' }}>Les séquences de ce plan ont des positions GPS différentes : le soleil n’est pas calculé.</p>
+        )
       ) : !fp.sunAt ? (
         <button type="button" className="btn" style={{ alignSelf: 'flex-start' }} onClick={() => setPlan((x) => void (x.sunAt = { date: shootDays[0]?.date ?? todayIn(tz), time: '12:00' }), 'sun')}>
           Simuler le soleil{shootDays[0] ? ` (${labels.get(shootDays[0].id)})` : ''}
@@ -206,14 +213,14 @@ export function SunPanel({ fp }: { fp: FloorPlan }) {
                   })}
                 </div>
               )}
-              <p className="note" style={{ margin: 0, fontSize: 11, lineHeight: '15px' }}>
+              <Explain id="sun-calc" label="Heures, limites et précision">
                 Heures de {tz.replace(/_/g, ' ')} (Réglages › Projet). Horizon dégagé : relief et bâtiments ne sont pas pris en compte. Heure dorée : soleil entre 6° et −4°. Calcul
                 NOAA, vérifié contre la référence NREL SPA (moins de 0,05°, moins d’une minute).
-              </p>
+              </Explain>
             </>
           )}
         </>
       )}
-    </section>
+    </Fold>
   );
 }

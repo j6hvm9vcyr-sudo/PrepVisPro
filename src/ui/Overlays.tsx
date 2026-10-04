@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { APP_VERSION } from '../version';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
 import { locatePlan } from '../model/ops';
@@ -47,7 +48,8 @@ const SHORTCUTS: { title: string; items: [string, string][] }[] = [
       ['Premier / dernier plan', '⌘↑ / ⌘↓'],
       ['Début / fin de ligne', '⌘← / ⌘→'],
       ['Sélectionner plusieurs cellules', '⇧ + flèches, ⇧ + clic'],
-      ['Vue Tableau / Fiches / Plans au sol', '⌘1 / ⌘2 / ⌘3'],
+      ['Tableau / Fiches / Plans au sol', '⌘1 / ⌘2 / ⌘3'],
+      ['Tournage / Jours de tournage', '⌘4 / ⌘5'],
       ['Afficher / masquer Détails', '⌘I'],
     ],
   },
@@ -55,7 +57,7 @@ const SHORTCUTS: { title: string; items: [string, string][] }[] = [
     title: 'Saisir',
     items: [
       ['Remplacer le contenu', 'taper'],
-      ['Modifier le contenu', '↩'],
+      ['Modifier le contenu (toute la liste proposée)', '↩'],
       ['Valider et descendre', '↩'],
       ['Valider et passer à droite', '⇥'],
       ['Choisir une suggestion', '↑ ↓'],
@@ -97,10 +99,15 @@ const SHORTCUTS: { title: string; items: [string, string][] }[] = [
   {
     title: 'Plans au sol',
     items: [
-      ['Outils : sélection, caméra, personnage, texte', 'V C P T'],
+      ['Sélection, caméra, personnage, texte', 'V C P T'],
+      ['Projecteur / réflecteur', 'L / B'],
       ['Échelle / mesure', 'E / M'],
+      ['Tourner de 15° (⇧ : sens inverse)', 'R'],
+      ['Déplacer finement (⇧ : ×10)', '← ↑ → ↓'],
+      ['Dupliquer / supprimer', '⌘D / ⌫'],
+      ['Orienter : poignée ronde (⇧ par 15°)', 'glisser'],
+      ['Se déplacer / zoomer', '2 doigts / pincer'],
       ['Tout afficher / zoomer', '0 / + −'],
-      ['Supprimer l’élément', '⌫'],
     ],
   },
 ];
@@ -117,6 +124,7 @@ export function Shortcuts() {
       <div className="dialog" style={{ width: 660 }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3>Raccourcis clavier</h3>
+          <span className="note" style={{ marginLeft: 8 }}>PrepVisPro {APP_VERSION}</span>
           <button type="button" className="btn" onClick={close} autoFocus>
             Fermer
           </button>

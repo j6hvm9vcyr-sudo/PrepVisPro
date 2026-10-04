@@ -104,9 +104,6 @@ function WholeShoot({ doc }: { doc: ProjectDoc }) {
           </p>
         </div>
         <span className="spacer" />
-        <button type="button" className="btn" onClick={() => useApp.getState().setShowExport(true)}>
-          Exporter…
-        </button>
       </div>
       {doc.shootingDays.length === 0 && (
         <div className="shooting-empty">
@@ -154,9 +151,6 @@ function DayPage({ doc, day, label, labels }: { doc: ProjectDoc; day: ShootingDa
         </button>
         <button type="button" className="icon-btn" aria-label="Reculer ce jour" disabled={i === doc.shootingDays.length - 1} onClick={() => apply((d) => moveDay(d, day.id, 1))}>
           ↓
-        </button>
-        <button type="button" className="btn" onClick={() => useApp.getState().setShowExport(true)}>
-          Exporter…
         </button>
         <button
           type="button"

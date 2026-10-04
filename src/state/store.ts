@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { Id, ImageKind, ProjectDoc, Sequence } from '../model/types';
 import { computeNumbers } from '../model/numbering';
 import { kitFocals } from '../model/lenses';
-import { formatNumber } from '../model/text';
+import { formatNumber, norm } from '../model/text';
 import { applyValue, categoryOf, completeWithPick, focalWithPick, editText as fieldEditText, FIELD_LABEL, parseEntry, suggest, type EditableField, type TermField } from '../model/entry';
 import * as ops from '../model/ops';
 import { cleanupFloorRefs } from '../model/floorOps';
@@ -28,6 +28,11 @@ export interface EditState {
   navigated?: boolean;
   /** Saisie groupée : autres lignes de la sélection qui recevront la même valeur (même colonne). */
   batch?: Line[];
+  /**
+   * ↩ sur une case déjà remplie d'un seul terme : toute la liste est proposée, la valeur actuelle
+   * surlignée ; les flèches la remplacent directement. Taper du texte revient à la saisie normale.
+   */
+  browse?: string[];
 }
 
 export type MessageKind = 'info' | 'warn';
@@ -217,6 +222,8 @@ interface Actions {
   startEdit(initial?: string): void;
   setEditText(text: string): void;
   setPick(i: number): void;
+  /** Choix aux flèches dans la liste complète (case déjà remplie). */
+  browseTo(i: number): void;
   commitEdit(then?: 'down' | 'right' | 'left' | 'stay', pick?: number, strict?: boolean): boolean;
   cancelEdit(): void;
   clearCell(): void;
@@ -359,7 +366,23 @@ export function createAppStore(doc: ProjectDoc) {
           batch = r.lines.slice(r.r0, r.r1 + 1).filter((l) => !(l.planId === c.planId && l.setupId === c.setupId) && !(c.col === 'action' && l.setupIndex > 0));
           if (!batch.length) batch = undefined;
         }
-        set({ editing: { text, pick: 0, error: null, batch }, anchor: batch ? get().anchor : null });
+        let browse: string[] | undefined;
+        let pick = 0;
+        if (initial === undefined && c.col !== 'action' && text.trim() && !/[>,]/.test(text)) {
+          const settings = docNow().settings;
+          const list = c.col === 'focal' ? kitFocals(settings.lenses).map(formatNumber) : c.col === 'angle' && /\d/.test(text) ? [] : settings.terms[categoryOf(c.col as TermField)];
+          const value = c.col === 'focal' ? text.replace(/\s*mm$/i, '').trim().replace('.', ',') : text.trim();
+          const i = list.findIndex((t) => norm(t) === norm(value));
+          if (i >= 0 && list.length > 1) {
+            browse = [...list];
+            pick = i;
+          }
+        }
+        set({ editing: { text, pick, error: null, batch, browse }, anchor: batch ? get().anchor : null });
+      },
+
+      browseTo(i) {
+        set((s) => (s.editing?.browse?.[i] !== undefined ? { editing: { ...s.editing, text: s.editing.browse[i]!, pick: i, error: null, navigated: false } } : {}));
       },
 
       setEditText(text) {

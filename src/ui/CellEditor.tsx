@@ -1,4 +1,4 @@
-import { useMemo, useRef, type FocusEvent, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, type FocusEvent, type KeyboardEvent } from 'react';
 import { useApp } from '../state/appStore';
 import { categoryOf, suggest, type EditableField, type TermField } from '../model/entry';
 import { kitFocals } from '../model/lenses';
@@ -22,9 +22,15 @@ export function CellEditor({ field }: { field: EditableField }) {
   // Focale : les focales des optiques du projet servent de propositions.
   const terms = useMemo(() => (field === 'focal' ? (lenses.length ? kitFocals(lenses).map(formatNumber) : null) : termList), [field, lenses, termList]);
   const text = editing?.text ?? '';
-  const sugs = useMemo(() => (terms ? suggest(field, text, terms) : []), [field, text, terms]);
+  const browse = editing?.browse;
+  const sugs = useMemo(() => (browse ? browse.map((term) => ({ term, create: false })) : terms ? suggest(field, text, terms) : []), [browse, field, text, terms]);
   // Touche de validation reçue pendant une composition (accent, texte prédictif de macOS) :
   // exécutée dès que la composition se termine, sur le texte final.
+  const input = useRef<HTMLInputElement>(null);
+  // Choix aux flèches dans la liste complète : la nouvelle valeur reste sélectionnée.
+  useEffect(() => {
+    if (browse && input.current && document.activeElement === input.current) input.current.select();
+  }, [browse, text]);
   const pending = useRef<{ key: 'Enter' | 'Tab'; shift: boolean; meta: boolean } | null>(null);
   if (!editing) return null;
   const pick = Math.min(editing.pick, Math.max(0, sugs.length - 1));
@@ -65,13 +71,15 @@ export function CellEditor({ field }: { field: EditableField }) {
       case 'ArrowDown':
         if (sugs.length) {
           e.preventDefault();
-          st().setPick(Math.min(sugs.length - 1, pick + 1));
+          if (browse) st().browseTo(Math.min(sugs.length - 1, pick + 1));
+          else st().setPick(Math.min(sugs.length - 1, pick + 1));
         }
         break;
       case 'ArrowUp':
         if (sugs.length) {
           e.preventDefault();
-          st().setPick(Math.max(0, pick - 1));
+          if (browse) st().browseTo(Math.max(0, pick - 1));
+          else st().setPick(Math.max(0, pick - 1));
         }
         break;
       case 'Enter':
@@ -114,6 +122,7 @@ export function CellEditor({ field }: { field: EditableField }) {
   return (
     <div className={`editor ${field === 'action' ? 'action' : ''}`} onMouseDown={(e) => e.stopPropagation()}>
       <input
+        ref={input}
         autoFocus
         aria-label="Saisie"
         value={text}
@@ -129,7 +138,9 @@ export function CellEditor({ field }: { field: EditableField }) {
         onBlur={onBlur}
         onFocus={(e) => {
           const v = e.target.value;
-          e.target.setSelectionRange(v.length, v.length);
+          // Liste complète (case remplie) : la valeur est sélectionnée, taper la remplace.
+          if (st().editing?.browse) e.target.select();
+          else e.target.setSelectionRange(v.length, v.length);
         }}
       />
       {field !== 'action' && (field !== 'focal' || terms || editing.error) && (

@@ -9,6 +9,7 @@ import { formatStop, luxForStop } from '../model/light';
 import type { Fixture } from '../model/types';
 import { DecimalField } from './DecimalField';
 import { MaterialFields } from '../floor/ReflectorPanel';
+import { Explain } from './Explain';
 
 const KINDS: [Fixture['kind'], string][] = [
   ['led', 'LED'],
@@ -53,11 +54,11 @@ export function LightingTab() {
 
       <section className="sec">
         <div className="sec-h">Projecteurs de ce projet</div>
-        <p className="note" style={{ margin: 0 }}>
+        <Explain id="fixtures-help" label="Quelles données saisir ?">
           Liste propre à ce projet. Pour chaque projecteur, recopiez de sa fiche technique l’éclairement « x lx à X m » au centre du faisceau et l’angle du faisceau, pour
           chaque mode (spot, flood, optique ou réflecteur). Sans ces valeurs, aucun chiffre n’est calculé. Vous pouvez aussi créer et renseigner un projecteur directement
           sur le plan au sol (outil Projecteur, L).
-        </p>
+        </Explain>
         {doc.settings.fixtures.length === 0 && <p className="note" style={{ margin: 0 }}>Aucun projecteur pour l’instant.</p>}
         {doc.settings.fixtures.map((f) => (
           <div key={f.id} className="fixture">
@@ -142,10 +143,11 @@ export function LightingTab() {
 
       <section className="sec">
         <div className="sec-h">Réflecteurs de ce projet</div>
-        <p className="note" style={{ margin: 0 }}>
+        <Explain id="refl-help" label="Pourquoi saisir un taux mesuré ?">
           Poly, toiles de bounce, CRLS, miroirs… Aucun fabricant ne publie de taux de réflexion mesuré pour ces matières : saisissez celui que vous mesurez (méthode
-          ci-dessous). Sans taux, la lumière renvoyée n’est pas calculée. Vous pouvez aussi créer une matière depuis un réflecteur posé sur le plan (outil Réflecteur, B).
-        </p>
+          affichée tant que le taux est vide). Sans taux, la lumière renvoyée n’est pas calculée. Vous pouvez aussi créer une matière depuis un réflecteur posé sur le
+          plan (outil Réflecteur, B).
+        </Explain>
         {doc.settings.reflectors.length === 0 && <p className="note" style={{ margin: 0 }}>Aucune matière pour l’instant.</p>}
         {doc.settings.reflectors.map((mt) => (
           <div key={mt.id} className="fixture">

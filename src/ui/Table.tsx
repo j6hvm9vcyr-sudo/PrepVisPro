@@ -551,7 +551,7 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
                 !txt ? (techMissing[col] ? 'missing' : 'empty') : '',
                 txt && isEvolving(col, setup) ? 'evol' : '',
                 txt && isCustom(col, plan, i) ? 'custom' : '',
-                col === 'focal' ? 'mono' : '',
+                col === 'focal' ? 'num' : '',
               ].join(' ');
               return (
                 <div

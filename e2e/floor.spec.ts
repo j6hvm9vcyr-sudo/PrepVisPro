@@ -176,7 +176,7 @@ test('bibliothèque d’icônes : import d’un dossier, recherche, pose sur le 
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Importer un dossier d’icônes…' }).click();
   await (await chooser).setFiles(resolve('e2e/icones-test'));
-  await expect(page.locator('.icon-palette .sec-h .count')).toHaveText('4');
+  await expect(page.getByRole('region', { name: 'Bibliothèque d’icônes' }).locator('.fold-h .count')).toHaveText('4');
   await expect(page.getByText(/4 icônes dans la bibliothèque/)).toBeVisible();
   // Catégories = sous-dossiers ; les images à la racine vont dans la catégorie du dossier.
   // (Noms sans accents : Chromium piloté par les tests ne relit pas les fichiers d'un dossier accentué ;
@@ -205,7 +205,9 @@ test('bibliothèque d’icônes : import d’un dossier, recherche, pose sur le 
   await page.getByPlaceholder('ex. 2K, Fresnel 650').fill('650 W');
   await page.getByRole('group', { name: 'Taille de l’icône' }).getByRole('button', { name: 'Grande', exact: true }).click();
   await expect(page.locator('.floor-canvas text', { hasText: '650 W' })).toBeVisible();
-  // L'icône est dans le PNG exporté (le rendu ne casse pas).
+  // L'icône est dans le PNG exporté (le rendu ne casse pas). Export du plan : panneau du plan (rien de sélectionné).
+  await page.getByRole('application', { name: 'Plan au sol' }).press('Escape');
+  await page.getByRole('application', { name: 'Plan au sol' }).press('Escape');
   const dl = page.waitForEvent('download');
   await page.getByRole('group', { name: 'Exporter ce plan' }).getByRole('button', { name: 'PNG' }).click();
   expect(readFileSync(await (await dl).path()).subarray(1, 4).toString()).toBe('PNG');

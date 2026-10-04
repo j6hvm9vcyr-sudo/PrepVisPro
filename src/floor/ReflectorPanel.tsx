@@ -3,6 +3,7 @@
  * Aucun taux n'est fourni d'office : aucun fabricant ne publie de mesure fiable pour le poly,
  * les toiles ou les CRLS, il se mesure en deux lectures de posemètre.
  */
+import { Explain } from '../ui/Explain';
 import { produce } from 'immer';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
@@ -168,9 +169,9 @@ export function ReflectorInspector({ fp, el }: { fp: FloorPlan; el: FloorReflect
         </div>
       )}
       {material?.type === 'diffuse' && (
-        <p className="note" style={{ margin: 0, fontSize: 11, lineHeight: '15px' }}>
+        <Explain id="refl-calc">
           Surface diffuse : E = taux × lumière reçue × r² ÷ (r² + D²) × cos(angle vers le personnage), r = rayon de la partie éclairée, D = distance. Réflecteur supposé vertical, à hauteur du personnage.
-        </p>
+        </Explain>
       )}
     </>
   );

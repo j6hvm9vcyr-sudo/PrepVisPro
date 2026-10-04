@@ -2,6 +2,7 @@
  * Export Excel (.xlsx) : facile à retoucher, sur le modèle du découpage habituel.
  * Toutes les cellules de texte sont écrites comme du TEXTE : « 4/2 » ne devient jamais une date.
  */
+import { APP_VERSION } from '../version';
 import ExcelJS from 'exceljs';
 import type { PdfFloorPage } from './pdf';
 import { COLUMN_DEFS, descriptionFields, descriptionText, dtColumns, planValue, type ColumnId, type ExportModel, type ExportOptions } from './model';
@@ -28,7 +29,7 @@ const colPx = (w: number) => Math.round(w * 7 + 5);
 
 export async function buildWorkbook(m: ExportModel, opts: ExportOptions, images: Map<string, PreparedImage>, floors: PdfFloorPage[] = []): Promise<Uint8Array> {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'PrepVisPro';
+  wb.creator = `PrepVisPro ${APP_VERSION}`;
   wb.created = new Date();
 
   // ---------------------------------------------------------- page de garde

@@ -1,4 +1,5 @@
 import { useRef, useState, type DragEvent } from 'react';
+import { Explain } from './Explain';
 import { useApp } from '../state/appStore';
 import { selectCursor, selectDoc } from '../state/store';
 import { locatePlan } from '../model/ops';
@@ -45,9 +46,9 @@ export function Inspector() {
 
         <ImageGroup plan={plan} kind="scouting" />
         <ImageGroup plan={plan} kind="reference" />
-        <p className="note" style={{ margin: 0 }}>
+        <Explain id="cover" label="Quelle image s’affiche ?">
           L’image principale s’affiche dans le tableau et les exports. Par défaut c’est la première photo de repérage, sinon la première référence.
-        </p>
+        </Explain>
 
         {loc.seq.scriptText && <SceneText planId={plan.id} text={loc.seq.scriptText} number={loc.seq.number} />}
 
@@ -215,9 +216,9 @@ function CameraList({ plan }: { plan: Plan }) {
           </div>
         );
       })}
-      <p className="note" style={{ margin: 0 }}>
+      <Explain id="fov">
         Angle de champ horizontal de l’image cadrée : 2 × arctan(largeur ÷ (2 × focale)), d’après le capteur et le ratio du projet (Réglages › Caméras), mise au point à l’infini.
-      </p>
+      </Explain>
     </section>
   );
 }

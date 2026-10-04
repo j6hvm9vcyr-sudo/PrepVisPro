@@ -16,6 +16,8 @@ import { FramingSuggestion } from './Suggest';
 import { ActorLight, iconToLight, LightInspector, PowerSummary } from './LightPanels';
 import { ReflectorInspector } from './ReflectorPanel';
 import { SunPanel } from './SunPanel';
+import { Fold } from '../ui/Fold';
+import { useIcons } from '../platform/iconLibrary';
 import { planSun, sunForCamera } from '../model/sunPlan';
 import type { FloorCamera } from '../model/floor';
 
@@ -111,6 +113,34 @@ export function FloorView() {
 
 function FloorToolbar({ fp }: { fp: FloorPlan }) {
   const tool = useFloor((s) => s.tool);
+  return (
+    <div className="floor-toolbar">
+      <div className="seg" role="group" aria-label="Outils">
+        {TOOLS.map((t) => (
+          <button key={t.id} type="button" aria-pressed={tool === t.id} title={`${t.label} (${t.key})`} onClick={() => useFloor.getState().set({ tool: t.id, draft: [], placing: null })}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <span className="note" style={{ fontSize: 12 }}>
+        {tool === 'scale'
+          ? 'Cliquez deux points dont vous connaissez la distance (une porte, un mur coté).'
+          : tool === 'measure'
+            ? 'Cliquez deux points pour mesurer.'
+            : tool === 'path'
+              ? 'Cliquez les points du trajet ; ↩ ou double-clic pour finir.'
+              : fp.scale
+                ? `Échelle : ${formatNumber(fp.scale.meters)} m de référence`
+                : fp.background
+                  ? 'Pas encore à l’échelle (E)'
+                  : ''}
+      </span>
+    </div>
+  );
+}
+
+/** Import du fond (plan d'architecte PDF ou image, vue satellite). */
+function BackgroundButton({ fp }: { fp: FloorPlan }) {
   const file = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const onFile = async (f: File | undefined) => {
@@ -130,32 +160,12 @@ function FloorToolbar({ fp }: { fp: FloorPlan }) {
     }
   };
   return (
-    <div className="floor-toolbar">
-      <div className="seg" role="group" aria-label="Outils">
-        {TOOLS.map((t) => (
-          <button key={t.id} type="button" aria-pressed={tool === t.id} title={`${t.label} (${t.key})`} onClick={() => useFloor.getState().set({ tool: t.id, draft: [], placing: null })}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-      <span className="spacer" />
-      <span className="note" style={{ fontSize: 12 }}>
-        {tool === 'scale'
-          ? 'Cliquez deux points dont vous connaissez la distance (une porte, un mur coté).'
-          : tool === 'measure'
-            ? 'Cliquez deux points pour mesurer.'
-            : tool === 'path'
-              ? 'Cliquez les points du trajet ; ↩ ou double-clic pour finir.'
-              : fp.scale
-                ? `Échelle : ${formatNumber(fp.scale.meters)} m de référence`
-                : 'Pas encore à l’échelle'}
-      </span>
-      <button type="button" className="btn" onClick={() => file.current?.click()} disabled={busy} title="Plan d’architecte (PDF ou image) ou vue satellite">
+    <>
+      <button type="button" className={`btn ${fp.background ? '' : 'primary'}`} onClick={() => file.current?.click()} disabled={busy} title="Plan d’architecte (PDF ou image) ou vue satellite">
         {busy ? 'Import…' : fp.background ? 'Changer le fond…' : 'Importer un fond…'}
       </button>
       <input ref={file} type="file" accept="image/*,application/pdf,.pdf" className="sr-only" tabIndex={-1} onChange={(e) => (void onFile(e.target.files?.[0]), (e.target.value = ''))} />
-      <FloorExportButtons fp={fp} />
-    </div>
+    </>
   );
 }
 
@@ -192,6 +202,7 @@ function FloorExportButtons({ fp }: { fp: FloorPlan }) {
 
 function FloorInspector({ fp }: { fp: FloorPlan }) {
   const doc = useApp(selectDoc);
+  const iconCount = useIcons((s) => s.items.length);
   const ui = useFloor();
   const numbers = useMemo(() => computeNumbers(doc), [doc]);
   const st = useApp.getState;
@@ -239,9 +250,6 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
                   <input type="checkbox" checked={el.showFov} onChange={(e) => upd((x) => void (x.kind === 'camera' && (x.showFov = e.target.checked)), 'fov')} />
                   Afficher le champ
                 </label>
-                <p className="note" style={{ margin: 0 }}>
-                  Le champ suit la focale et le format capteur du plan (Réglages › Caméras). Plan évolutif : champ de fin en pointillé violet.
-                </p>
                 <FramingSuggestion fp={fp} cam={el} />
                 <CameraSun fp={fp} cam={el} />
               </>
@@ -353,8 +361,7 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
             </div>
           </section>
         ) : (
-          <section className="sec">
-            <div className="sec-h">Plan au sol</div>
+          <Fold id="fp-props" title="Plan au sol">
             <label className="field">
               Nom
               <input value={fp.name} onChange={(e) => apply((d) => updateFloorPlan(d, fp.id, (x) => void (x.name = e.target.value)), undefined, `fpname-${fp.id}`)} />
@@ -371,18 +378,19 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
                 <DecimalField label="Longueur des champs caméra en mètres" unit="m" width={80} required min={0.5} max={200} value={fp.fovLengthM} onChange={(v) => v !== null && apply((d) => updateFloorPlan(d, fp.id, (x) => void (x.fovLengthM = v)), undefined, `fovlen-${fp.id}`)} />
               </div>
             )}
+            <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+              <BackgroundButton fp={fp} />
+              <FloorExportButtons fp={fp} />
+            </div>
             <button type="button" className="btn danger" onClick={() => (apply((d) => deleteFloorPlan(d, fp.id), 'Plan au sol supprimé · ⌘Z pour annuler'), useFloor.getState().set({ currentId: null }))}>
               Supprimer ce plan au sol
             </button>
-          </section>
+          </Fold>
         )}
         {!el && selected.length === 0 && <PowerSummary fp={fp} />}
         {!el && selected.length === 0 && <SunPanel fp={fp} />}
 
-        <section className="sec">
-          <div className="sec-h">
-            Caméras à placer <span className="count">{unplaced.length}</span>
-          </div>
+        <Fold id="to-place" title="Caméras à placer" count={unplaced.length}>
           {unplaced.length === 0 ? (
             <p className="note" style={{ margin: 0 }}>
               Toutes les caméras du découpage sont placées.
@@ -402,11 +410,10 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
             </div>
           )}
           {ui.placing && <p className="note" style={{ margin: 0, color: 'var(--accent)', fontWeight: 600 }}>Cliquez sur le plan pour placer la caméra (esc pour annuler).</p>}
-        </section>
-        <IconPalette />
-        <p className="note" style={{ margin: 0 }}>
-          Glisser : déplacer · poignée ronde : orienter (⇧ par pas de 15°) · R : tourner · ⌘D : dupliquer · ⌫ : supprimer · deux doigts : se déplacer · pincer : zoomer · 0 : tout afficher.
-        </p>
+        </Fold>
+        <Fold id="icons" title="Icônes" label="Bibliothèque d’icônes" count={iconCount || undefined}>
+          <IconPalette />
+        </Fold>
       </div>
     </aside>
   );

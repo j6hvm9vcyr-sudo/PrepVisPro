@@ -80,16 +80,14 @@ export function IconPalette() {
   };
 
   return (
-    <section className="sec icon-palette" aria-label="Icônes">
-      <div className="sec-h">
-        Icônes <span className="count">{items.length || ''}</span>
-        <span className="spacer" />
-        {items.length > 0 && (
+    <div className="sec icon-palette" aria-label="Icônes">
+      {items.length > 0 && (
+        <div className="row" style={{ justifyContent: 'flex-end' }}>
           <button type="button" className="linkbtn" onClick={() => setManaging((v) => !v)}>
-            {managing ? 'Terminé' : 'Gérer'}
+            {managing ? 'Terminé' : 'Gérer la bibliothèque'}
           </button>
-        )}
-      </div>
+        </div>
+      )}
       {error && <p className="note" style={{ color: 'var(--warn-text)', margin: 0 }}>{error}</p>}
       {progress ? (
         <p className="note" style={{ margin: 0 }} role="status">
@@ -139,7 +137,7 @@ export function IconPalette() {
           )}
         </>
       )}
-    </section>
+    </div>
   );
 }
 

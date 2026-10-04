@@ -2,6 +2,7 @@
  * Réglages › Caméras : format capteur de chaque caméra du projet, et vérification visuelle
  * des angles de champ (dans l'esprit des comparateurs d'optiques).
  */
+import { Explain } from './Explain';
 import { useState } from 'react';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
@@ -91,10 +92,10 @@ export function CamerasTab() {
               <DecimalField label="Anamorphose" unit="×" width={60} min={1} max={2} required value={cam.squeeze} onChange={(v) => upd((c) => void (c.squeeze = v ?? 1), 's')} />
             </div>
           </div>
-          <p className="note">
+          <Explain id="sensor" label="Quelles dimensions saisir ?">
             Dimensions de la surface réellement enregistrée dans ce mode (fiche technique du fabricant), pas la taille totale du capteur. Repère : le plein format photo mesure
             36 × 24 mm. Anamorphose : 1 pour une optique sphérique, 2 pour un anamorphique 2x, 1,5, 1,8…
-          </p>
+          </Explain>
         </fieldset>
 
         <Comparator cam={cam} ratioText={doc.meta.aspectRatio} />
@@ -198,12 +199,12 @@ function Comparator({ cam, ratioText }: { cam: ProjectCamera; ratioText: string 
         )}
       </div>
 
-      <div className="camtab-formula">
-        <b>Calcul</b> — angle = 2 × arctan( d ÷ (2 × f) ), avec f la focale et d la dimension de l’image cadrée en mm (largeur pour l’angle horizontal, hauteur pour le
+      <Explain id="cam-calc">
+        Angle = 2 × arctan( d ÷ (2 × f) ), avec f la focale et d la dimension de l’image cadrée en mm (largeur pour l’angle horizontal, hauteur pour le
         vertical, diagonale pour le diagonal). La largeur est multipliée par le coefficient d’anamorphose. L’image cadrée est le plus grand rectangle au ratio du projet
         qui tient dans la zone active. Valable pour une optique rectilinéaire mise au point à l’infini : à courte distance, l’angle réel est un peu plus serré. C’est
         l’angle horizontal qui est dessiné sur les plans au sol.
-      </div>
+      </Explain>
     </section>
   );
 }

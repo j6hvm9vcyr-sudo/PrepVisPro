@@ -28,15 +28,12 @@ export function useTheme(): [ThemeChoice, (t: ThemeChoice) => void] {
     } catch {
       /* sans conséquence */
     }
-    if (choice !== 'auto') return;
-    const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
-    const on = () => apply('auto');
-    mq?.addEventListener('change', on);
-    return () => mq?.removeEventListener('change', on);
   }, [choice]);
   return [choice, setChoice];
 }
 
+/** Au démarrage : applique le thème, puis suit le passage clair / sombre de macOS tant que l'app tourne. */
 export function initTheme() {
   apply(read());
+  window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change', () => apply(read()));
 }

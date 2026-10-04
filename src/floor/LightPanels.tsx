@@ -1,4 +1,6 @@
 /** Plan feux : réglages d'un projecteur, éclairement sur les personnages, puissance électrique. */
+import { Explain } from '../ui/Explain';
+import { Fold } from '../ui/Fold';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
 import type { FloorActor, FloorElement, FloorIcon, FloorLight, FloorPlan } from '../model/floor';
@@ -251,11 +253,11 @@ export function ActorLight({ fp, actor }: { fp: FloorPlan; actor: FloorActor }) 
           </b>
         </div>
       )}
-      <p className="note" style={{ margin: 0, fontSize: 11, lineHeight: '15px' }}>
+      <Explain id="light-calc">
         Lumière incidente face à chaque source. Direct : E = lux du fabricant × (distance de référence ÷ distance)² × gradateur × transmission des gélatines (fiches LEE).
         Réflecteur : taux de réflexion mesuré, miroir en réflexion exacte, toile ou poly en surface diffuse. « ≈ » : diffusion ou réflecteur diffus, à ± ⅓ diaph
         environ. Diaph : N² = E × ISO × t ÷ 340 (ISO {formatNumber(e.iso)}, {formatNumber(e.fps)} i/s, {formatNumber(e.shutterDeg)}°).
-      </p>
+      </Explain>
     </section>
   );
 }
@@ -325,8 +327,7 @@ export function PowerSummary({ fp }: { fp: FloorPlan }) {
   if (!fp.elements.some((e) => e.kind === 'light')) return null;
   const p = powerTotals(doc, fp);
   return (
-    <section className="sec" aria-label="Puissance électrique">
-      <div className="sec-h">Puissance</div>
+    <Fold id="power" title="Puissance" label="Puissance électrique">
       {p.circuits.map((c) => (
         <div key={c.circuit} className="reading">
           <span>
@@ -345,7 +346,7 @@ export function PowerSummary({ fp }: { fp: FloorPlan }) {
       </div>
       {p.unknown > 0 && <p className="note" style={{ margin: 0, color: 'var(--warn-text)' }}>{p.unknown} projecteur(s) sans modèle ou sans puissance renseignée : non comptés.</p>}
       <p className="note" style={{ margin: 0, fontSize: 11 }}>À pleine puissance, intensité à 230 V.</p>
-    </section>
+    </Fold>
   );
 }
 
