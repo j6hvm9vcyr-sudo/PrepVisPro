@@ -132,7 +132,7 @@ export interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 3 as const;
+export const SCHEMA_VERSION = 4 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;
@@ -140,4 +140,6 @@ export interface ProjectDoc {
   meta: ProjectMeta;
   settings: ProjectSettings;
   sequences: Sequence[];
+  /** Plans au sol (voir floor.ts). */
+  floorPlans: import('./floor').FloorPlan[];
 }

@@ -60,6 +60,26 @@ const sequence = z.object({
   plans: z.array(plan).min(1),
 });
 
+const point = z.object({ x: z.number().finite(), y: z.number().finite() });
+const elemBase = { id, at: point, rotation: z.number().finite() };
+const floorElement = z.discriminatedUnion('kind', [
+  z.object({ ...elemBase, kind: z.literal('camera'), planId: id.nullable(), setupId: id.nullable(), showFov: z.boolean(), path: z.array(point) }),
+  z.object({ ...elemBase, kind: z.literal('actor'), name: z.string(), color: z.string(), path: z.array(point) }),
+  z.object({ ...elemBase, kind: z.literal('icon'), icon: z.string().min(1), label: z.string(), size: z.number().finite().positive() }),
+  z.object({ ...elemBase, kind: z.literal('text'), text: z.string(), size: z.number().finite().positive() }),
+]);
+const floorPlan = z.object({
+  id,
+  name: z.string(),
+  sequenceIds: z.array(id),
+  background: z
+    .object({ file: z.string().min(1), width: z.number().positive(), height: z.number().positive(), opacity: z.number().min(0).max(1), originalName: z.string() })
+    .nullable(),
+  scale: z.object({ metersPerUnit: z.number().finite().positive(), a: point, b: point, meters: z.number().finite().positive() }).nullable(),
+  elements: z.array(floorElement),
+  fovLengthM: z.number().finite().positive(),
+});
+
 const terms = z.object({
   size: z.array(z.string()),
   axis: z.array(z.string()),
@@ -101,6 +121,7 @@ export const projectSchema = z.object({
     cameras: z.array(projectCamera).min(1),
   }),
   sequences: z.array(sequence),
+  floorPlans: z.array(floorPlan),
 });
 
 export type LoadResult = { ok: true; doc: ProjectDoc } | { ok: false; error: string };
@@ -150,6 +171,10 @@ export function checkIntegrity(doc: ProjectDoc): string | null {
         if (!camIds.has(c.cameraId)) return `le plan ${p.id} utilise une caméra inconnue.`;
       }
     }
+  }
+  for (const fp of doc.floorPlans) {
+    if (dup(fp.id)) return `identifiant de plan au sol en double (${fp.id}).`;
+    for (const e of fp.elements) if (dup(e.id)) return `élément de plan au sol en double (${e.id}).`;
   }
   return null;
 }

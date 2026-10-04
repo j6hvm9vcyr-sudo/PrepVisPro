@@ -43,6 +43,9 @@ export function Toolbar() {
         <button type="button" aria-pressed={view === 'cards'} onClick={() => st().setView('cards')} title="⌘2">
           Fiches
         </button>
+        <button type="button" aria-pressed={view === 'floor'} onClick={() => st().setView('floor')} title="⌘3">
+          Plans au sol
+        </button>
       </div>
       <button
         type="button"

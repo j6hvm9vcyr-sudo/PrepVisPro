@@ -41,5 +41,6 @@ export function doc(build: (camId: string) => Sequence[]): ProjectDoc {
     meta: { title: 'Test', director: '', production: '', aspectRatio: '', crew: [] },
     settings,
     sequences: build(camId),
+    floorPlans: [],
   };
 }

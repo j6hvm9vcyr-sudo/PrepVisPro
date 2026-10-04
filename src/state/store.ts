@@ -3,6 +3,7 @@ import type { Id, ImageKind, ProjectDoc, Sequence } from '../model/types';
 import { computeNumbers } from '../model/numbering';
 import { applyValue, categoryOf, editText as fieldEditText, FIELD_LABEL, parseEntry, suggest, type EditableField, type TermField } from '../model/entry';
 import * as ops from '../model/ops';
+import { cleanupFloorRefs } from '../model/floorOps';
 import { newId } from '../model/defaults';
 import { createHistory, pushHistory, redoHistory, undoHistory, type History } from './history';
 import { allLines, COLUMNS, moveCursor, visibleLines, type Column, type Cursor, type Line } from './lines';
@@ -29,7 +30,7 @@ export interface AppState {
   /** Début d'une sélection de plusieurs cellules (⇧ + flèches, ⇧ + clic). */
   anchor: Cursor | null;
   editing: EditState | null;
-  view: 'table' | 'cards';
+  view: 'table' | 'cards' | 'floor';
   inspector: boolean;
   collapsed: Record<Id, boolean>;
   onlyIncomplete: boolean;
@@ -227,7 +228,9 @@ interface Actions {
   toggleCollapsed(seqId: Id): void;
   expandAndGo(seqId: Id): void;
   toggleOnlyIncomplete(): void;
-  setView(v: 'table' | 'cards'): void;
+  setView(v: 'table' | 'cards' | 'floor'): void;
+  /** Enregistre une nouvelle version du document (plan au sol…), annulable. */
+  applyDoc(next: ProjectDoc, message?: string, mergeKey?: string): void;
   toggleInspector(): void;
   setMessage(text: string, kind?: MessageKind): void;
   openPreview(planId?: Id, index?: number): void;
@@ -259,7 +262,9 @@ export function createAppStore(doc: ProjectDoc) {
      * `at` : endroit de la modification (on y revient à l'annulation).
      * `after` : où placer le curseur ensuite, si différent.
      */
-    const commit = (doc: ProjectDoc, at: Cursor | null, message?: string | null, mergeKey: string | null = null, after?: Cursor) => {
+    const commit = (raw: ProjectDoc, at: Cursor | null, message?: string | null, mergeKey: string | null = null, after?: Cursor) => {
+      // Plans au sol : une caméra dont le plan a disparu est déliée (jamais effacée).
+      const doc = cleanupFloorRefs(raw);
       set((s) => ({
         hist: pushHistory(s.hist, { doc, at }, mergeKey),
         cursor: after ?? at ?? s.cursor,
@@ -767,6 +772,11 @@ export function createAppStore(doc: ProjectDoc) {
         const keep = c && ops.locatePlan(doc, c.planId);
         const first = allLines(doc)[0];
         commit(doc, keep ? c : first ? { planId: first.planId, setupId: first.setupId, col: 'size' } : null, message);
+      },
+
+      applyDoc(next, message, mergeKey) {
+        if (next === docNow()) return;
+        commit(next, cur(), message ?? undefined, mergeKey ?? null);
       },
 
       updateDoc(fn, mergeKey, message) {

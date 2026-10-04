@@ -11,6 +11,7 @@ import { Welcome } from './Welcome';
 import { ExportDialog } from './ExportDialog';
 import { ImportDialog } from './ImportDialog';
 import { ContextMenu } from './ContextMenu';
+import { FloorView } from '../floor/FloorView';
 import { startScriptImport } from '../import/flow';
 import { useProject, saveNow, newProjectDialog, openDialog } from '../state/project';
 import { focusGrid, isTypingTarget } from './focus';
@@ -103,6 +104,11 @@ function useGlobalShortcuts(settingsOpen: boolean) {
         st.setView('cards');
         return;
       }
+      if (meta && e.code === 'Digit3') {
+        e.preventDefault();
+        st.setView('floor');
+        return;
+      }
       if (meta && e.key.toLowerCase() === 'i' && !e.shiftKey) {
         e.preventDefault();
         st.toggleInspector();
@@ -193,12 +199,21 @@ function Workspace() {
     <div className="app">
       <Toolbar />
       <div className="app-body">
-        <SequenceIndex />
-        <main className="center">
-          {view === 'table' ? <DecoupageTable /> : <CardsView />}
-          <StatusBar />
-        </main>
-        {inspector && <Inspector />}
+        {view === 'floor' ? (
+          <div className="center">
+            <FloorView />
+            <StatusBar />
+          </div>
+        ) : (
+          <>
+            <SequenceIndex />
+            <main className="center">
+              {view === 'table' ? <DecoupageTable /> : <CardsView />}
+              <StatusBar />
+            </main>
+            {inspector && <Inspector />}
+          </>
+        )}
       </div>
       <Preview />
       <Shortcuts />

@@ -18,6 +18,7 @@ export function migrate(raw: unknown): MigrateResult {
   // Étapes successives, de version en version.
   if (v <= 1) doc = from1to2(doc);
   if (v <= 2) doc = from2to3(doc);
+  if (v <= 3) doc = { ...doc, schemaVersion: 4, floorPlans: [] };
   return { ok: true, raw: doc };
 }
 
