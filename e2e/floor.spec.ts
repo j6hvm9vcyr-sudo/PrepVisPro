@@ -115,7 +115,7 @@ test('plan au sol : fond, mise à l’échelle, caméra du découpage avec son c
 
   // Le PDF du découpage inclut les plans au sol.
   await page.keyboard.press('ControlOrMeta+e');
-  await expect(page.getByLabel('Plans au sol des séquences exportées, en PDF et Excel (1)')).toBeChecked();
+  await expect(page.getByLabel('Plans au sol des séquences exportées (1 plan), en PDF et Excel')).toBeChecked();
   const dl3 = page.waitForEvent('download');
   await page.getByRole('dialog', { name: 'Exporter' }).getByRole('button', { name: 'PDF', exact: true }).click();
   const full = readFileSync(await (await dl3).path());

@@ -351,7 +351,7 @@ function SequenceBlock(p: BlockProps) {
           {p.onlyIncomplete ? ` · ${plans.length} à compléter` : ''}
         </span>
         {p.days && (
-          <span className="day-chip" title="Jour(s) de tournage (vue Jours, ⌘5)">
+          <span className="day-chip" title="Jours de tournage de la séquence (vue Jours, ⌘5)">
             {p.days}
           </span>
         )}

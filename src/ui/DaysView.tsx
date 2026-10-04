@@ -70,7 +70,7 @@ export function DaysView() {
         <button type="button" className={`index-item ${showAll ? 'here' : ''}`} style={{ marginTop: 10 }} onClick={() => useDaysUi.getState().set(ALL)}>
           <span className="meta">
             <span className="num">Tout le tournage</span>
-            <span className="loc">matériel de toutes les séquences</span>
+            <span className="loc">matériel complet</span>
           </span>
         </button>
         {loose.length > 0 && doc.shootingDays.length > 0 && (
@@ -146,10 +146,10 @@ function DayPage({ doc, day, label, labels }: { doc: ProjectDoc; day: ShootingDa
           Date
           <input type="date" aria-label="Date du jour de tournage" value={day.date ?? ''} onChange={(e) => upd((x) => void (x.date = e.target.value || null))} />
         </label>
-        <button type="button" className="icon-btn" aria-label="Avancer ce jour" disabled={i === 0} onClick={() => apply((d) => moveDay(d, day.id, -1))}>
+        <button type="button" className="icon-btn" aria-label="Monter ce jour" disabled={i === 0} onClick={() => apply((d) => moveDay(d, day.id, -1))}>
           ↑
         </button>
-        <button type="button" className="icon-btn" aria-label="Reculer ce jour" disabled={i === doc.shootingDays.length - 1} onClick={() => apply((d) => moveDay(d, day.id, 1))}>
+        <button type="button" className="icon-btn" aria-label="Descendre ce jour" disabled={i === doc.shootingDays.length - 1} onClick={() => apply((d) => moveDay(d, day.id, 1))}>
           ↓
         </button>
         <button
@@ -267,8 +267,8 @@ function DayPage({ doc, day, label, labels }: { doc: ProjectDoc; day: ShootingDa
                 <th>Décor</th>
                 <th>Lever</th>
                 <th>Coucher</th>
-                <th>Heure dorée matin</th>
-                <th>Heure dorée soir</th>
+                <th>Heure dorée du matin</th>
+                <th>Heure dorée du soir</th>
                 <th>Crépuscule civil</th>
               </tr>
             </thead>
@@ -383,7 +383,7 @@ export function EquipmentPanel({ eq }: { eq: Equipment }) {
               {f.perPlan.length > 1 && <span className="note">({f.perPlan.map((p) => `${p.floorPlan} : ${p.count}`).join(' · ')})</span>}
             </div>
           ))}
-          {eq.undefinedLights > 0 && <p className="note" style={{ color: 'var(--warn-text)' }}>{eq.undefinedLights} projecteur(s) sans modèle sur les plans au sol.</p>}
+          {eq.undefinedLights > 0 && <p className="note" style={{ color: 'var(--warn-text)' }}>{eq.undefinedLights > 1 ? `${eq.undefinedLights} projecteurs sans modèle sur les plans au sol.` : '1 projecteur sans modèle sur les plans au sol.'}</p>}
           {eq.peakPower && (
             <p className="note">
               Puissance du plan le plus gourmand : {formatNumber(eq.peakPower.watts)} W ({eq.peakPower.floorPlan}, {formatNumber(Math.round((eq.peakPower.watts / 230) * 10) / 10)} A à 230 V)

@@ -78,6 +78,9 @@ test('audit', async ({ page }) => {
   await canvas.press('Escape');
   await canvas.press('Escape');
   await shot(page, '18-plan-rien-selectionne');
+  await page.getByRole('tab', { name: 'Lumière' }).click();
+  await shot(page, '18b-plan-lumiere');
+  await page.getByRole('tab', { name: 'Plan' }).click();
   // Tournage
   await page.keyboard.press('ControlOrMeta+4');
   await shot(page, '19-tournage-vide');
@@ -89,6 +92,14 @@ test('audit', async ({ page }) => {
   await page.getByRole('button', { name: '+ Jour de tournage' }).click();
   await page.getByLabel('Ajouter une séquence au jour').selectOption({ index: 1 });
   await shot(page, '22-jour');
+  // Images, tampons
+  await page.keyboard.press('ControlOrMeta+6');
+  await shot(page, '22b-images');
+  await page.keyboard.press('ControlOrMeta+1');
+  await page.getByRole('navigation', { name: 'Séquences' }).getByRole('button', { name: '+ Tampon' }).click();
+  await shot(page, '22c-tampon');
+  await page.getByRole('dialog', { name: 'Tampon' }).getByRole('button', { name: 'TITRE', exact: true }).click();
+  await page.keyboard.press('Escape');
   // Dialogues
   await page.getByRole('button', { name: 'Exporter…' }).last().click();
   await shot(page, '23-export');

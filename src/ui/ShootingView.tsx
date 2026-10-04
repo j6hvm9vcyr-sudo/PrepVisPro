@@ -2,6 +2,7 @@
  * Vue Tournage : installations et ordre de tournage, séquence par séquence.
  * L'ordre est proposé d'après les plans au sol, puis ajusté à la main (glisser-déposer).
  */
+import { plural } from '../model/text';
 import { useState, type DragEvent } from 'react';
 import { create } from 'zustand';
 import { useApp } from '../state/appStore';
@@ -42,7 +43,7 @@ export function ShootingView() {
               <span className="strip" style={{ background: c.fill, borderColor: c.edge }} />
               <span className="meta">
                 <span className="num">{s.number || '?'}</span>
-                <span className="loc">{e ? `${e.installations.length} install.${e.loose.length ? ` · ${e.loose.length} à ranger` : ''}` : 'ordre à établir'}</span>
+                <span className="loc">{e ? `${plural(e.installations.length, 'installation')}${e.loose.length ? ` · ${e.loose.length} à ranger` : ''}` : 'ordre à établir'}</span>
               </span>
             </button>
           );

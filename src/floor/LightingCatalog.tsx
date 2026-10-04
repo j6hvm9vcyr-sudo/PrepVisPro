@@ -8,6 +8,7 @@ import { selectDoc } from '../state/store';
 import { newId } from '../model/defaults';
 import { formatStop, luxForStop } from '../model/light';
 import type { Fixture, ProjectDoc } from '../model/types';
+import { plural } from '../model/text';
 
 /** Nombre de réflecteurs placés (tous plans au sol) faits de cette matière. */
 function reflectorUses(doc: ProjectDoc, materialId: string): number {
@@ -134,7 +135,7 @@ export function FixtureCatalog() {
                         className="linkbtn danger"
                         aria-label="Retirer ce mode"
                         disabled={used > 0 || f.modes.length === 1}
-                        title={used > 0 ? `Utilisé par ${used} projecteur(s) placé(s)` : f.modes.length === 1 ? 'Un projecteur a au moins un mode' : undefined}
+                        title={used > 0 ? `Utilisé par ${plural(used, 'projecteur placé', 'projecteurs placés')}` : f.modes.length === 1 ? 'Un projecteur a au moins un mode' : undefined}
                         onClick={() =>
                           st().updateDoc((d) => {
                             d.settings.fixtures.find((x) => x.id === f.id)?.modes.splice(i, 1);
@@ -190,7 +191,7 @@ export function ReflectorCatalog() {
               className="linkbtn danger"
               style={{ alignSelf: 'flex-start' }}
               disabled={reflectorUses(doc, mt.id) > 0}
-              title={reflectorUses(doc, mt.id) > 0 ? `Utilisée par ${reflectorUses(doc, mt.id)} réflecteur(s) placé(s)` : undefined}
+              title={reflectorUses(doc, mt.id) > 0 ? `Utilisée par ${plural(reflectorUses(doc, mt.id), 'réflecteur placé', 'réflecteurs placés')}` : undefined}
               onClick={() => st().updateDoc((d) => void (d.settings.reflectors = d.settings.reflectors.filter((x) => x.id !== mt.id)))}
             >
               Retirer

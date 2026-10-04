@@ -90,7 +90,7 @@ export function resolveTerm(terms: readonly string[], fragment: string, label: s
   const prefix = terms.filter((t) => keysOf(t).some((k) => k.startsWith(n)));
   if (prefix.length === 1) return { term: prefix[0]! };
   if (prefix.length > 1) return { error: `« ${fragment.trim()} » est ambigu : ${prefix.join(', ')}.` };
-  return { error: `« ${fragment.trim()} » n'existe pas en ${label.toLowerCase()}.` };
+  return { error: `« ${fragment.trim()} » n’existe pas en ${label.toLowerCase()}.` };
 }
 
 export interface Suggestion {

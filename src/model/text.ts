@@ -26,3 +26,8 @@ export function parseDecimal(s: string): number | null {
 export function formatNumber(v: number): string {
   return String(Math.round(v * 1000) / 1000).replace('.', ',');
 }
+
+/** « 1 caméra », « 3 caméras », « 0 caméra » (règle française : pluriel à partir de 2). */
+export function plural(n: number, one: string, many = `${one}s`): string {
+  return `${n} ${Math.abs(n) >= 2 ? many : one}`;
+}

@@ -172,7 +172,7 @@ export function ReflectorInspector({ fp, el }: { fp: FloorPlan; el: FloorReflect
             else upd((x) => void (x.materialId = v || null), 'mat');
           }}
         >
-          <option value="">Non défini</option>
+          <option value="">Choisir une matière…</option>
           <MaterialOptions mats={mats} />
         </select>
       </label>

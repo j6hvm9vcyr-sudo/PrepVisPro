@@ -310,7 +310,7 @@ export function equipmentLines(eq: Equipment): { section: string; lines: string[
   ]);
   push('Lumière', [
     ...eq.fixtures.map((f) => `${f.max} × ${f.name}${f.watts !== null ? ` · ${fr(f.watts)} W` : ''}${f.perPlan.length > 1 ? ` (${f.perPlan.map((p) => `${p.floorPlan} : ${p.count}`).join(' · ')})` : ''}`),
-    ...(eq.undefinedLights ? [`${eq.undefinedLights} projecteur(s) sans modèle`] : []),
+    ...(eq.undefinedLights ? [eq.undefinedLights > 1 ? `${eq.undefinedLights} projecteurs sans modèle` : '1 projecteur sans modèle'] : []),
     ...(eq.peakPower ? [`Puissance du plan le plus gourmand : ${fr(eq.peakPower.watts)} W (${eq.peakPower.floorPlan}, ${fr(Math.round((eq.peakPower.watts / 230) * 10) / 10)} A à 230 V)`] : []),
   ]);
   push(

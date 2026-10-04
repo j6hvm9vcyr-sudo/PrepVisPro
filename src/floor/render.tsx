@@ -192,7 +192,7 @@ export function lightLegend(doc: ProjectDoc, fp: FloorPlan): { lights: { name: s
   lights.push(...reflectors);
   const p = powerTotals(doc, fp);
   const circuits = p.circuits.filter((c) => c.circuit !== '—').map((c) => `${c.circuit} : ${formatNumber(c.watts)} W`).join(' · ');
-  return { lights, power: `Puissance totale ${formatNumber(p.total.watts)} W (${formatNumber(Math.round(p.total.amps * 10) / 10)} A à 230 V)${circuits ? ` — ${circuits}` : ''}${p.unknown ? ` — ${p.unknown} projecteur(s) sans puissance renseignée, non compté(s)` : ''}` };
+  return { lights, power: `Puissance totale ${formatNumber(p.total.watts)} W (${formatNumber(Math.round(p.total.amps * 10) / 10)} A à 230 V)${circuits ? ` — ${circuits}` : ''}${p.unknown ? (p.unknown > 1 ? ` — ${p.unknown} projecteurs sans puissance renseignée, non comptés` : ' — 1 projecteur sans puissance renseignée, non compté') : ''}` };
 }
 
 // ------------------------------------------------------------------ navigateur

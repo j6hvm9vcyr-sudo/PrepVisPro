@@ -628,3 +628,4 @@ table.modes input:not(.decimal-field input) { border: 1px solid var(--border); b
 .plan-link.warn::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--warn); flex: none; }
 .plan-link:not(.warn)::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); flex: none; }
 .index-actions .btn { padding: 4px 6px; }
+.lighting .catalog > select { border: 1px solid var(--border); border-radius: 6px; padding: 5px 7px; font-size: 13px; background: var(--field); color: var(--text); }

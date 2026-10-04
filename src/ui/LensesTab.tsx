@@ -33,9 +33,9 @@ export function LensesTab() {
           <input className="field-input" aria-label="Nom de la série" placeholder={l.kind === 'primes' ? 'ex. Zeiss Supreme Prime' : 'ex. Angénieux Optimo'} value={l.name} onChange={(e) => upd(l.id, (x) => void (x.name = e.target.value), 'n')} />
           {l.kind === 'primes' ? <FocalList lens={l} onChange={(f) => upd(l.id, (x) => void (x.focals = f), 'f')} /> : (
             <span className="row" style={{ gap: 6, alignItems: 'center' }}>
-              <DecimalField label="Focale mini du zoom" unit="" width={64} min={1} max={2000} value={l.min} onChange={(v) => upd(l.id, (x) => void (x.min = v), 'min')} />
+              <DecimalField label="Focale minimale du zoom" unit="" width={64} min={1} max={2000} value={l.min} onChange={(v) => upd(l.id, (x) => void (x.min = v), 'min')} />
               <span>–</span>
-              <DecimalField label="Focale maxi du zoom" unit="mm" width={64} min={1} max={2000} value={l.max} onChange={(v) => upd(l.id, (x) => void (x.max = v), 'max')} />
+              <DecimalField label="Focale maximale du zoom" unit="mm" width={64} min={1} max={2000} value={l.max} onChange={(v) => upd(l.id, (x) => void (x.max = v), 'max')} />
             </span>
           )}
           <button type="button" className="linkbtn danger" aria-label={`Retirer ${l.name || 'cette série'}`} onClick={() => st().updateDoc((d) => void (d.settings.lenses = d.settings.lenses.filter((x) => x.id !== l.id)))}>

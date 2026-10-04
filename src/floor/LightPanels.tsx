@@ -132,9 +132,9 @@ export function LightInspector({ fp, el }: { fp: FloorPlan; el: FloorLight }) {
   return (
     <>
       <label className="field">
-        Projecteur
+        Modèle
         <select aria-label="Modèle de projecteur" value={el.fixtureId ?? ''} onChange={(e) => (e.target.value === NEW ? createFixture() : upd((x) => ((x.fixtureId = e.target.value || null), (x.mode = 0)), 'fix'))}>
-          <option value="">Non défini</option>
+          <option value="">Choisir un modèle…</option>
           {fixtures.map((f) => (
             <option key={f.id} value={f.id}>
               {f.name || 'Sans nom'}
@@ -345,7 +345,7 @@ export function PowerSummary({ fp }: { fp: FloorPlan }) {
   return (
     <div className="light-readings" role="region" aria-label="Puissance électrique">
       <div className="reading-h">Puissance de ce plan</div>
-      {p.circuits.map((c) => (
+      {p.total.count > 0 && p.circuits.map((c) => (
         <div key={c.circuit} className="reading">
           <span>
             {c.circuit === '—' ? 'Sans circuit' : `Circuit ${c.circuit}`} · {c.count} projecteur{c.count > 1 ? 's' : ''}
@@ -355,12 +355,14 @@ export function PowerSummary({ fp }: { fp: FloorPlan }) {
           </b>
         </div>
       ))}
+      {p.total.count > 0 && (
       <div className="reading total">
         <span>Total</span>
         <b>
           {formatNumber(p.total.watts)} W · {formatNumber(Math.round(p.total.amps * 10) / 10)} A
         </b>
       </div>
+      )}
       {p.unknown > 0 && <p className="note" style={{ margin: 0, color: 'var(--warn-text)' }}>{p.unknown > 1 ? `${p.unknown} projecteurs sans modèle ou sans puissance renseignée : non comptés.` : '1 projecteur sans modèle ou sans puissance renseignée : non compté.'}</p>}
       <p className="note" style={{ margin: 0, fontSize: 11 }}>À pleine puissance, intensité à 230 V.</p>
     </div>

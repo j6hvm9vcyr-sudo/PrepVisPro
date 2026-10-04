@@ -9,6 +9,7 @@ import { selectDoc } from '../state/store';
 import type { FloorPlan } from '../model/floor';
 import { SunSection } from './SunPanel';
 import { PowerSummary } from './LightPanels';
+import { plural } from '../model/text';
 import { ExposureFields, FixtureCatalog, ReflectorCatalog } from './LightingCatalog';
 
 export function LightingPanel({ fp }: { fp: FloorPlan }) {
@@ -20,17 +21,20 @@ export function LightingPanel({ fp }: { fp: FloorPlan }) {
       <Fold id="light-sun" title="Soleil" label="Soleil">
         <SunSection fp={fp} />
       </Fold>
-      <Fold id="light-fixtures" title="Projecteurs" label="Projecteurs" count={doc.settings.fixtures.length}>
+      <Fold id="light-fixtures" title="Projecteurs" label="Projecteurs" count={lights}>
         <p className="note" style={{ margin: 0 }}>
-          {lights ? `${lights} placé${lights > 1 ? 's' : ''} sur ce plan.` : 'Aucun sur ce plan.'} Outil Projecteur (L) pour en placer ; cliquez-en un pour régler mode, gradateur et gélatines.
+          {lights ? `${plural(lights, 'projecteur placé', 'projecteurs placés')} sur ce plan.` : 'Aucun projecteur sur ce plan.'} Outil Projecteur (L) pour en placer ; cliquez sur l’un d’eux pour
+          régler modèle, mode, gradateur et gélatines.
         </p>
         <PowerSummary fp={fp} />
+        <div className="reading-h">Modèles du projet ({doc.settings.fixtures.length})</div>
         <FixtureCatalog />
       </Fold>
-      <Fold id="light-reflectors" title="Réflecteurs" label="Réflecteurs" count={doc.settings.reflectors.length}>
+      <Fold id="light-reflectors" title="Réflecteurs" label="Réflecteurs" count={refl}>
         <p className="note" style={{ margin: 0 }}>
-          {refl ? `${refl} placé${refl > 1 ? 's' : ''} sur ce plan.` : 'Aucun sur ce plan.'} Outil Réflecteur (B) pour en placer.
+          {refl ? `${plural(refl, 'réflecteur placé', 'réflecteurs placés')} sur ce plan.` : 'Aucun réflecteur sur ce plan.'} Outil Réflecteur (B) pour en placer.
         </p>
+        <div className="reading-h">Matières du projet ({doc.settings.reflectors.length})</div>
         <ReflectorCatalog />
       </Fold>
       <Fold id="light-exposure" title="Exposition de référence" label="Exposition de référence">

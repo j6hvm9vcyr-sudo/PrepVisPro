@@ -186,7 +186,7 @@ export function validateProject(raw: unknown): LoadResult {
   if (raw && typeof raw === 'object' && 'schemaVersion' in raw) {
     const v = (raw as { schemaVersion: unknown }).schemaVersion;
     if (typeof v === 'number' && v > SCHEMA_VERSION) {
-      return { ok: false, error: `Ce projet a été créé avec une version plus récente de PrepVisPro (format ${v}). Mettez l'application à jour.` };
+      return { ok: false, error: `Ce projet a été créé avec une version plus récente de PrepVisPro (format ${v}). Mettez l’application à jour.` };
     }
   }
   const parsed = projectSchema.safeParse(raw);

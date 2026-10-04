@@ -1,3 +1,4 @@
+import { plural } from '../model/text';
 import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
@@ -219,7 +220,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
               {doc.floorPlans.length > 0 && (
                 <label className="check">
                   <input type="checkbox" checked={opts.floorPlans} onChange={(e) => set({ floorPlans: e.target.checked })} />
-                  Plans au sol des séquences exportées, en PDF et Excel ({floorPlansFor(doc, opts.sequenceIds).length})
+                  Plans au sol des séquences exportées ({plural(floorPlansFor(doc, opts.sequenceIds).length, 'plan')}), en PDF et Excel
                 </label>
               )}
             </section>

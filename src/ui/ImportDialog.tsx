@@ -1,3 +1,4 @@
+import { plural } from '../model/text';
 import { useMemo, useState } from 'react';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
@@ -54,8 +55,8 @@ export function ImportDialog() {
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
           <h3>Importer « {importing.name} »</h3>
           <span className="note" style={{ fontSize: 12 }}>
-            {importing.scenes.length} scène{importing.scenes.length > 1 ? 's' : ''} · {plan.changes.filter((c) => c.status === 'new').length} nouvelle(s) ·{' '}
-            {plan.changes.filter((c) => c.status === 'changed').length} modifiée(s) · {plan.changes.filter((c) => c.status === 'same').length} identique(s)
+            {plural(importing.scenes.length, 'scène')} · {plural(plan.changes.filter((c) => c.status === 'new').length, 'nouvelle')} · {plural(plan.changes.filter((c) => c.status === 'changed').length, 'modifiée')} ·{' '}
+            {plural(plan.changes.filter((c) => c.status === 'same').length, 'identique')}
           </span>
         </div>
 

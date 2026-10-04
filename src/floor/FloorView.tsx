@@ -3,7 +3,7 @@ import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
 import { addFloorPlan, cameraLabel, deleteElements, deleteFloorPlan, newFloorPlan, unplacedSetups, updateElement, updateFloorPlan } from '../model/floorOps';
 import { computeNumbers } from '../model/numbering';
-import { formatNumber } from '../model/text';
+import { formatNumber, plural } from '../model/text';
 import type { FloorElement, FloorPlan } from '../model/floor';
 import { ACTOR_COLORS, useFloor, type FloorTool } from './floorStore';
 import { FloorCanvas } from './FloorCanvas';
@@ -71,7 +71,7 @@ export function FloorView() {
               <span className="meta">
                 <span style={{ fontWeight: 600, fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</span>
                 <span className="loc">
-                  {f.elements.filter((e) => e.kind === 'camera').length} caméra(s){f.scale ? ' · à l’échelle' : ''}
+                  {plural(f.elements.filter((e) => e.kind === 'camera').length, 'caméra')}{f.scale ? ' · à l’échelle' : ' · pas à l’échelle'}
                 </span>
               </span>
             </button>
@@ -126,11 +126,11 @@ function FloorToolbar({ fp }: { fp: FloorPlan }) {
       </div>
       <span className="note" style={{ fontSize: 12 }}>
         {tool === 'scale'
-          ? 'Cliquez deux points dont vous connaissez la distance (une porte, un mur coté).'
+          ? 'Cliquez sur deux points séparés d’une distance connue (une porte, un mur coté).'
           : tool === 'measure'
-            ? 'Cliquez deux points pour mesurer.'
+            ? 'Cliquez sur deux points pour mesurer.'
             : tool === 'path'
-              ? 'Cliquez les points du trajet ; ↩ ou double-clic pour finir.'
+              ? 'Cliquez sur les points du trajet ; ↩ ou double-clic pour finir.'
               : fp.scale
                 ? `Échelle : ${formatNumber(fp.scale.meters)} m de référence`
                 : fp.background
