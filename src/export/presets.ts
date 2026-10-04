@@ -17,6 +17,7 @@ function sanitize(o: Partial<ExportOptions> | undefined): ExportOptions | null {
     sequenceComments: o.sequenceComments !== false,
     markIncomplete: o.markIncomplete === true,
     breakdown: o.breakdown === true,
+    floorPlans: o.floorPlans !== false,
   };
 }
 
@@ -85,6 +86,7 @@ export function sameOptions(a: ExportOptions, b: ExportOptions): boolean {
     a.coverPage === b.coverPage &&
     a.sequenceComments === b.sequenceComments &&
     a.markIncomplete === b.markIncomplete &&
-    a.breakdown === b.breakdown
+    a.breakdown === b.breakdown &&
+    a.floorPlans === b.floorPlans
   );
 }

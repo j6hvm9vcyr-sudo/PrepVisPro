@@ -7,7 +7,8 @@ import { imageStore } from '../platform/images';
 import { getBackend } from '../platform/backend';
 import { buildCsv, buildExportModel, exportFileName, type ExportModel, type ExportOptions } from './model';
 import type { PreparedImage } from './excel';
-import type { PdfImage } from './pdf';
+import type { PdfFloorPage, PdfImage } from './pdf';
+import type { FloorPlan } from '../model/floor';
 import sansRegular from '../assets/fonts/IBMPlexSans-Regular.woff';
 import sansSemiBold from '../assets/fonts/IBMPlexSans-SemiBold.woff';
 import sansBold from '../assets/fonts/IBMPlexSans-Bold.woff';
@@ -88,6 +89,79 @@ export async function prepareImages(m: ExportModel, maxWidth: number, onProgress
 export interface BuiltExport {
   bytes: Uint8Array;
   failedImages: number;
+  /** Plans au sol qui n'ont pas pu être rendus (nom et raison). */
+  failedFloors?: string[];
+}
+
+// ------------------------------------------------------------------ plans au sol
+
+const FLOOR_FONTS = [
+  { family: 'IBM Plex Sans', weight: 400, url: sansRegular },
+  { family: 'IBM Plex Sans', weight: 600, url: sansSemiBold },
+  { family: 'IBM Plex Mono', weight: 400, url: monoRegular },
+  { family: 'IBM Plex Mono', weight: 600, url: monoSemiBold },
+];
+
+/** Grand côté des images de plan dans le PDF (≈ 250 dpi sur une page A4). */
+const FLOOR_PDF_PX = 2800;
+
+/** Plans au sol des séquences exportées (tous si toutes les séquences sont exportées). */
+export function floorPlansFor(doc: ProjectDoc, sequenceIds: string[]): FloorPlan[] {
+  if (!sequenceIds.length) return doc.floorPlans;
+  const pick = new Set(sequenceIds);
+  return doc.floorPlans.filter((fp) => fp.sequenceIds.some((id) => pick.has(id)));
+}
+
+function sequencesLabel(doc: ProjectDoc, fp: FloorPlan): string {
+  const nums = doc.sequences.filter((s) => fp.sequenceIds.includes(s.id)).map((s) => s.number || '?');
+  return nums.length ? `Séq. ${nums.join(', ')}` : '';
+}
+
+/** Image du plan pour un PNG autonome. */
+export async function floorPng(doc: ProjectDoc, fp: FloorPlan, maxPx = 4000) {
+  const { renderFloorImage } = await import('../floor/render');
+  return renderFloorImage(doc, fp, { readBytes: (f) => imageStore.readBytes(f), fonts: FLOOR_FONTS }, maxPx, 'image/png');
+}
+
+export async function prepareFloorPages(doc: ProjectDoc, plans: FloorPlan[], onProgress?: (done: number, total: number) => void): Promise<PdfFloorPage[]> {
+  const { renderFloorImage, cameraLegend } = await import('../floor/render');
+  const out: PdfFloorPage[] = [];
+  let done = 0;
+  for (const fp of plans) {
+    let image: PdfImage | null = null;
+    let error: string | null = null;
+    try {
+      const r = await renderFloorImage(doc, fp, { readBytes: (f) => imageStore.readBytes(f), fonts: FLOOR_FONTS }, FLOOR_PDF_PX, 'image/jpeg');
+      image = { dataUrl: `data:image/jpeg;base64,${toBase64(r.bytes)}`, width: r.width, height: r.height };
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e);
+    }
+    out.push({ id: fp.id, name: fp.name, sequences: sequencesLabel(doc, fp), image, error, scaled: !!fp.scale, legend: cameraLegend(doc, fp) });
+    onProgress?.(++done, plans.length);
+  }
+  return out;
+}
+
+async function pdfModule() {
+  const mod = await import('./pdf');
+  mod.registerPdfFonts({ sansRegular, sansSemiBold, sansBold, monoRegular, monoSemiBold });
+  return mod;
+}
+
+/** PDF des plans au sol seuls. */
+export async function buildFloorPdf(doc: ProjectDoc, plans: FloorPlan[], onProgress?: (done: number, total: number) => void): Promise<BuiltExport> {
+  const floors = await prepareFloorPages(doc, plans, onProgress);
+  const { renderFloorPdf } = await pdfModule();
+  return { bytes: await renderFloorPdf(doc.meta.title, doc.meta.director, floors), failedImages: 0, failedFloors: floors.filter((f) => f.error).map((f) => f.error!) };
+}
+
+/** Demande l'emplacement puis écrit un export de plan au sol (PNG ou PDF). */
+export async function saveFloorExport(doc: ProjectDoc, ext: 'png' | 'pdf', bytes: Uint8Array, suffix: string): Promise<string | null> {
+  const backend = await getBackend();
+  const path = await backend.pickExportPath(exportFileName(doc.meta.title, suffix, ext), ext);
+  if (!path) return null;
+  await backend.writeExport(path, bytes);
+  return path;
 }
 
 export async function buildExport(doc: ProjectDoc, format: ExportFormat, opts: ExportOptions, onProgress?: (done: number, total: number) => void): Promise<BuiltExport> {
@@ -100,10 +174,11 @@ export async function buildExport(doc: ProjectDoc, format: ExportFormat, opts: E
     const prepared = new Map<string, PreparedImage>([...images].map(([k, v]) => [k, { bytes: v.bytes, ext: 'jpeg', width: v.width, height: v.height }]));
     return { bytes: await buildWorkbook(m, opts, prepared), failedImages: failed.length };
   }
-  const { registerPdfFonts, renderPdf } = await import('./pdf');
-  registerPdfFonts({ sansRegular, sansSemiBold, sansBold, monoRegular, monoSemiBold });
+  const plans = opts.floorPlans ? floorPlansFor(doc, opts.sequenceIds) : [];
+  const floors = plans.length ? await prepareFloorPages(doc, plans, (d, t) => onProgress?.(d, t)) : [];
+  const { renderPdf } = await pdfModule();
   const pdfImages = new Map<string, PdfImage>([...images].map(([k, v]) => [k, { dataUrl: `data:image/jpeg;base64,${toBase64(v.bytes)}`, width: v.width, height: v.height }]));
-  return { bytes: await renderPdf(m, opts, pdfImages), failedImages: failed.length };
+  return { bytes: await renderPdf(m, opts, pdfImages, floors), failedImages: failed.length, failedFloors: floors.filter((f) => f.error).map((f) => f.error!) };
 }
 
 const SUFFIX: Record<ExportFormat, string> = { pdf: 'Découpage', xlsx: 'Découpage', csv: 'Liste des plans' };

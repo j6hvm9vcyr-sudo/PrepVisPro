@@ -27,7 +27,7 @@ export interface Backend {
   /** Octets d'une image du projet (pour les exports). */
   readImage(dir: string, file: string): Promise<Uint8Array>;
   /** Boîte de dialogue d'enregistrement d'un export ; renvoie le chemin, ou null. */
-  pickExportPath(defaultName: string, ext: 'pdf' | 'xlsx' | 'csv'): Promise<string | null>;
+  pickExportPath(defaultName: string, ext: 'pdf' | 'xlsx' | 'csv' | 'png'): Promise<string | null>;
   writeExport(path: string, bytes: Uint8Array): Promise<void>;
   openFile(path: string): Promise<void>;
   /** Choisit et lit un scénario Final Draft ; null si annulé. */
@@ -130,9 +130,9 @@ class TauriBackend implements Backend {
     return new Uint8Array(buf);
   }
 
-  async pickExportPath(defaultName: string, ext: 'pdf' | 'xlsx' | 'csv') {
+  async pickExportPath(defaultName: string, ext: 'pdf' | 'xlsx' | 'csv' | 'png') {
     const { save } = await this.dialog();
-    const names = { pdf: 'Document PDF', xlsx: 'Classeur Excel', csv: 'Fichier CSV' };
+    const names = { pdf: 'Document PDF', xlsx: 'Classeur Excel', csv: 'Fichier CSV', png: 'Image PNG' };
     const p = await save({ title: 'Exporter', defaultPath: defaultName, filters: [{ name: names[ext], extensions: [ext] }] });
     if (!p) return null;
     return p.toLowerCase().endsWith(`.${ext}`) ? p : `${p}.${ext}`;

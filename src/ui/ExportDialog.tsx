@@ -3,12 +3,12 @@ import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
 import { ALL_COLUMNS, BUILTIN_PRESETS, COLUMN_DEFS, type ColumnId, type ExportOptions } from '../export/model';
 import { allPresets, deleteUserPreset, lastUsed, rememberLast, sameOptions, saveUserPreset } from '../export/presets';
-import { buildExport, saveExport, type ExportFormat } from '../export/service';
+import { buildExport, floorPlansFor, saveExport, type ExportFormat } from '../export/service';
 import { getBackend } from '../platform/backend';
 import { focusGrid } from './focus';
 
 type Busy = { format: ExportFormat; progress: string } | null;
-type Done = { path: string; format: ExportFormat; failedImages: number } | null;
+type Done = { path: string; format: ExportFormat; failedImages: number; failedFloors: string[] } | null;
 
 export function ExportDialog({ onClose }: { onClose: () => void }) {
   const doc = useApp(selectDoc);
@@ -62,11 +62,11 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
     setDone(null);
     setBusy({ format, progress: 'Préparation…' });
     try {
-      const built = await buildExport(doc, format, opts, (d, t) => setBusy({ format, progress: `Images ${d} / ${t}` }));
+      const built = await buildExport(doc, format, opts, (d, t) => setBusy({ format, progress: `${d} / ${t}` }));
       setBusy({ format, progress: 'Enregistrement…' });
       const path = await saveExport(doc, format, built.bytes, presetName);
       rememberLast(presetId, opts);
-      if (path) setDone({ path, format, failedImages: built.failedImages });
+      if (path) setDone({ path, format, failedImages: built.failedImages, failedFloors: built.failedFloors ?? [] });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -216,6 +216,12 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                 <input type="checkbox" checked={opts.breakdown} onChange={(e) => set({ breakdown: e.target.checked })} />
                 Dépouillement image (caméra, machinerie, lumière, autre)
               </label>
+              {doc.floorPlans.length > 0 && (
+                <label className="check">
+                  <input type="checkbox" checked={opts.floorPlans} onChange={(e) => set({ floorPlans: e.target.checked })} />
+                  Plans au sol des séquences exportées ({floorPlansFor(doc, opts.sequenceIds).length})
+                </label>
+              )}
             </section>
 
             <section className="sec">
@@ -292,6 +298,11 @@ function DoneBox({ done }: { done: NonNullable<Done> }) {
           {done.failedImages} image{done.failedImages > 1 ? 's n’ont' : ' n’a'} pas pu être lue{done.failedImages > 1 ? 's' : ''} et manque{done.failedImages > 1 ? 'nt' : ''} dans l’export.
         </div>
       )}
+      {done.failedFloors.map((f, i) => (
+        <div key={i} className="note" style={{ color: 'var(--warn-text)' }}>
+          {f}
+        </div>
+      ))}
       <div className="row">
         <button type="button" className="btn" onClick={() => void getBackend().then((b) => b.openFile(done.path))}>
           Ouvrir

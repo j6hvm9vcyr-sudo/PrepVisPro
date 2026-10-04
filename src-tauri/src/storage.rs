@@ -248,7 +248,7 @@ pub fn read_image(dir: &Path, file: &str) -> Result<Vec<u8>> {
 /// Écrit un fichier exporté (PDF, Excel, CSV) à l'emplacement choisi par l'utilisateur.
 pub fn write_export(path: &Path, bytes: &[u8]) -> Result<()> {
     let ext = path.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
-    if !["pdf", "xlsx", "csv"].contains(&ext.as_str()) {
+    if !["pdf", "xlsx", "csv", "png"].contains(&ext.as_str()) {
         return Err(format!("Type de fichier d'export refusé : « {} »", path.display()));
     }
     if path.parent().map(|p| !p.is_dir()).unwrap_or(true) {

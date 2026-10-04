@@ -1,4 +1,15 @@
-import type { ImageAsset, Plan } from './types';
+import type { ImageAsset, Plan, ProjectDoc } from './types';
+
+/** Tous les fichiers du projet référencés par le document (images des plans, fonds et icônes des plans au sol). */
+export function referencedFiles(doc: ProjectDoc): Set<string> {
+  const out = new Set<string>();
+  for (const s of doc.sequences) for (const p of s.plans) for (const i of p.images) out.add(i.file);
+  for (const fp of doc.floorPlans) {
+    if (fp.background) out.add(fp.background.file);
+    for (const el of fp.elements) if (el.kind === 'icon') out.add(el.icon);
+  }
+  return out;
+}
 
 /**
  * Image principale d'un plan :

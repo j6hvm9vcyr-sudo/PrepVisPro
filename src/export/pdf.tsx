@@ -13,6 +13,19 @@ export interface PdfImage {
   height: number;
 }
 
+/** Page « plan au sol » : image déjà rendue (même dessin que l'éditeur) et légende des caméras. */
+export interface PdfFloorPage {
+  id: string;
+  name: string;
+  /** « Séq. 4, 5 » ; vide si le plan n'est rattaché à aucune séquence. */
+  sequences: string;
+  image: PdfImage | null;
+  /** Message si l'image n'a pas pu être produite. */
+  error: string | null;
+  scaled: boolean;
+  legend: { code: string; detail: string; action: string; missing: boolean }[];
+}
+
 export interface FontSources {
   sansRegular: string;
   sansSemiBold: string;
@@ -172,7 +185,76 @@ function PlanBlock({ p, opts, w, images, multi }: { p: ExportPlan; opts: ExportO
   );
 }
 
-export function DecoupagePdf({ m, opts, images }: { m: ExportModel; opts: ExportOptions; images: Map<string, PdfImage> }): ReactElement {
+const A4 = { w: 595.28, h: 841.89 };
+
+/** Une page par plan au sol, orientée selon la forme du plan. */
+function FloorPages({ title, floors, date }: { title: string; floors: PdfFloorPage[]; date: string }) {
+  return (
+    <>
+      {floors.map((f) => {
+        const landscape = !f.image || f.image.width >= f.image.height;
+        const pw = (landscape ? A4.h : A4.w) - 52;
+        const ph = (landscape ? A4.w : A4.h) - 64;
+        // Place réservée à la légende sous l'image (au-delà, elle continue sur la page suivante).
+        const legendRows = Math.min(f.legend.length, landscape ? 6 : 10);
+        const legendH = f.legend.length ? 22 + Math.ceil(legendRows / 2) * 13 : 0;
+        const boxH = ph - 34 - legendH;
+        const img = f.image;
+        const scale = img ? Math.min(pw / img.width, boxH / img.height) : 1;
+        return (
+          <Page key={f.id} size="A4" orientation={landscape ? 'landscape' : 'portrait'} style={s.page}>
+            <View style={s.head} fixed>
+              <Text>{title} — Plan au sol</Text>
+              <Text>{date}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', marginBottom: 8 }}>
+              <Text style={{ fontSize: 13, fontWeight: 700 }}>{f.name}</Text>
+              {f.sequences ? <Text style={{ fontSize: 9, color: INK3, marginLeft: 10 }}>{f.sequences}</Text> : null}
+              {!f.scaled ? <Text style={{ fontSize: 8, color: '#9A4F00', marginLeft: 'auto' }}>Plan non mis à l’échelle : distances et champs indicatifs</Text> : null}
+            </View>
+            {img ? (
+              <View style={{ alignItems: 'center' }}>
+                <Image src={img.dataUrl} style={{ width: img.width * scale, height: img.height * scale, borderWidth: 0.6, borderColor: LINE }} />
+              </View>
+            ) : (
+              <Text style={{ color: '#9A4F00' }}>{f.error ?? 'Plan vide.'}</Text>
+            )}
+            {f.legend.length > 0 && (
+              <View style={{ marginTop: 10, flexDirection: 'row', flexWrap: 'wrap' }}>
+                {f.legend.map((r, i) => (
+                  <View key={i} style={{ width: '50%', flexDirection: 'row', paddingVertical: 2, paddingRight: 10 }} wrap={false}>
+                    <Text style={[s.code, { width: 62, fontSize: 8.5 }, r.missing ? s.muted : {}]}>{r.code}</Text>
+                    <Text style={[s.mono, { width: 70, fontSize: 8 }, s.muted]}>{r.detail}</Text>
+                    <Text style={{ flex: 1, fontSize: 8, color: INK2 }}>{r.action}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+            <View style={s.foot} fixed>
+              <Text>PrepVisPro</Text>
+              <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
+            </View>
+          </Page>
+        );
+      })}
+    </>
+  );
+}
+
+export function FloorPlansPdf({ title, director, floors }: { title: string; director: string; floors: PdfFloorPage[] }): ReactElement {
+  return (
+    <Document title={`${title} — Plans au sol`} author={director} creator="PrepVisPro" producer="PrepVisPro" language="fr">
+      <FloorPages title={title} floors={floors} date={today()} />
+    </Document>
+  );
+}
+
+export async function renderFloorPdf(title: string, director: string, floors: PdfFloorPage[]): Promise<Uint8Array> {
+  const blob = await pdf(<FloorPlansPdf title={title} director={director} floors={floors} />).toBlob();
+  return new Uint8Array(await blob.arrayBuffer());
+}
+
+export function DecoupagePdf({ m, opts, images, floors = [] }: { m: ExportModel; opts: ExportOptions; images: Map<string, PdfImage>; floors?: PdfFloorPage[] }): ReactElement {
   const pageW = (opts.orientation === 'landscape' ? 841.89 : 595.28) - 52;
   const w = widths(opts, pageW, m.multiCamera);
   const lay = layoutColumns(opts.columns, m.multiCamera);
@@ -289,11 +371,12 @@ export function DecoupagePdf({ m, opts, images }: { m: ExportModel; opts: Export
           </View>
         </Page>
       )}
+      {floors.length > 0 && <FloorPages title={m.title} floors={floors} date={date} />}
     </Document>
   );
 }
 
-export async function renderPdf(m: ExportModel, opts: ExportOptions, images: Map<string, PdfImage>): Promise<Uint8Array> {
-  const blob = await pdf(<DecoupagePdf m={m} opts={opts} images={images} />).toBlob();
+export async function renderPdf(m: ExportModel, opts: ExportOptions, images: Map<string, PdfImage>, floors: PdfFloorPage[] = []): Promise<Uint8Array> {
+  const blob = await pdf(<DecoupagePdf m={m} opts={opts} images={images} floors={floors} />).toBlob();
   return new Uint8Array(await blob.arrayBuffer());
 }

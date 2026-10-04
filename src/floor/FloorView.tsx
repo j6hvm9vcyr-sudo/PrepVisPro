@@ -143,6 +143,38 @@ function FloorToolbar({ fp }: { fp: FloorPlan }) {
         {busy ? 'Import…' : fp.background ? 'Changer le fond…' : 'Importer le plan du décor…'}
       </button>
       <input ref={file} type="file" accept="image/*,application/pdf,.pdf" className="sr-only" tabIndex={-1} onChange={(e) => (void onFile(e.target.files?.[0]), (e.target.value = ''))} />
+      <FloorExportButtons fp={fp} />
+    </div>
+  );
+}
+
+function FloorExportButtons({ fp }: { fp: FloorPlan }) {
+  const [busy, setBusy] = useState<'png' | 'pdf' | null>(null);
+  const empty = !fp.background && fp.elements.length === 0;
+  const run = async (ext: 'png' | 'pdf') => {
+    setBusy(ext);
+    const st = useApp.getState();
+    const doc = selectDoc(st);
+    try {
+      const svc = await import('../export/service');
+      const built = ext === 'png' ? { bytes: (await svc.floorPng(doc, fp)).bytes, failedFloors: [] as string[] } : await svc.buildFloorPdf(doc, [fp]);
+      if (built.failedFloors?.length) throw new Error(built.failedFloors[0]);
+      const path = await svc.saveFloorExport(doc, ext, built.bytes, `Plan au sol ${fp.name.replace(/[\\/:*?"<>|]+/g, '-')}`);
+      if (path) st.setMessage(`Plan exporté : ${path.split('/').pop()}`);
+    } catch (e) {
+      st.setMessage(`Export du plan impossible : ${e instanceof Error ? e.message : String(e)}`, 'warn');
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <div className="seg" role="group" aria-label="Exporter ce plan">
+      <button type="button" disabled={!!busy || empty} onClick={() => void run('png')} title="Exporter ce plan en image PNG">
+        {busy === 'png' ? 'Export…' : 'PNG'}
+      </button>
+      <button type="button" disabled={!!busy || empty} onClick={() => void run('pdf')} title="Exporter ce plan en PDF (avec la légende des caméras)">
+        {busy === 'pdf' ? 'Export…' : 'PDF'}
+      </button>
     </div>
   );
 }

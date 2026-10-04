@@ -54,6 +54,8 @@ export interface ExportOptions {
   markIncomplete: boolean;
   /** Ajouter le dépouillement image (une ligne par séquence : caméra, machinerie, lumière, autre). */
   breakdown: boolean;
+  /** Ajouter les plans au sol des séquences exportées (PDF). */
+  floorPlans: boolean;
 }
 
 export interface ExportPreset {
@@ -70,13 +72,14 @@ const base: Omit<ExportOptions, 'columns'> = {
   sequenceComments: true,
   markIncomplete: false,
   breakdown: false,
+  floorPlans: true,
 };
 
 export const BUILTIN_PRESETS: ExportPreset[] = [
   { id: 'complet', name: 'Découpage complet', options: { ...base, breakdown: true, columns: ['global', 'code', 'image', 'action', 'script', 'size', 'axis', 'angle', 'focal', 'movement', 'grip', 'notes'] } },
   { id: 'realisation', name: 'Version réalisation', options: { ...base, columns: ['code', 'image', 'action', 'script', 'size', 'axis', 'angle', 'focal', 'movement'] } },
   { id: 'technique', name: 'Version électro / machino', options: { ...base, imageSize: 'small', breakdown: true, columns: ['code', 'image', 'action', 'size', 'axis', 'angle', 'focal', 'movement', 'grip', 'notes'] } },
-  { id: 'liste', name: 'Liste des plans (sans images)', options: { ...base, coverPage: false, sequenceComments: false, columns: ['global', 'code', 'action', 'size', 'axis', 'angle', 'focal', 'movement', 'grip'] } },
+  { id: 'liste', name: 'Liste des plans (sans images)', options: { ...base, coverPage: false, sequenceComments: false, floorPlans: false, columns: ['global', 'code', 'action', 'size', 'axis', 'angle', 'focal', 'movement', 'grip'] } },
 ];
 
 export interface ExportCameraRow {

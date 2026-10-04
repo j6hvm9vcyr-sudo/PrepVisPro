@@ -1,0 +1,254 @@
+/**
+ * Rendu d'un plan au sol en image (PNG, ou JPEG pour le PDF).
+ *
+ * Le dessin est celui de l'éditeur (FloorScene) : ce qui est exporté est ce qui est affiché.
+ * Le fond est peint directement sur le canevas ; les éléments sont rendus en SVG par-dessus.
+ */
+import { renderToStaticMarkup } from 'react-dom/server';
+import type { ProjectDoc } from '../model/types';
+import { fovLengthUnits, project, type FloorPlan, type Point } from '../model/floor';
+import { cameraLabel } from '../model/floorOps';
+import { locatePlan } from '../model/ops';
+import { computeNumbers } from '../model/numbering';
+import { formatNumber } from '../model/text';
+import { FloorMarkers, FloorScene } from './FloorScene';
+
+export interface Bounds {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** Largeur de référence (en pixels « écran ») : les symboles ont la taille qu'ils ont à l'écran sur cette largeur. */
+export const REFERENCE_WIDTH = 1100;
+
+/**
+ * Cadre du plan exporté : le fond entier, et tous les éléments avec leurs étiquettes et leurs champs.
+ * `k` = unités du plan par pixel symbole (les marges des étiquettes en dépendent).
+ * null si le plan est vide.
+ */
+export function contentBounds(fp: FloorPlan, k: number): Bounds | null {
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  const add = (p: Point, left: number, top: number, right: number, bottom: number) => {
+    x0 = Math.min(x0, p.x - left);
+    y0 = Math.min(y0, p.y - top);
+    x1 = Math.max(x1, p.x + right);
+    y1 = Math.max(y1, p.y + bottom);
+  };
+  if (fp.background) add({ x: 0, y: 0 }, 0, 0, fp.background.width, fp.background.height);
+  const fov = fovLengthUnits(fp);
+  for (const el of fp.elements) {
+    if (el.kind === 'camera') {
+      add(el.at, 30 * k, 30 * k, 150 * k, 55 * k);
+      // Champ : bord gauche, axe et bord droit (jusqu'à 120° d'ouverture), sans réserver tout le cercle.
+      if (el.showFov) for (const d of [-60, -30, 0, 30, 60]) add(project(el.at, el.rotation + d, fov), 4 * k, 4 * k, 4 * k, 4 * k);
+    } else if (el.kind === 'actor') add(el.at, 70 * k, 25 * k, 70 * k, 40 * k);
+    else if (el.kind === 'icon') add(el.at, (el.size / 2 + 40) * k, (el.size / 2) * k, (el.size / 2 + 40) * k, (el.size / 2 + 20) * k);
+    else add(el.at, Math.max(el.text.length, 4) * el.size * 0.35 * k, el.size * k, Math.max(el.text.length, 4) * el.size * 0.35 * k, el.size * k);
+    if ('path' in el) for (const p of el.path) add(p, 12 * k, 12 * k, 12 * k, 12 * k);
+  }
+  if (!Number.isFinite(x0)) return null;
+  // Marge autour du contenu (sauf quand le fond suffit à cadrer).
+  const pad = 16 * k;
+  return { x: x0 - pad, y: y0 - pad, w: x1 - x0 + 2 * pad, h: y1 - y0 + 2 * pad };
+}
+
+export interface Framing {
+  bounds: Bounds;
+  /** Pixels de sortie par unité du plan. */
+  zoom: number;
+  k: number;
+  width: number;
+  height: number;
+}
+
+/** Cadrage pour une image dont le grand côté fait `maxPx` pixels. */
+export function frame(fp: FloorPlan, maxPx: number): Framing | null {
+  // Les marges dépendent de k, qui dépend du cadrage : quelques itérations convergent.
+  let b = contentBounds(fp, 0);
+  if (!b) return null;
+  for (let i = 0; i < 4; i++) {
+    const z: number = maxPx / Math.max(b.w, b.h, 1e-6);
+    b = contentBounds(fp, maxPx / REFERENCE_WIDTH / z)!;
+  }
+  const zoom = maxPx / Math.max(b.w, b.h);
+  const k = maxPx / REFERENCE_WIDTH / zoom;
+  return { bounds: b, zoom, k, width: Math.max(1, Math.round(b.w * zoom)), height: Math.max(1, Math.round(b.h * zoom)) };
+}
+
+/** Barre d'échelle : longueur ronde proche de `targetPx` pixels de sortie. */
+export function exportScaleBar(metersPerUnit: number, zoom: number, targetPx: number): { px: number; meters: number; label: string } {
+  const mPerPx = metersPerUnit / zoom;
+  const target = targetPx * mPerPx;
+  const steps = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000];
+  const m = steps.find((s) => s >= target * 0.6) ?? 1000;
+  return { px: m / mPerPx, meters: m, label: `${formatNumber(m)} m` };
+}
+
+/** SVG des éléments du plan (sans le fond), cadré, avec la barre d'échelle. */
+export function sceneSvg(doc: ProjectDoc, fp: FloorPlan, f: Framing, opts: { fontCss?: string; iconUrl?: (file: string) => string | null } = {}): string {
+  const numbers = computeNumbers(doc);
+  const u = f.k * f.zoom; // pixels de sortie par pixel symbole
+  const bar = fp.scale ? exportScaleBar(fp.scale.metersPerUnit, f.zoom, 160 * u) : null;
+  const { x, y, w, h } = f.bounds;
+  const body = renderToStaticMarkup(
+    <svg xmlns="http://www.w3.org/2000/svg" width={f.width} height={f.height} viewBox={`${x} ${y} ${w} ${h}`} fontFamily="IBM Plex Sans, Helvetica, Arial, sans-serif">
+      <defs>
+        <FloorMarkers />
+      </defs>
+      <FloorScene doc={doc} fp={fp} k={f.k} numbers={numbers} urlFor={opts.iconUrl ?? (() => null)} />
+      <g transform={`translate(${x} ${y + h}) scale(${f.k})`}>
+        {bar ? (
+          <g transform="translate(18 -18)">
+            <rect x={-6} y={-30} width={bar.px / u + 12 + 60} height={40} rx={4} fill="#ffffff" opacity={0.85} />
+            <rect x={0} y={-6} width={bar.px / u} height={6} fill="#13161B" />
+            <rect x={0} y={-6} width={bar.px / u / 2} height={6} fill="#ffffff" stroke="#13161B" strokeWidth={1} />
+            <text x={0} y={-12} fontSize={11} fill="#13161B">0</text>
+            <text x={bar.px / u} y={-12} fontSize={11} fill="#13161B" textAnchor="middle">{bar.label}</text>
+          </g>
+        ) : (
+          <text x={18} y={-18} fontSize={11} fill="#6A7383">Plan non mis à l’échelle</text>
+        )}
+      </g>
+    </svg>,
+  );
+  if (!opts.fontCss) return body;
+  return body.replace(/^<svg([^>]*)>/, `<svg$1><style>${opts.fontCss}</style>`);
+}
+
+export interface LegendRow {
+  code: string;
+  detail: string;
+  action: string;
+  missing: boolean;
+}
+
+/** Caméras placées, dans l'ordre du découpage (pour la légende du PDF). */
+export function cameraLegend(doc: ProjectDoc, fp: FloorPlan): LegendRow[] {
+  const numbers = computeNumbers(doc);
+  const rows = fp.elements.flatMap((el) => {
+    if (el.kind !== 'camera') return [];
+    const lab = cameraLabel(doc, el.planId, el.setupId, numbers);
+    const loc = el.planId ? locatePlan(doc, el.planId) : null;
+    const g = el.planId ? (numbers.get(el.planId)?.global ?? Infinity) : Infinity;
+    return [{ row: { ...lab, action: loc?.plan.action ?? '' }, g }];
+  });
+  return rows.sort((a, b) => a.g - b.g || a.row.code.localeCompare(b.row.code, 'fr', { numeric: true })).map((r) => r.row);
+}
+
+// ------------------------------------------------------------------ navigateur
+
+export interface FloorImage {
+  bytes: Uint8Array;
+  width: number;
+  height: number;
+  mime: 'image/png' | 'image/jpeg';
+}
+
+export interface FloorAssets {
+  readBytes(file: string): Promise<Uint8Array>;
+  fonts?: { family: string; weight: number; url: string }[];
+}
+
+function mimeOf(bytes: Uint8Array): string {
+  if (bytes[0] === 0x89 && bytes[1] === 0x50) return 'image/png';
+  if (bytes[0] === 0xff && bytes[1] === 0xd8) return 'image/jpeg';
+  if (bytes[0] === 0x47 && bytes[1] === 0x49) return 'image/gif';
+  if (bytes[0] === 0x52 && bytes[1] === 0x49) return 'image/webp';
+  if (bytes[0] === 0x3c) return 'image/svg+xml';
+  return 'application/octet-stream';
+}
+
+function toBase64(bytes: Uint8Array): string {
+  let s = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) s += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  return btoa(s);
+}
+
+async function loadImage(src: string): Promise<HTMLImageElement> {
+  const img = new Image();
+  img.decoding = 'async';
+  img.src = src;
+  await img.decode();
+  return img;
+}
+
+const fontCache = new Map<string, string>();
+async function fontCss(fonts: FloorAssets['fonts']): Promise<string> {
+  if (!fonts?.length) return '';
+  const parts: string[] = [];
+  for (const f of fonts) {
+    let data = fontCache.get(f.url);
+    if (!data) {
+      try {
+        const res = await fetch(f.url);
+        data = `data:font/woff;base64,${toBase64(new Uint8Array(await res.arrayBuffer()))}`;
+        fontCache.set(f.url, data);
+      } catch {
+        continue; // police système en repli : le plan reste juste
+      }
+    }
+    parts.push(`@font-face{font-family:'${f.family}';font-weight:${f.weight};src:url(${data}) format('woff');}`);
+  }
+  return parts.join('');
+}
+
+/**
+ * Image du plan au sol. Lève une erreur lisible si le plan est vide ou si le fond est illisible.
+ * `maxPx` : grand côté de l'image produite.
+ */
+export async function renderFloorImage(doc: ProjectDoc, fp: FloorPlan, assets: FloorAssets, maxPx: number, mime: FloorImage['mime'] = 'image/png'): Promise<FloorImage> {
+  const f = frame(fp, maxPx);
+  if (!f) throw new Error(`Le plan « ${fp.name} » est vide.`);
+  const canvas = document.createElement('canvas');
+  canvas.width = f.width;
+  canvas.height = f.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Rendu du plan impossible (mémoire insuffisante ?)');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, f.width, f.height);
+
+  if (fp.background) {
+    let bytes: Uint8Array;
+    try {
+      bytes = await assets.readBytes(fp.background.file);
+    } catch {
+      throw new Error(`Fond du plan « ${fp.name} » introuvable dans le projet.`);
+    }
+    const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: mimeOf(bytes) }));
+    try {
+      const img = await loadImage(url);
+      ctx.globalAlpha = fp.background.opacity;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, (0 - f.bounds.x) * f.zoom, (0 - f.bounds.y) * f.zoom, fp.background.width * f.zoom, fp.background.height * f.zoom);
+      ctx.globalAlpha = 1;
+    } catch {
+      throw new Error(`Fond du plan « ${fp.name} » illisible.`);
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  // Icônes intégrées en données : une image SVG ne peut pas charger de ressources externes.
+  const icons = new Map<string, string>();
+  for (const el of fp.elements) {
+    if (el.kind !== 'icon' || icons.has(el.icon)) continue;
+    try {
+      const b = await assets.readBytes(el.icon);
+      icons.set(el.icon, `data:${mimeOf(b)};base64,${toBase64(b)}`);
+    } catch {
+      /* icône manquante : le reste du plan est exporté */
+    }
+  }
+  const svg = sceneSvg(doc, fp, f, { fontCss: await fontCss(assets.fonts), iconUrl: (file) => icons.get(file) ?? null });
+  const svgImg = await loadImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
+  ctx.drawImage(svgImg, 0, 0, f.width, f.height);
+
+  const blob: Blob = await new Promise((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('Rendu du plan impossible'))), mime, 0.9));
+  return { bytes: new Uint8Array(await blob.arrayBuffer()), width: f.width, height: f.height, mime };
+}

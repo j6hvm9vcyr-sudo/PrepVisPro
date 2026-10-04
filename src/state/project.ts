@@ -16,6 +16,7 @@ import { newProject } from '../model/defaults';
 import { largeSampleProject, sampleProject } from '../model/sample';
 import { CONFLICT_PREFIX, getBackend, baseName, type Backend } from '../platform/backend';
 import { imageStore } from '../platform/images';
+import { referencedFiles } from '../model/images';
 import { useApp } from './appStore';
 import { selectDoc } from './store';
 
@@ -303,8 +304,7 @@ export async function saveAsDialog(): Promise<boolean> {
   try {
     const { dir: real, fp } = await backend.create(dir, serializeProject(doc));
     fingerprint = fp;
-    const used = new Set(doc.sequences.flatMap((s) => s.plans.flatMap((p) => p.images.map((i) => i.file))));
-    await imageStore.flushPendingTo(backend, real, used);
+    await imageStore.flushPendingTo(backend, real, referencedFiles(doc));
     // On garde l'historique d'annulation : seul l'emplacement change.
     imageStore.attach(backend, real);
     lastWritten = doc;
