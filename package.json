@@ -1,7 +1,7 @@
 {
   "name": "prepvispro",
   "private": true,
-  "version": "0.6.0",
+  "version": "0.6.1",
   "type": "module",
   "description": "PrepVisPro — préparation image : découpage, plans au sol, plans feux.",
   "scripts": {
