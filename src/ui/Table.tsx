@@ -13,6 +13,7 @@ import { imageStore } from '../platform/images';
 import { norm } from '../model/text';
 import { CellEditor } from './CellEditor';
 import { focusGrid, registerGrid } from './focus';
+import { floorMismatches, type FloorMismatch } from '../model/floorSuggest';
 import { sequenceTitle, stripColors } from './strip';
 
 const TECH: { col: Exclude<EditableField, 'action'>; label: string }[] = [
@@ -44,6 +45,8 @@ export function DecoupageTable() {
   const collapsed = useApp((s) => s.collapsed);
   const onlyIncomplete = useApp((s) => s.onlyIncomplete);
   const numbers = useMemo(() => computeNumbers(doc), [doc]);
+  // Écarts avec les plans au sol (valeur, axe) : signalés dans les cases concernées.
+  const floorDiffs = useMemo(() => (doc.floorPlans.length ? floorMismatches(doc) : EMPTY_DIFFS), [doc]);
   const anchor = useApp((s) => s.anchor);
   // Sélection de plusieurs cellules : pour chaque plan concerné, colonnes sélectionnées par caméra.
   const selection = useMemo(() => {
@@ -281,6 +284,7 @@ export function DecoupageTable() {
             collapsed={!!collapsed[seq.id]}
             onlyIncomplete={onlyIncomplete}
             numbers={numbers}
+            floorDiffs={floorDiffs}
             cursorPlanId={cursor?.planId ?? null}
             cursorSetupId={cursor?.setupId ?? null}
             cursorCol={cursor?.col ?? null}
@@ -300,6 +304,7 @@ interface BlockProps {
   collapsed: boolean;
   onlyIncomplete: boolean;
   numbers: ReturnType<typeof computeNumbers>;
+  floorDiffs: Map<string, FloorMismatch[]>;
   cursorPlanId: string | null;
   cursorSetupId: string | null;
   cursorCol: Column | null;
@@ -353,6 +358,7 @@ function SequenceBlock(p: BlockProps) {
               activeCol={here ? p.cursorCol : null}
               editing={here && p.editing}
               sel={p.selection?.get(plan.id) ?? null}
+              floorNote={floorNoteOf(plan, p.floorDiffs)}
             />
           );
         })}
@@ -376,9 +382,24 @@ interface RowsProps {
   activeCol: Column | null;
   editing: boolean;
   sel: Record<string, [number, number]> | null;
+  /** Écarts avec le plan au sol, sérialisés (valeur stable pour la mémoïsation). */
+  floorNote: string;
 }
 
-const PlanRows = memo(function PlanRows({ plan, settings, code, global, isReprise, activeSetupId, activeCol, editing, sel }: RowsProps) {
+const EMPTY_DIFFS = new Map<string, FloorMismatch[]>();
+
+function floorNoteOf(plan: Plan, diffs: Map<string, FloorMismatch[]>): string {
+  if (!diffs.size) return '';
+  const rec: Record<string, FloorMismatch[]> = {};
+  for (const c of plan.cameras) {
+    const d = diffs.get(c.id);
+    if (d) rec[c.id] = d;
+  }
+  return Object.keys(rec).length ? JSON.stringify(rec) : '';
+}
+
+const PlanRows = memo(function PlanRows({ plan, settings, code, global, isReprise, activeSetupId, activeCol, editing, sel, floorNote }: RowsProps) {
+  const floor = floorNote ? (JSON.parse(floorNote) as Record<string, FloorMismatch[]>) : null;
   const missing = missingFields(plan, settings);
   const multi = plan.cameras.length > 1;
   const cover = coverImage(plan);
@@ -509,7 +530,9 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
             </div>
             {TECH.map(({ col }) => {
               const txt = displayText(col, setup);
+              const fd = col === 'size' || col === 'axis' ? floor?.[setup.id]?.find((x) => x.field === col) : undefined;
               const flags = [
+                fd ? 'floor-diff' : '',
                 !txt ? (techMissing[col] ? 'missing' : 'empty') : '',
                 txt && isEvolving(col, setup) ? 'evol' : '',
                 txt && isCustom(col, plan, i) ? 'custom' : '',
@@ -523,7 +546,7 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
                   className={cls(col, flags)}
                   onMouseDown={(e) => select(e, setup.id, col)}
                   onDoubleClick={() => st().startEdit()}
-                  title={txt}
+                  title={fd ? `Plan au sol « ${fd.floorPlan} » : ${fd.suggested}${txt ? ` (ici : ${txt})` : ''} — Détails › Caméras pour reporter` : txt}
                 >
                   <span className="txt">{txt || '—'}</span>
                   {lineActive && activeCol === col && editing && <CellEditor field={col} />}

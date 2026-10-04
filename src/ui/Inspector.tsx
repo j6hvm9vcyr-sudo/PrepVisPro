@@ -7,6 +7,8 @@ import { missingFields } from '../model/completeness';
 import { coverImage } from '../model/images';
 import { displayText } from '../model/entry';
 import { fieldOfView, formatDeg, parseAspectRatio } from '../model/optics';
+import { floorMismatches, type FloorMismatch } from '../model/floorSuggest';
+import { replaceCameraSetup } from '../model/ops';
 import { imageStore } from '../platform/images';
 import type { ImageKind, Plan } from '../model/types';
 
@@ -152,6 +154,7 @@ function ImageGroup({ plan, kind }: { plan: Plan; kind: ImageKind }) {
 function CameraList({ plan }: { plan: Plan }) {
   const doc = useApp(selectDoc);
   const st = useApp.getState;
+  const diffs = doc.floorPlans.length ? floorMismatches(doc) : new Map<string, FloorMismatch[]>();
   return (
     <section className="sec" aria-label="Caméras">
       <div className="sec-h">
@@ -199,6 +202,16 @@ function CameraList({ plan }: { plan: Plan }) {
                 {w === null ? 'capteur ?' : c.start.focalMm === null ? '—' : b !== null ? `${formatDeg(a)} → ${formatDeg(b)}` : formatDeg(a)}
               </span>
             </div>
+            {(diffs.get(c.id) ?? []).map((d) => (
+              <div key={d.field} className="floor-note">
+                <span>
+                  Plan au sol « {d.floorPlan} » : <b>{d.field === 'size' ? 'valeur' : 'axe'} {d.suggested}</b>
+                </span>
+                <button type="button" className="linkbtn" onClick={() => reportFloor(plan.id, c.id, d)}>
+                  Reporter
+                </button>
+              </div>
+            ))}
           </div>
         );
       })}
@@ -239,4 +252,20 @@ function SceneText({ planId, text, number }: { planId: string; text: string; num
       {open && <textarea ref={ref} className="scene-text" readOnly rows={7} value={text} aria-label={`Texte de la scène ${number}`} />}
     </section>
   );
+}
+
+/** Reporte au découpage la valeur ou l'axe déduit du plan au sol (« Américain » ou « Taille → GP »). */
+function reportFloor(planId: string, setupId: string, d: FloorMismatch) {
+  const st = useApp.getState();
+  const doc = selectDoc(st);
+  const setup = doc.sequences.flatMap((s) => s.plans).find((p) => p.id === planId)?.cameras.find((c) => c.id === setupId);
+  if (!setup) return;
+  const [start, end] = d.suggested.split(' → ');
+  const next = structuredClone(setup);
+  next.start[d.field] = start!;
+  if (end) {
+    next.end ??= structuredClone(next.start);
+    next.end[d.field] = end;
+  } else if (next.end) next.end[d.field] = start!;
+  st.applyDoc(replaceCameraSetup(doc, planId, next), `${d.field === 'size' ? 'Valeur' : 'Axe'} reporté${d.field === 'size' ? 'e' : ''} depuis le plan au sol · ⌘Z pour annuler`);
 }

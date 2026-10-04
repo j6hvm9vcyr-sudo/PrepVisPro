@@ -115,3 +115,41 @@ export function suggestFraming(doc: ProjectDoc, fp: FloorPlan, cam: FloorCamera)
   }
   return { ok: true, start, end };
 }
+
+export interface FloorMismatch {
+  field: 'size' | 'axis';
+  /** Ce que suggère le plan au sol (début, et fin pour un plan évolutif). */
+  suggested: string;
+  current: string;
+  floorPlan: string;
+}
+
+/**
+ * Écarts entre le découpage et ce que déduisent les plans au sol, par caméra du découpage
+ * (identifiant du réglage caméra). Sert à signaler qu'une modification d'un côté n'a pas été
+ * reportée de l'autre.
+ */
+export function floorMismatches(doc: ProjectDoc): Map<string, FloorMismatch[]> {
+  const out = new Map<string, FloorMismatch[]>();
+  for (const fp of doc.floorPlans) {
+    if (!fp.scale) continue;
+    for (const el of fp.elements) {
+      if (el.kind !== 'camera' || !el.setupId || !el.planId) continue;
+      const r = suggestFraming(doc, fp, el);
+      if (!r.ok) continue;
+      const setup = locatePlan(doc, el.planId)?.plan.cameras.find((c) => c.id === el.setupId);
+      if (!setup) continue;
+      const list: FloorMismatch[] = [];
+      for (const field of ['size', 'axis'] as const) {
+        const s = r.start[field];
+        const e = r.end?.[field] ?? null;
+        if (s === null) continue;
+        const wanted = e !== null && e !== s ? `${s} → ${e}` : s;
+        const cur = setup.start[field] + (setup.end && setup.end[field] && setup.end[field] !== setup.start[field] ? ` → ${setup.end[field]}` : '');
+        if (norm(wanted) !== norm(cur)) list.push({ field, suggested: wanted, current: cur, floorPlan: fp.name });
+      }
+      if (list.length) out.set(el.setupId, list);
+    }
+  }
+  return out;
+}

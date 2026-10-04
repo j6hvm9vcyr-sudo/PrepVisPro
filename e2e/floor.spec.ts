@@ -55,8 +55,17 @@ test('plan au sol : fond, mise à l’échelle, caméra du découpage avec son c
   await expect(suggest).toContainText('champ ≈ 1,3 m de haut');
   await expect(suggest.locator('.suggest-row', { hasText: 'Valeur' })).toContainText('Américain');
   await expect(suggest.locator('.suggest-row', { hasText: 'Axe' })).toContainText('Face');
+  // Le tableau signale l'écart, et Détails propose de reporter.
+  await page.keyboard.press('ControlOrMeta+1');
+  await expect(page.locator('.cell.floor-diff')).toHaveCount(1);
+  await expect(page.locator('.cell.floor-diff')).toHaveAttribute('title', /Plan au sol « Séq\. 1 — Quai de gare » : Américain \(ici : Ensemble\)/);
+  await expect(page.locator('.floor-note')).toContainText('valeur Américain');
+  await page.keyboard.press('ControlOrMeta+3');
   await suggest.locator('.suggest-row', { hasText: 'Valeur' }).getByRole('button', { name: 'Reporter' }).click();
   await expect(suggest.locator('.suggest-row', { hasText: 'Valeur' }).locator('.suggest-ok')).toBeVisible();
+  await page.keyboard.press('ControlOrMeta+1');
+  await expect(page.locator('.cell.floor-diff')).toHaveCount(0);
+  await page.keyboard.press('ControlOrMeta+3');
   // Retirer le personnage pour la suite du test.
   await page.mouse.click(who.x, who.y);
   await canvas.press('Backspace');

@@ -72,3 +72,25 @@ describe('suggestion complète depuis le plan au sol', () => {
     expect(suggestFraming(d, fp, { ...cam, rotation: 270 })).toMatchObject({ ok: false, reason: 'Aucun personnage dans le champ de la caméra.' });
   });
 });
+
+describe('écarts découpage / plan au sol', () => {
+  it('signale une valeur différente, se tait quand elle correspond', async () => {
+    const { floorMismatches } = await import('./floorSuggest');
+    let d = doc((c) => [seq('1', [plan(c, { cameras: [setup(c, { start: fr({ focalMm: 50, size: 'GP', axis: 'Face' }) })] })])]);
+    d = produce(d, (x) => {
+      x.settings.cameras[0]!.sensorWidthMm = 36;
+      x.settings.cameras[0]!.sensorHeightMm = 24;
+    });
+    const p = d.sequences[0]!.plans[0]!;
+    const fp = { ...newFloorPlan('Salon', [d.sequences[0]!.id]), scale: computeScale({ x: 0, y: 0 }, { x: 100, y: 0 }, 1) };
+    d = addFloorPlan(d, fp);
+    d = addElements(d, fp.id, [
+      { id: 'c', kind: 'camera', at: { x: 0, y: 0 }, rotation: 90, planId: p.id, setupId: p.cameras[0]!.id, showFov: true, path: [] },
+      { id: 'a', kind: 'actor', at: { x: 400, y: 0 }, rotation: 270, name: 'Léa', color: '#E5484D', path: [] },
+    ]);
+    const m = floorMismatches(d).get(p.cameras[0]!.id)!;
+    expect(m).toEqual([{ field: 'size', suggested: 'Moyen', current: 'GP', floorPlan: 'Salon' }]);
+    d = produce(d, (x) => void (x.sequences[0]!.plans[0]!.cameras[0]!.start.size = 'Moyen'));
+    expect(floorMismatches(d).size).toBe(0);
+  });
+});
