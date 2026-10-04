@@ -18,6 +18,13 @@ import { projectTimeZone } from './sunPlan';
 
 // ------------------------------------------------------------------ jours
 
+/** « mardi 3 novembre 2026 ». */
+export function longDate(date: string): string {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(Date.UTC(y!, m! - 1, d!)).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+}
+
+
 /** « J1 », « J2 »… dans l'ordre de la liste. */
 export function dayLabels(doc: ProjectDoc): Map<Id, string> {
   return new Map(doc.shootingDays.map((d, i) => [d.id, `J${i + 1}`]));

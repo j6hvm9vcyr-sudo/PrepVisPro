@@ -119,7 +119,7 @@ function today(): string {
 }
 
 /** Ordre d'affichage : colonnes de plan avant le bloc caméra, bloc caméra, colonnes de plan après. */
-export function layoutColumns(columns: ColumnId[], multi: boolean) {
+function layoutColumns(columns: ColumnId[], multi: boolean) {
   const first = columns.findIndex((c) => COLUMN_DEFS[c].perCamera);
   if (first < 0) return { before: columns, cams: [] as (ColumnId | 'camera')[], after: [] as ColumnId[] };
   const before = columns.slice(0, first).filter((c) => !COLUMN_DEFS[c].perCamera);
@@ -302,10 +302,7 @@ function FloorPages({ title, floors, date }: { title: string; floors: PdfFloorPa
         const scale = img ? Math.min(pw / img.width, boxH / img.height) : 1;
         return (
           <Page key={f.id} size="A4" orientation={landscape ? 'landscape' : 'portrait'} style={s.page}>
-            <View style={s.head} fixed>
-              <Text>{title} — Plan au sol</Text>
-              <Text>{date}</Text>
-            </View>
+            <PageHead text={`${title} — Plan au sol`} date={date} />
             <View style={{ flexDirection: 'row', alignItems: 'baseline', marginBottom: 8 }}>
               <Text style={{ fontSize: 13, fontWeight: 700 }}>{f.name}</Text>
               {f.sequences ? <Text style={{ fontSize: 9, color: INK3, marginLeft: 10 }}>{f.sequences}</Text> : null}
@@ -344,10 +341,7 @@ function FloorPages({ title, floors, date }: { title: string; floors: PdfFloorPa
                 {f.power ? <Text style={{ fontSize: 8, marginTop: 3, fontWeight: 600 }}>{f.power}</Text> : null}
               </View>
             )}
-            <View style={s.foot} fixed>
-              <Text>PrepVisPro {APP_VERSION}</Text>
-              <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
-            </View>
+            <PageFoot />
           </Page>
         );
       })}
@@ -355,7 +349,7 @@ function FloorPages({ title, floors, date }: { title: string; floors: PdfFloorPa
   );
 }
 
-export function FloorPlansPdf({ title, director, floors }: { title: string; director: string; floors: PdfFloorPage[] }): ReactElement {
+function FloorPlansPdf({ title, director, floors }: { title: string; director: string; floors: PdfFloorPage[] }): ReactElement {
   return (
     <Document title={`${title} — Plans au sol`} author={director} creator="PrepVisPro" producer="PrepVisPro" language="fr">
       <FloorPages title={title} floors={floors} date={today()} />
@@ -388,6 +382,26 @@ function shotValue(p: ExportPlan, k: string): string {
 }
 
 /** Tampon (TITRE, GÉNÉRIQUE DE FIN…) entre deux séquences : bande pleine largeur, texte centré. */
+/** En-tête fixe de chaque page : document à gauche, date à droite. */
+function PageHead({ text, date }: { text: string; date: string }) {
+  return (
+    <View style={s.head} fixed>
+      <Text>{text}</Text>
+      <Text>{date}</Text>
+    </View>
+  );
+}
+
+/** Pied de page fixe : application et version, numéro de page. */
+function PageFoot() {
+  return (
+    <View style={s.foot} fixed>
+      <Text>PrepVisPro {APP_VERSION}</Text>
+      <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
+    </View>
+  );
+}
+
 function StampRow({ t }: { t: ExportStamp }) {
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 7, borderTopWidth: 0.75, borderBottomWidth: 0.75, borderColor: DT_LINE, marginVertical: 2 }} wrap={false} minPresenceAhead={40}>
@@ -411,12 +425,7 @@ function ShootingPages({ m, opts, date, pageW }: { m: ExportModel; opts: ExportO
   );
   return (
     <Page size="A4" orientation={opts.orientation} style={s.page}>
-      <View style={s.head} fixed>
-        <Text>
-          {m.title} — Ordre de tournage{m.version ? ` · ${m.version}` : ''}
-        </Text>
-        <Text>{date}</Text>
-      </View>
+      <PageHead text={`${m.title} — Ordre de tournage${m.version ? ` · ${m.version}` : ''}`} date={date} />
       <View style={dt.head} fixed>
         {SH_COLS.map((c) => (
           <Text key={c.k} style={[dt.th, { width: w(c) }]}>
@@ -451,10 +460,7 @@ function ShootingPages({ m, opts, date, pageW }: { m: ExportModel; opts: ExportO
             )}
           </View>
         ))}
-      <View style={s.foot} fixed>
-        <Text>PrepVisPro {APP_VERSION}</Text>
-        <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
-      </View>
+      <PageFoot />
     </Page>
   );
 }
@@ -489,21 +495,13 @@ const dayH = { fontSize: 8, fontWeight: 700 as const, color: INK3, marginTop: 10
 
 function DaysPages({ m, opts, date }: { m: ExportModel; opts: ExportOptions; date: string }) {
   const foot = (
-    <View style={s.foot} fixed>
-      <Text>PrepVisPro {APP_VERSION}</Text>
-      <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
-    </View>
+    <PageFoot />
   );
   return (
     <>
       {m.days.map((d) => (
         <Page key={d.label} size="A4" orientation={opts.orientation} style={s.page}>
-          <View style={s.head} fixed>
-            <Text>
-              {m.title} — Jours de tournage{m.version ? ` · ${m.version}` : ''}
-            </Text>
-            <Text>{date}</Text>
-          </View>
+          <PageHead text={`${m.title} — Jours de tournage${m.version ? ` · ${m.version}` : ''}`} date={date} />
           <Text style={{ fontSize: 15, fontWeight: 700 }}>
             {d.label} — {d.date}
           </Text>
@@ -545,12 +543,7 @@ function DaysPages({ m, opts, date }: { m: ExportModel; opts: ExportOptions; dat
         </Page>
       ))}
       <Page size="A4" orientation={opts.orientation} style={s.page}>
-        <View style={s.head} fixed>
-          <Text>
-            {m.title} — Matériel{m.version ? ` · ${m.version}` : ''}
-          </Text>
-          <Text>{date}</Text>
-        </View>
+        <PageHead text={`${m.title} — Matériel${m.version ? ` · ${m.version}` : ''}`} date={date} />
         <Text style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Matériel — tout le tournage</Text>
         <EquipmentBlock sections={m.equipment} />
         <Text style={{ fontSize: 7.5, color: INK3, marginTop: 8 }}>Projecteurs et réflecteurs : nombre maximal sur un même plan au sol.</Text>
@@ -600,10 +593,7 @@ export function DecoupagePdf({ m, opts, images, floors = [] }: { m: ExportModel;
       )}
       {opts.layout === 'dt' ? (
         <Page size="A4" orientation={opts.orientation} style={s.page}>
-          <View style={s.head} fixed>
-            <Text>{m.title} — Découpage technique{m.version ? ` · ${m.version}` : ''}</Text>
-            <Text>{date}</Text>
-          </View>
+          <PageHead text={`${m.title} — Découpage technique${m.version ? ` · ${m.version}` : ''}`} date={date} />
           <View style={dt.head} fixed>
             {dtCols.map((c, i) => (
               <Text key={c.id} style={[dt.th, { width: dtW[i]! }]}>
@@ -622,17 +612,11 @@ export function DecoupagePdf({ m, opts, images, floors = [] }: { m: ExportModel;
           {m.stampsAfter.map((t, i) => (
             <StampRow key={`fin-${i}`} t={t} />
           ))}
-          <View style={s.foot} fixed>
-            <Text>PrepVisPro {APP_VERSION}</Text>
-            <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
-          </View>
+          <PageFoot />
         </Page>
       ) : (
       <Page size="A4" orientation={opts.orientation} style={s.page}>
-          <View style={s.head} fixed>
-            <Text>{m.title} — Découpage technique{m.version ? ` · ${m.version}` : ''}</Text>
-            <Text>{date}</Text>
-          </View>
+          <PageHead text={`${m.title} — Découpage technique${m.version ? ` · ${m.version}` : ''}`} date={date} />
           <View style={s.thead} fixed>
             {ordered.map((c) => (
               <Text key={c} style={[s.th, { width: w.get(c)! }]}>
@@ -670,20 +654,14 @@ export function DecoupagePdf({ m, opts, images, floors = [] }: { m: ExportModel;
           {m.stampsAfter.map((t, i) => (
             <StampRow key={`fin-${i}`} t={t} />
           ))}
-          <View style={s.foot} fixed>
-            <Text>PrepVisPro {APP_VERSION}</Text>
-            <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
-          </View>
+          <PageFoot />
         </Page>
       )}
       {opts.shootingOrder && m.sequences.some((x) => x.shooting) && <ShootingPages m={m} opts={opts} date={date} pageW={pageW} />}
       {opts.days && m.days.length > 0 && <DaysPages m={m} opts={opts} date={date} />}
       {opts.breakdown && (
         <Page size="A4" orientation={opts.orientation} style={s.page}>
-          <View style={s.head} fixed>
-            <Text>{m.title} — Dépouillement image</Text>
-            <Text>{date}</Text>
-          </View>
+          <PageHead text={`${m.title} — Dépouillement image${m.version ? ` · ${m.version}` : ''}`} date={date} />
           <View style={s.thead} fixed>
             {BD_COLS.map(([k, l, wgt]) => (
               <Text key={k} style={[s.th, { width: (pageW * wgt) / BD_TOTAL }]}>
@@ -714,10 +692,7 @@ export function DecoupagePdf({ m, opts, images, floors = [] }: { m: ExportModel;
               })}
             </View>
           ))}
-          <View style={s.foot} fixed>
-            <Text>PrepVisPro {APP_VERSION}</Text>
-            <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
-          </View>
+          <PageFoot />
         </Page>
       )}
       {floors.length > 0 && <FloorPages title={m.title} floors={floors} date={date} />}

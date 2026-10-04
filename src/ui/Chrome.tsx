@@ -219,7 +219,7 @@ function timeLabel(t: number | null): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-export function SaveIndicator() {
+function SaveIndicator() {
   const p = useProject();
   if (p.mode === 'unsaved')
     return (

@@ -19,7 +19,7 @@ import { materialForPreset, pct, PRESET_GROUPS, presetById, presetRange, presetV
 const NEW = '__nouvelle';
 
 /** Comment mesurer le taux de réflexion sur le plateau ou à l'essai matériel. */
-export function MeasureGuide({ type }: { type: ReflectorMaterial['type'] }) {
+function MeasureGuide({ type }: { type: ReflectorMaterial['type'] }) {
   return type === 'mirror' ? (
     <p className="note" style={{ margin: 0, fontSize: 11.5, lineHeight: '16px' }}>
       Mesure : posemètre incident dans le rayon renvoyé, calotte vers le miroir (lecture B) ; puis miroir retiré, posemètre face au projecteur à la même distance totale

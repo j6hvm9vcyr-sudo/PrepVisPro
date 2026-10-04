@@ -8,13 +8,13 @@ import { computeNumbers } from './numbering';
 import { displayText } from './entry';
 import { sequenceTitle } from '../ui/strip';
 
-export interface FieldChange {
+interface FieldChange {
   label: string;
   from: string;
   to: string;
 }
 
-export interface PlanDiff {
+interface PlanDiff {
   id: string;
   /** Numéro dans l'état le plus récent (ou dans l'ancien pour un plan retiré). */
   code: string;
@@ -24,7 +24,7 @@ export interface PlanDiff {
   changes: FieldChange[];
 }
 
-export interface SequenceDiff {
+interface SequenceDiff {
   id: string;
   number: string;
   title: string;

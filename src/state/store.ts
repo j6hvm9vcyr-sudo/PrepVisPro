@@ -3,7 +3,7 @@ import type { Id, ImageKind, ProjectDoc, Sequence } from '../model/types';
 import { computeNumbers } from '../model/numbering';
 import { kitFocals } from '../model/lenses';
 import { formatNumber, norm } from '../model/text';
-import { applyValue, categoryOf, completeWithPick, focalWithPick, editText as fieldEditText, FIELD_LABEL, parseEntry, suggest, type EditableField, type TermField } from '../model/entry';
+import { applyValue, categoryOf, completeWithPick, focalWithPick, editText as fieldEditText, FIELD_LABEL, parseEntry, type EditableField, type TermField } from '../model/entry';
 import * as ops from '../model/ops';
 import { cleanupFloorRefs } from '../model/floorOps';
 import { cleanupShooting } from '../model/shooting';
@@ -16,12 +16,12 @@ import { imageStore } from '../platform/images';
 import { produce, type Draft } from 'immer';
 
 /** Une version du document, et l'endroit où la modification a eu lieu (pour y revenir à l'annulation). */
-export interface Snapshot {
+interface Snapshot {
   doc: ProjectDoc;
   at: Cursor | null;
 }
 
-export interface EditState {
+interface EditState {
   text: string;
   pick: number;
   error: string | null;
@@ -36,7 +36,7 @@ export interface EditState {
   browse?: string[];
 }
 
-export type MessageKind = 'info' | 'warn';
+type MessageKind = 'info' | 'warn';
 
 export interface AppState {
   hist: History<Snapshot>;
@@ -66,7 +66,7 @@ export interface AppState {
 
 const MESSAGE_CLEAR = null;
 
-export function initialState(doc: ProjectDoc): AppState {
+function initialState(doc: ProjectDoc): AppState {
   const first = allLines(doc)[0];
   return {
     hist: createHistory<Snapshot>({ doc, at: null }),
@@ -982,14 +982,3 @@ export function createAppStore(doc: ProjectDoc) {
     }
   });
 }
-
-/** Suggestions à afficher pour l'édition en cours. */
-export function currentSuggestions(s: AppState) {
-  const c = s.cursor;
-  if (!s.editing || !c) return [];
-  const field = fieldOf(c.col);
-  if (!field || field === 'action' || field === 'focal') return [];
-  return suggest(field, s.editing.text, s.hist.present.doc.settings.terms[categoryOf(field)]);
-}
-
-export type AppStore = ReturnType<typeof createAppStore>;

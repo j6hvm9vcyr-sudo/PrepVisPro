@@ -32,7 +32,7 @@ export interface FloorScale {
 }
 
 /** Position suivante d'un élément qui se déplace (2, 3… ; la position 1 est `at` / `rotation`). */
-export interface Waypoint {
+interface Waypoint {
   at: Point;
   rotation: number;
 }
@@ -73,7 +73,7 @@ export interface FloorIcon extends Base {
   size: number;
 }
 
-export interface FloorText extends Base {
+interface FloorText extends Base {
   kind: 'text';
   text: string;
   size: number;
@@ -141,7 +141,7 @@ export interface FloorPlan {
 
 export const DEFAULT_FOV_LENGTH_M = 4;
 /** Longueur des champs sans échelle connue, en unités du plan. */
-export const UNSCALED_FOV_LENGTH = 160;
+const UNSCALED_FOV_LENGTH = 160;
 
 // ------------------------------------------------------------------ géométrie
 

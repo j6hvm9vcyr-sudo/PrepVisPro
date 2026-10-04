@@ -40,7 +40,7 @@ export function allLines(doc: ProjectDoc): Line[] {
   return visibleLines(doc, { collapsed: {}, onlyIncomplete: false });
 }
 
-export function lineIndex(lines: Line[], c: Cursor | null): number {
+function lineIndex(lines: Line[], c: Cursor | null): number {
   if (!c) return -1;
   return lines.findIndex((l) => l.planId === c.planId && l.setupId === c.setupId);
 }

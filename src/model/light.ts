@@ -13,10 +13,10 @@ import type { Exposure, Fixture, FixtureMode, ProjectDoc, ReflectorMaterial } fr
 import { bearing, metersBetween, normalizeDeg, project, type FloorLight, type FloorPlan, type FloorReflector, type Point } from './floor';
 import { gelStack, type GelStack } from './gels';
 
-export const INCIDENT_C = 340;
+const INCIDENT_C = 340;
 
 /** Temps d'exposition (s). */
-export function exposureTime(e: Exposure): number {
+function exposureTime(e: Exposure): number {
   return e.shutterDeg / 360 / e.fps;
 }
 
@@ -87,15 +87,6 @@ export function readingAt(doc: ProjectDoc, fp: FloorPlan, light: FloorLight, tar
   if (offAxisDeg > half) return { light, fixture, distanceM, lux: null, offAxisDeg, edge: false, gels, why: gels.diffused ? 'diffusion' : 'beam' };
   const lux = mode.lux * (mode.distanceM / distanceM) ** 2 * light.dimmer * 2 ** -light.lossStops * gels.transmission;
   return { light, fixture, distanceM, lux, offAxisDeg, edge: offAxisDeg > (half * 2) / 3, gels, why: null };
-}
-
-/** Lectures de tous les projecteurs d'un plan sur un point (les plus forts d'abord). */
-export function readingsAt(doc: ProjectDoc, fp: FloorPlan, target: Point): LightReading[] {
-  return fp.elements
-    .filter((e): e is FloorLight => e.kind === 'light')
-    .map((l) => readingAt(doc, fp, l, target))
-    .filter((r): r is LightReading => r !== null)
-    .sort((a, b) => (b.lux ?? -1) - (a.lux ?? -1));
 }
 
 // ------------------------------------------------------------------ réflecteurs

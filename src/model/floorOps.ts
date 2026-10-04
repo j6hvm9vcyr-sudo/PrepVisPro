@@ -67,14 +67,6 @@ export function moveElements(doc: ProjectDoc, fpId: Id, ids: Id[], dx: number, d
   });
 }
 
-/** Ordre d'affichage : un élément passe au premier plan. */
-export function bringToFront(doc: ProjectDoc, fpId: Id, elId: Id): ProjectDoc {
-  return updateFloorPlan(doc, fpId, (fp) => {
-    const i = fp.elements.findIndex((e) => e.id === elId);
-    if (i >= 0 && i < fp.elements.length - 1) fp.elements.push(fp.elements.splice(i, 1)[0]!);
-  });
-}
-
 /** Étiquette d'une caméra du plan au sol, toujours à jour avec le découpage : « 1/2 · 32 mm ». */
 export function cameraLabel(doc: ProjectDoc, planId: Id | null, setupId: Id | null, numbers = computeNumbers(doc)): { code: string; detail: string; missing: boolean } {
   if (!planId) return { code: '?', detail: 'non reliée', missing: true };

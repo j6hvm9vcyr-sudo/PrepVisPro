@@ -127,7 +127,7 @@ export interface ProjectCamera {
   squeeze: number;
 }
 
-export interface CrewMember {
+interface CrewMember {
   id: Id;
   role: string;
   name: string;
@@ -206,7 +206,7 @@ export interface LensSeries {
   max: number | null;
 }
 
-export interface ProjectMeta {
+interface ProjectMeta {
   title: string;
   director: string;
   production: string;

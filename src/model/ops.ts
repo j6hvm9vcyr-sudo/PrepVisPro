@@ -7,7 +7,6 @@ import { produce, type Draft } from 'immer';
 import type { CameraSetup, Id, ImageAsset, Plan, ProjectDoc, Sequence, TermCategory } from './types';
 import { newId, newPlan, newProjectCamera, newSequence } from './defaults';
 import { norm } from './text';
-import { deleteSequenceInFlow, moveInFlow } from './stamps';
 
 export interface PlanLocation {
   seqIndex: number;
@@ -59,18 +58,6 @@ export function insertPlanAfter(doc: ProjectDoc, afterPlanId: Id, opts: { repris
   }
   const next = produce(doc, (d) => {
     d.sequences[loc.seqIndex]!.plans.splice(loc.planIndex + 1, 0, plan);
-  });
-  return { doc: next, planId: plan.id };
-}
-
-/** Ajoute un plan vide à la fin d'une séquence. */
-export function appendPlan(doc: ProjectDoc, seqId: Id): { doc: ProjectDoc; planId: Id } {
-  const camId = doc.settings.cameras[0]!.id;
-  const plan = newPlan(camId);
-  const next = produce(doc, (d) => {
-    const s = d.sequences.find((x) => x.id === seqId);
-    if (!s) throw new Error(`Séquence introuvable : ${seqId}`);
-    s.plans.push(plan);
   });
   return { doc: next, planId: plan.id };
 }
@@ -167,12 +154,6 @@ export function addTerms(doc: ProjectDoc, category: TermCategory, terms: string[
   });
 }
 
-export function addImages(doc: ProjectDoc, planId: Id, images: ImageAsset[]): ProjectDoc {
-  return updatePlan(doc, planId, (p) => {
-    p.images.push(...images);
-  });
-}
-
 export function removeImage(doc: ProjectDoc, planId: Id, imageId: Id): ProjectDoc {
   return updatePlan(doc, planId, (p) => {
     p.images = p.images.filter((i) => i.id !== imageId);
@@ -210,14 +191,4 @@ export function updateSequence(doc: ProjectDoc, seqId: Id, fn: (s: Draft<Sequenc
     if (!s) throw new Error(`Séquence introuvable : ${seqId}`);
     fn(s);
   });
-}
-
-/** Supprime une séquence ; les tampons gardent leur place dans le film (voir stamps.ts). */
-export function deleteSequence(doc: ProjectDoc, seqId: Id): ProjectDoc {
-  return deleteSequenceInFlow(doc, seqId);
-}
-
-/** Déplace une séquence d'un cran dans le film (un tampon compte comme un cran). */
-export function moveSequence(doc: ProjectDoc, seqId: Id, delta: -1 | 1): ProjectDoc {
-  return moveInFlow(doc, seqId, delta);
 }

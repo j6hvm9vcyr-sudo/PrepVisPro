@@ -18,7 +18,7 @@ import { useFloor } from './floorStore';
 export let draggedIcon: IconItem | null = null;
 
 /** Taille par défaut d'une icône posée, en pixels à l'écran. */
-export const ICON_SIZE = 56;
+const ICON_SIZE = 56;
 
 /** Copies déjà faites dans le projet ouvert : une icône posée dix fois n'est copiée qu'une fois. */
 const copies = new Map<string, string>();

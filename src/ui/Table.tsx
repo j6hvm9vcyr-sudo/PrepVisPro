@@ -39,7 +39,7 @@ function isCustom(col: Exclude<EditableField, 'action'>, plan: Plan, setupIndex:
   return values.some((v) => v && !base.includes(norm(v)));
 }
 
-export const cellId = (setupId: string, col: Column) => `cell-${setupId}-${col}`;
+const cellId = (setupId: string, col: Column) => `cell-${setupId}-${col}`;
 
 export function DecoupageTable() {
   const doc = useApp(selectDoc);

@@ -15,7 +15,7 @@ import type { ScriptScene } from './fdx';
 
 export type SceneStatus = 'new' | 'changed' | 'same';
 
-export interface SceneChange {
+interface SceneChange {
   scene: ScriptScene;
   status: SceneStatus;
   /** Séquence existante correspondante. */

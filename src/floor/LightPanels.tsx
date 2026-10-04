@@ -24,7 +24,7 @@ function apply(fn: (d: ReturnType<typeof selectDoc>) => ReturnType<typeof select
   st.applyDoc(fn(selectDoc(st)), msg, key);
 }
 
-const KINDS: [Fixture['kind'], string][] = [
+export const FIXTURE_KINDS: [Fixture['kind'], string][] = [
   ['led', 'LED'],
   ['tungsten', 'Tungstène'],
   ['hmi', 'HMI'],
@@ -35,7 +35,7 @@ const NEW = '__nouveau';
 const NEW_MODE = -1;
 
 /** Nombre de projecteurs placés (tous plans au sol) qui utilisent ce modèle. */
-function usesOf(doc: ProjectDoc, fixtureId: string): number {
+export function usesOf(doc: ProjectDoc, fixtureId: string): number {
   return doc.floorPlans.reduce((n, fp) => n + fp.elements.filter((e) => e.kind === 'light' && e.fixtureId === fixtureId).length, 0);
 }
 
@@ -62,7 +62,7 @@ function FixtureData({ fixture, modeIndex, uses }: { fixture: Fixture; modeIndex
         <label className="field small">
           Type
           <select aria-label="Type de projecteur" value={fixture.kind} onChange={(e) => upd((f) => void (f.kind = e.target.value as Fixture['kind']), 'k')}>
-            {KINDS.map(([k, l]) => (
+            {FIXTURE_KINDS.map(([k, l]) => (
               <option key={k} value={k}>
                 {l}
               </option>

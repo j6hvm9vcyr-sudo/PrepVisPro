@@ -10,7 +10,7 @@ import { missingFields } from '../model/completeness';
 import { sequenceTitle, stripColors } from '../ui/strip';
 import { summarizeSequence } from '../model/summary';
 import { effectiveShooting } from '../model/shooting';
-import { compactPlans, dayLabels, daySun, equipmentFor, equipmentLines } from '../model/days';
+import { compactPlans, dayLabels, longDate, daySun, equipmentFor, equipmentLines } from '../model/days';
 import { projectTimeZone } from '../model/sunPlan';
 import { utcToLocal } from '../model/sun';
 import { filmFlow } from '../model/stamps';
@@ -105,7 +105,7 @@ export const BUILTIN_PRESETS: ExportPreset[] = [
   { id: 'liste', name: 'Liste des plans (une colonne par réglage)', options: { ...base, layout: 'columns', coverPage: false, sequenceComments: false, floorPlans: false, columns: ['global', 'code', 'action', 'size', 'axis', 'angle', 'focal', 'movement', 'grip'] } },
 ];
 
-export interface ExportCameraRow {
+interface ExportCameraRow {
   label: string;
   values: Partial<Record<ColumnId, string>>;
 }
@@ -123,7 +123,7 @@ export interface ExportPlan {
   cameras: ExportCameraRow[];
 }
 
-export interface ExportInstallation {
+interface ExportInstallation {
   name: string;
   note: string;
   plans: { order: number; plan: ExportPlan }[];
@@ -175,7 +175,7 @@ export interface ExportModel {
   equipment: { section: string; lines: string[] }[];
 }
 
-export interface ExportDay {
+interface ExportDay {
   label: string;
   /** « mardi 3 novembre 2026 », ou « date à fixer ». */
   date: string;
@@ -184,11 +184,6 @@ export interface ExportDay {
   sun: { location: string; line: string }[];
   floorPlans: string[];
   equipment: { section: string; lines: string[] }[];
-}
-
-function longDate(date: string): string {
-  const [y, m, d] = date.split('-').map(Number);
-  return new Date(Date.UTC(y!, m! - 1, d!)).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 }
 
 function exportDays(doc: ProjectDoc, numbers: ReturnType<typeof computeNumbers>): ExportDay[] {
@@ -310,7 +305,7 @@ export function buildExportModel(doc: ProjectDoc, opts: Pick<ExportOptions, 'seq
  * Teinte pâle d'une séquence selon l'effet, dans l'esprit du plan de travail :
  * INT jour gris très clair (« blanc »), EXT jour jaune, INT nuit bleu, EXT nuit vert.
  */
-export function effectTint(s: Pick<Sequence, 'intExt' | 'dayNight'>): string {
+function effectTint(s: Pick<Sequence, 'intExt' | 'dayNight'>): string {
   const ext = s.intExt !== 'INT';
   if (s.dayNight === 'JOUR') return ext ? '#FFF2CC' : '#F3F3F3';
   return ext ? '#D9EAD3' : '#CFE2F3';

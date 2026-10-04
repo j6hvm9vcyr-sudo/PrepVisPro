@@ -136,7 +136,7 @@ const projectCamera = z.object({
   squeeze: z.number().finite().positive(),
 });
 
-export const projectSchema = z.object({
+const projectSchema = z.object({
   schemaVersion: z.literal(SCHEMA_VERSION),
   id,
   meta: z.object({
@@ -201,7 +201,7 @@ export function validateProject(raw: unknown): LoadResult {
   return { ok: true, doc };
 }
 
-export function checkIntegrity(doc: ProjectDoc): string | null {
+function checkIntegrity(doc: ProjectDoc): string | null {
   const ids = new Set<string>();
   const dup = (x: string) => {
     if (ids.has(x)) return true;

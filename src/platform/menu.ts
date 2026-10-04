@@ -19,7 +19,7 @@ export function isMenuShortcut(e: Pick<KeyboardEvent, 'key' | 'code' | 'shiftKey
 }
 
 /** Exécute une commande de menu. Exporté pour les tests. */
-export function runMenuCommand(id: string) {
+function runMenuCommand(id: string) {
   // Commandes de fichier : valables partout, même sur l'écran d'accueil.
   switch (id) {
     case 'file_new':

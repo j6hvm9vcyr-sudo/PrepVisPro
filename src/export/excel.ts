@@ -226,7 +226,7 @@ function stampRow(ws: ExcelJS.Worksheet, r: number, n: number, t: ExportStamp, f
  * Excel n'ajuste pas seul la hauteur des lignes d'un fichier généré : sans cela, le texte
  * long serait coupé dans les cases.
  */
-export function rowHeight(cells: { text: string; width: number }[], fontSize: number): number {
+function rowHeight(cells: { text: string; width: number }[], fontSize: number): number {
   const charPx = fontSize * 0.62; // largeur moyenne d'un caractère
   const linePt = fontSize * 1.35;
   let lines = 1;

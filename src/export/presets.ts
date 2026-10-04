@@ -25,7 +25,7 @@ function sanitize(o: Partial<ExportOptions> | undefined): ExportOptions | null {
   };
 }
 
-export function userPresets(): ExportPreset[] {
+function userPresets(): ExportPreset[] {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? '[]');
     if (!Array.isArray(raw)) return [];

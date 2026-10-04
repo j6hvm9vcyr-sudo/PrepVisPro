@@ -6,7 +6,7 @@ import { create } from 'zustand';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
 import type { Id, ProjectDoc, ShootingDay } from '../model/types';
-import { addDay, compactPlans, dayLabels, daysOfSequence, daySun, equipmentFor, moveDay, removeDay, sortDaysByDate, unscheduled, updateDay, type Equipment } from '../model/days';
+import { addDay, compactPlans, longDate, dayLabels, daysOfSequence, daySun, equipmentFor, moveDay, removeDay, sortDaysByDate, unscheduled, updateDay, type Equipment } from '../model/days';
 import { effectiveShooting } from '../model/shooting';
 import { computeNumbers } from '../model/numbering';
 import { formatNumber } from '../model/text';
@@ -23,12 +23,6 @@ const apply = (fn: (d: ProjectDoc) => ProjectDoc, message?: string, key?: string
   const st = useApp.getState();
   st.applyDoc(fn(selectDoc(st)), message, key);
 };
-
-/** « mardi 3 novembre 2026 ». */
-export function longDate(date: string): string {
-  const [y, m, d] = date.split('-').map(Number);
-  return new Date(Date.UTC(y!, m! - 1, d!)).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
-}
 
 export function DaysView() {
   const doc = useApp(selectDoc);
@@ -331,7 +325,7 @@ function DayPage({ doc, day, label, labels }: { doc: ProjectDoc; day: ShootingDa
 }
 
 /** Matériel déduit, par département. */
-export function EquipmentPanel({ eq }: { eq: Equipment }) {
+function EquipmentPanel({ eq }: { eq: Equipment }) {
   const plans = (xs: string[]) => <span className="mono note">{compactPlans(xs)}</span>;
   return (
     <section className="install" aria-label="Matériel">

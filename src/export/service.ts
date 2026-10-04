@@ -70,7 +70,7 @@ function toBase64(bytes: Uint8Array): string {
 }
 
 /** Prépare les images principales des plans exportés. Une image illisible est signalée, pas bloquante. */
-export async function prepareImages(m: ExportModel, maxWidth: number, onProgress?: (done: number, total: number) => void): Promise<{ images: Map<string, Resized>; failed: string[] }> {
+async function prepareImages(m: ExportModel, maxWidth: number, onProgress?: (done: number, total: number) => void): Promise<{ images: Map<string, Resized>; failed: string[] }> {
   const files = [...new Set(m.sequences.flatMap((s) => s.plans.map((p) => p.imageFile).filter((f): f is string => !!f)))];
   const images = new Map<string, Resized>();
   const failed: string[] = [];
@@ -123,7 +123,7 @@ export async function floorPng(doc: ProjectDoc, fp: FloorPlan, maxPx = 4000) {
   return renderFloorImage(doc, fp, { readBytes: (f) => imageStore.readBytes(f), fonts: FLOOR_FONTS }, maxPx, 'image/png');
 }
 
-export async function prepareFloorPages(doc: ProjectDoc, plans: FloorPlan[], onProgress?: (done: number, total: number) => void): Promise<PdfFloorPage[]> {
+async function prepareFloorPages(doc: ProjectDoc, plans: FloorPlan[], onProgress?: (done: number, total: number) => void): Promise<PdfFloorPage[]> {
   const { renderFloorImage, cameraLegend, lightLegend, sunLegend } = await import('../floor/render');
   const out: PdfFloorPage[] = [];
   let done = 0;
@@ -168,7 +168,7 @@ export async function saveFloorExport(doc: ProjectDoc, ext: 'png' | 'pdf', bytes
  * Nom de la version exportée : la dernière version enregistrée, signalée « + modifications »
  * si le projet a changé depuis. null s'il n'y a pas de version (ou si elles sont illisibles).
  */
-export async function exportVersionLabel(doc: ProjectDoc): Promise<string | null> {
+async function exportVersionLabel(doc: ProjectDoc): Promise<string | null> {
   try {
     const { listVersions, readVersion } = await import('../state/project');
     const { compareDocs } = await import('../model/diff');

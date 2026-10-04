@@ -20,7 +20,7 @@ import { referencedFiles } from '../model/images';
 import { useApp } from './appStore';
 import { selectDoc } from './store';
 
-export type SaveStatus = 'saved' | 'pending' | 'saving' | 'error';
+type SaveStatus = 'saved' | 'pending' | 'saving' | 'error';
 
 export interface ProjectState {
   /** none : écran d'accueil ; unsaved : projet en mémoire (exemple) ; file : projet enregistré. */

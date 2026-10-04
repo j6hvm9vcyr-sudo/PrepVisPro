@@ -42,17 +42,17 @@ export interface Backend {
   versionRead(dir: string, file: string): Promise<string>;
 }
 
-export interface VersionInfo {
+interface VersionInfo {
   file: string;
   name: string;
   note: string;
   createdAt: number;
 }
 
-export const PROJECT_EXT = '.prepvis';
+const PROJECT_EXT = '.prepvis';
 export const CONFLICT_PREFIX = 'CONFLIT:';
 
-export function withProjectExt(path: string): string {
+function withProjectExt(path: string): string {
   const p = path.replace(/[\\/]+$/, '');
   return p.toLowerCase().endsWith(PROJECT_EXT) ? p : p + PROJECT_EXT;
 }
@@ -348,8 +348,4 @@ export async function getBackend(): Promise<Backend> {
 /** Pour les tests. */
 export function setBackend(b: Backend) {
   current = b;
-}
-
-export function backendNow(): Backend | null {
-  return current;
 }

@@ -380,7 +380,6 @@ table.cams input { width: 100%; border: 1px solid var(--border); border-radius: 
 .camtab-angles { border-collapse: collapse; font-size: 13px; }
 .camtab-angles th { text-align: left; font-weight: 500; color: var(--text2); padding: 3px 14px 3px 0; }
 .camtab-angles td { font-weight: 600; text-align: right; }
-.camtab-formula { grid-column: 1 / -1; font-size: 11.5px; line-height: 16px; color: var(--text2); background: var(--head); border-radius: 8px; padding: 8px 10px; }
 /* Plans au sol : palette d'icônes */
 .icon-palette .sec-h { display: flex; align-items: center; gap: 6px; }
 .icon-groups { display: flex; flex-direction: column; gap: 2px; max-height: 360px; overflow-y: auto; }
@@ -542,7 +541,7 @@ table.modes input:not(.decimal-field input) { border: 1px solid var(--border); b
 .insp-body > .fold + .fold { border-top: 1px solid var(--border-soft); padding-top: 10px; }
 
 /* Focales : chiffres alignés, sans retour à la ligne entre le nombre et « mm ». */
-.cell.num, .num-cell { font-variant-numeric: tabular-nums; }
+.cell.num { font-variant-numeric: tabular-nums; }
 
 /* Positions successives d'un élément (plan au sol) */
 .positions { display: flex; flex-direction: column; gap: 3px; }

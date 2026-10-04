@@ -28,7 +28,7 @@ export function newId(prefix = 'id'): Id {
   return `${prefix}_${Date.now().toString(36)}${counter.toString(36)}${rand}`;
 }
 
-export function emptyBreakdown(): Breakdown {
+function emptyBreakdown(): Breakdown {
   return { camera: '', grip: '', lighting: '', other: '' };
 }
 
@@ -36,7 +36,7 @@ export function emptyFraming(): Framing {
   return { size: '', axis: '', angle: '', tiltDeg: null, focalMm: null };
 }
 
-export function newCameraSetup(cameraId: Id): CameraSetup {
+function newCameraSetup(cameraId: Id): CameraSetup {
   return { id: newId('cs'), cameraId, start: emptyFraming(), end: null, movements: [], grip: [] };
 }
 

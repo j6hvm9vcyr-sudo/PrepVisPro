@@ -37,9 +37,9 @@ export function categoryOf(field: TermField): TermCategory {
   return FIELD_CATEGORY[field];
 }
 
-export const TILT_MIN = -90;
-export const TILT_MAX = 90;
-export const FOCAL_MAX = 2000;
+const TILT_MIN = -90;
+const TILT_MAX = 90;
+const FOCAL_MAX = 2000;
 
 // ---------------------------------------------------------------- découpage
 
@@ -50,7 +50,7 @@ function separatorFor(field: EditableField): RegExp {
 }
 
 /** Découpe le texte en parties (début > fin, ou liste). */
-export function splitParts(field: EditableField, text: string): string[] {
+function splitParts(field: EditableField, text: string): string[] {
   return text.split(separatorFor(field)).map((p) => p.trim());
 }
 
@@ -79,10 +79,10 @@ function keysOf(term: string): string[] {
   return [norm(term), ...(TERM_ALIASES[term] ?? []).map(norm)];
 }
 
-export type Resolve = { term: string } | { error: string };
+type Resolve = { term: string } | { error: string };
 
 /** Trouve LE terme correspondant à un fragment (exact ou préfixe unique). */
-export function resolveTerm(terms: readonly string[], fragment: string, label: string): Resolve {
+function resolveTerm(terms: readonly string[], fragment: string, label: string): Resolve {
   const n = norm(fragment);
   if (!n) return { error: 'Partie vide.' };
   const exact = terms.filter((t) => keysOf(t).includes(n));
@@ -97,13 +97,6 @@ export interface Suggestion {
   term: string;
   /** true : proposition de créer ce nouveau terme. */
   create: boolean;
-}
-
-/** Fragment en cours de saisie (dernière partie, sans l'inclinaison pour l'angle). */
-export function currentFragment(field: EditableField, text: string): string {
-  const parts = splitParts(field, text);
-  const last = parts[parts.length - 1] ?? '';
-  return field === 'angle' ? splitAnglePart(last).word : last;
 }
 
 /** Suggestions pour la dernière partie tapée. */
@@ -235,7 +228,7 @@ function sameFraming(a: Framing, b: Framing): boolean {
 }
 
 /** Supprime le réglage de fin s'il est identique au début. */
-export function tidyEnd(setup: CameraSetup): CameraSetup {
+function tidyEnd(setup: CameraSetup): CameraSetup {
   if (setup.end && sameFraming(setup.start, setup.end)) return { ...setup, end: null };
   return setup;
 }

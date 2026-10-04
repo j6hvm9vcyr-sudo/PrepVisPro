@@ -28,7 +28,7 @@ export const SIZE_SCALE: { term: string; maxM: number }[] = [
 ];
 
 /** Hauteur de champ visée pour une valeur (milieu géométrique de sa plage), en mètres ; null si terme inconnu. */
-export function targetHeightFor(term: string): number | null {
+function targetHeightFor(term: string): number | null {
   const i = SIZE_SCALE.findIndex((x) => norm(x.term) === norm(term));
   if (i < 0) return null;
   const lo = i === 0 ? 0.12 : SIZE_SCALE[i - 1]!.maxM;

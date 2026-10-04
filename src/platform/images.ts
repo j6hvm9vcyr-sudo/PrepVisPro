@@ -16,7 +16,7 @@ export interface StoredImage {
 }
 
 /** Empreinte SHA-256 (hexadécimal) ; null si l'API de chiffrement n'est pas disponible. */
-export async function sha256Hex(bytes: Uint8Array): Promise<string | null> {
+async function sha256Hex(bytes: Uint8Array): Promise<string | null> {
   try {
     if (typeof crypto === 'undefined' || !crypto.subtle) return null;
     const d = await crypto.subtle.digest('SHA-256', bytes as BufferSource);
@@ -38,14 +38,10 @@ const MIME_EXT: Record<string, string> = {
 };
 
 /** Extension sûre d'un fichier image, ou null s'il n'est pas reconnu. */
-export function imageExt(f: { name: string; type: string }): string | null {
+function imageExt(f: { name: string; type: string }): string | null {
   const fromName = f.name.match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase();
   if (fromName && EXT_OK.includes(fromName)) return fromName === 'jpeg' ? 'jpg' : fromName === 'tiff' ? 'tif' : fromName;
   return MIME_EXT[f.type] ?? null;
-}
-
-export function isAcceptedImage(f: { name: string; type: string }): boolean {
-  return imageExt(f) !== null;
 }
 
 function newImageName(ext: string): string {

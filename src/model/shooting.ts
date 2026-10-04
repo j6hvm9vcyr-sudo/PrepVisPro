@@ -13,12 +13,12 @@ import { newId } from './defaults';
 import { norm } from './text';
 
 /** Écart maximal de direction de caméra dans une même installation (degrés). */
-export const SAME_DIRECTION_DEG = 35;
+const SAME_DIRECTION_DEG = 35;
 /** Écart maximal de position de caméra dans une même installation (mètres). */
-export const SAME_PLACE_M = 1.5;
+const SAME_PLACE_M = 1.5;
 
 /** Rang de largeur d'une valeur : plus grand = plus large (Général avant TGP). Inconnue : au milieu. */
-export function widthRank(size: string): number {
+function widthRank(size: string): number {
   const i = SIZE_SCALE.findIndex((x) => norm(x.term) === norm(size));
   return i < 0 ? SIZE_SCALE.length / 2 : i;
 }

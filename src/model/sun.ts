@@ -123,10 +123,10 @@ export function utcToLocal(utcMs: number, tz: string): { date: string; time: str
 
 /** Seuils de hauteur (degrés). Lever et coucher : bord supérieur du disque, réfraction standard. */
 export const SUNRISE_ELEV = -0.833;
-export const CIVIL_ELEV = -6;
+const CIVIL_ELEV = -6;
 /** Heure dorée et heure bleue : convention usuelle des photographes (PhotoPills), hauteur apparente. */
-export const GOLDEN_HIGH = 6;
-export const GOLDEN_LOW = -4;
+const GOLDEN_HIGH = 6;
+const GOLDEN_LOW = -4;
 
 export interface SunDay {
   /** Instants UTC (ms) ; null si le soleil ne franchit pas le seuil ce jour-là. */

@@ -72,7 +72,7 @@ class TauriIcons implements IconBackend {
   }
 }
 
-export class MemoryIcons implements IconBackend {
+class MemoryIcons implements IconBackend {
   private items: IconItem[] = [];
   private data = new Map<string, { bytes: Uint8Array; url: string }>();
   private n = 0;
@@ -136,7 +136,7 @@ export function iconBackend(): IconBackend {
 }
 
 /** Réduit une image (grand côté `max` px), en PNG pour garder la transparence. */
-export async function shrinkToPng(bytes: Uint8Array, max = 512): Promise<Uint8Array> {
+async function shrinkToPng(bytes: Uint8Array, max = 512): Promise<Uint8Array> {
   const blob = new Blob([bytes as BlobPart]);
   const bmp = await createImageBitmap(blob);
   try {

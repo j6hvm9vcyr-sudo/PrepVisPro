@@ -15,10 +15,10 @@ import type { Point } from '../model/floor';
 import type { computeNumbers } from '../model/numbering';
 import { ACTOR_COLORS } from './floorStore';
 
-export const CAM_COLOR = '#2457C5';
-export const CAM_END = '#7A5AF8';
-export const LIGHT_COLOR = '#D98A1C';
-export const REFLECTOR_COLOR = '#6B7280';
+const CAM_COLOR = '#2457C5';
+const CAM_END = '#7A5AF8';
+const LIGHT_COLOR = '#D98A1C';
+const REFLECTOR_COLOR = '#6B7280';
 /** Largeur dessinée d'un réflecteur quand le plan n'est pas à l'échelle (pixels écran). */
 const UNSCALED_REFLECTOR_PX = 60;
 /** Longueur dessinée du faisceau des projecteurs, rapportée à celle des champs caméra. */
@@ -47,7 +47,7 @@ export function FloorMarkers() {
   );
 }
 
-export const SUN_COLOR = '#E0A100';
+const SUN_COLOR = '#E0A100';
 
 /** Symbole simplifié d'un élément, pour ses positions suivantes. */
 function Ghost({ el, urlFor }: { el: FloorElement; urlFor: (file: string) => string | null }) {
@@ -77,7 +77,7 @@ function Ghost({ el, urlFor }: { el: FloorElement; urlFor: (file: string) => str
 }
 
 /** Rectangle utile du plan : le fond, sinon l'étendue des éléments. */
-export function planBox(fp: FloorPlan): { x: number; y: number; w: number; h: number } | null {
+function planBox(fp: FloorPlan): { x: number; y: number; w: number; h: number } | null {
   if (fp.background) return { x: 0, y: 0, w: fp.background.width, h: fp.background.height };
   if (!fp.elements.length) return null;
   const xs = fp.elements.map((e) => e.at.x);

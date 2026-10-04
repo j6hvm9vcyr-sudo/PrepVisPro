@@ -54,7 +54,7 @@ async function pdfToPng(file: File): Promise<File> {
   }
 }
 
-export function isPdf(f: File): boolean {
+function isPdf(f: File): boolean {
   return f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
 }
 

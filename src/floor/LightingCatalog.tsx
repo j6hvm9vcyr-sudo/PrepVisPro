@@ -15,21 +15,13 @@ function reflectorUses(doc: ProjectDoc, materialId: string): number {
   return doc.floorPlans.reduce((n, fp) => n + fp.elements.filter((e) => e.kind === 'reflector' && e.materialId === materialId).length, 0);
 }
 
-/** Nombre de projecteurs placés (tous plans au sol) qui utilisent ce modèle. */
-function usesOf(doc: ProjectDoc, fixtureId: string): number {
-  return doc.floorPlans.reduce((n, fp) => n + fp.elements.filter((e) => e.kind === 'light' && e.fixtureId === fixtureId).length, 0);
-}
+
 import { DecimalField } from '../ui/DecimalField';
 import { MaterialFields, MaterialOptions, PRESET } from './ReflectorPanel';
 import { materialForPreset } from '../model/reflectorPresets';
 import { Explain } from '../ui/Explain';
+import { FIXTURE_KINDS as KINDS, usesOf } from './LightPanels';
 
-const KINDS: [Fixture['kind'], string][] = [
-  ['led', 'LED'],
-  ['tungsten', 'Tungstène'],
-  ['hmi', 'HMI'],
-  ['other', 'Autre'],
-];
 
 /** Exposition de référence : sert au calcul des diaphs (posemètre incident). */
 export function ExposureFields() {
