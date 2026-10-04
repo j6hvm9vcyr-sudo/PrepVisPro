@@ -83,6 +83,20 @@ try {
   const size = await exec('return window.__prepvis.doc().sequences[0].plans[0].cameras[0].start.size;');
   ok(size === 'Poitrine', `saisie clavier appliquée (${size})`);
 
+  // Moteur WebKit : clic sur la cellule active → la saisie s'ouvre et garde le focus.
+  {
+    const found = await wd('POST', `/session/${sid}/element`, { using: 'css selector', value: '.line [id$="-axis"]' });
+    const elId = Object.values(found)[0];
+    await wd('POST', `/session/${sid}/element/${elId}/click`, {});
+    await wd('POST', `/session/${sid}/element/${elId}/click`, {});
+    const focused = await waitFor(async () => (await exec('return document.activeElement && document.activeElement.getAttribute("aria-label");')) === 'Saisie', 3000);
+    ok(focused, 'clic sur la cellule active : la saisie s’ouvre et garde le focus');
+    await keys('pro');
+    await keys('\uE007'); // Entrée
+    const axis = await waitFor(async () => (await exec('return window.__prepvis.doc().sequences[0].plans[0].cameras[0].start.axis;')) === 'Profil', 3000);
+    ok(axis, 'saisie validée par Entrée après un clic');
+  }
+
   // Enregistrement automatique.
   const saved = await waitFor(() => JSON.parse(readFileSync(join(projectDir, 'project.json'), 'utf8')).sequences[0].plans[0].cameras[0].start.size === 'Poitrine');
   ok(saved, 'enregistrement automatique sur disque');
