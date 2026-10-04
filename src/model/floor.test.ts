@@ -64,11 +64,11 @@ describe('caméras du plan au sol reliées au découpage', () => {
     d = addFloorPlan(d, fp);
     expect(unplacedSetups(d, d.floorPlans[0]!)).toHaveLength(2);
     const p0 = s.plans[0]!;
-    d = addElements(d, fp.id, [{ id: 'e1', kind: 'camera', at: { x: 10, y: 10 }, rotation: 0, planId: p0.id, setupId: p0.cameras[0]!.id, showFov: true, path: [{ x: 12, y: 12 }] }]);
+    d = addElements(d, fp.id, [{ id: 'e1', kind: 'camera', at: { x: 10, y: 10 }, rotation: 0, planId: p0.id, setupId: p0.cameras[0]!.id, showFov: true, positions: [{ at: { x: 12, y: 12 }, rotation: 0 }] }]);
     expect(unplacedSetups(d, d.floorPlans[0]!)).toHaveLength(1);
     d = moveElements(d, fp.id, ['e1'], 5, -5);
     expect(d.floorPlans[0]!.elements[0]!.at).toEqual({ x: 15, y: 5 });
-    expect((d.floorPlans[0]!.elements[0] as { path: unknown }).path).toEqual([{ x: 17, y: 7 }]);
+    expect((d.floorPlans[0]!.elements[0] as { positions: unknown }).positions).toEqual([{ at: { x: 17, y: 7 }, rotation: 0 }]);
     const r = deletePlan(d, p0.id);
     expect(r.ok).toBe(true);
     if (!r.ok) return;

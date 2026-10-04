@@ -58,10 +58,11 @@ export function moveElements(doc: ProjectDoc, fpId: Id, ids: Id[], dx: number, d
       if (set.has(e.id)) {
         e.at.x += dx;
         e.at.y += dy;
-        if ('path' in e) for (const p of e.path) {
-          p.x += dx;
-          p.y += dy;
-        }
+        if ('positions' in e)
+          for (const p of e.positions) {
+            p.at.x += dx;
+            p.at.y += dy;
+          }
       }
   });
 }

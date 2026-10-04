@@ -4,7 +4,7 @@
  */
 import type { ReactNode } from 'react';
 import type { ProjectDoc } from '../model/types';
-import { fovCone, fovLengthUnits, project, setupFov, type FloorPlan } from '../model/floor';
+import { fovCone, fovLengthUnits, project, setupFov, type FloorElement, type FloorPlan } from '../model/floor';
 import { cameraLabel } from '../model/floorOps';
 import { locatePlan } from '../model/ops';
 import { modeData, reflectorName } from '../model/light';
@@ -38,7 +38,7 @@ export interface SceneProps {
 export function FloorMarkers() {
   return (
     <>
-      {[['cam', CAM_COLOR], ['sun', SUN_COLOR], ...ACTOR_COLORS.map((c) => [c.slice(1), c])].map(([id, c]) => (
+      {[['cam', CAM_COLOR], ['sun', SUN_COLOR], ['light', LIGHT_COLOR], ...ACTOR_COLORS.map((c) => [c.slice(1), c])].map(([id, c]) => (
         <marker key={id} id={`arrow-${id}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
           <path d="M 0 0 L 10 5 L 0 10 z" fill={c} />
         </marker>
@@ -48,6 +48,33 @@ export function FloorMarkers() {
 }
 
 export const SUN_COLOR = '#E0A100';
+
+/** Symbole simplifié d'un élément, pour ses positions suivantes. */
+function Ghost({ el, urlFor }: { el: FloorElement; urlFor: (file: string) => string | null }) {
+  const url = 'icon' in el && el.icon ? urlFor(el.icon) : null;
+  const size = 'size' in el ? el.size : 40;
+  if (url) return <image href={url} x={-size / 2} y={-size / 2} width={size} height={size} preserveAspectRatio="xMidYMid meet" />;
+  if (el.kind === 'actor')
+    return (
+      <>
+        <circle r={12} fill={el.color} stroke="#fff" strokeWidth={2} />
+        <path d="M -5 -9 L 0 -17 L 5 -9 Z" fill="#fff" />
+      </>
+    );
+  if (el.kind === 'light')
+    return (
+      <>
+        <rect x={-11} y={-6} width={22} height={18} rx={3} fill={LIGHT_COLOR} stroke="#fff" strokeWidth={1.5} />
+        <path d="M -9 -6 L -13 -14 L 13 -14 L 9 -6 Z" fill="#FFE7B0" stroke="#fff" strokeWidth={1.5} strokeLinejoin="round" />
+      </>
+    );
+  return (
+    <>
+      <rect x={-10} y={-4} width={20} height={16} rx={3} fill={CAM_COLOR} stroke="#fff" strokeWidth={1.5} />
+      <path d="M -6 -4 L -9 -14 L 9 -14 L 6 -4 Z" fill={CAM_COLOR} stroke="#fff" strokeWidth={1.5} strokeLinejoin="round" />
+    </>
+  );
+}
 
 /** Rectangle utile du plan : le fond, sinon l'étendue des éléments. */
 export function planBox(fp: FloorPlan): { x: number; y: number; w: number; h: number } | null {
@@ -129,12 +156,34 @@ export function FloorScene({ doc, fp, k, numbers, selection = [], urlFor }: Scen
 
   for (const el of fp.elements) {
     const isSel = sel.has(el.id);
-    if ('path' in el && el.path.length) {
-      const pts = [el.at, ...el.path].map((q) => `${q.x},${q.y}`).join(' ');
-      const color = el.kind === 'actor' ? el.color : CAM_COLOR;
-      paths.push(
-        <polyline key={`p-${el.id}`} points={pts} fill="none" stroke={color} strokeWidth={2.2 * k} strokeDasharray={el.kind === 'camera' ? `${8 * k} ${5 * k}` : undefined} markerEnd={`url(#arrow-${el.kind === 'actor' ? el.color.slice(1) : 'cam'})`} opacity={0.9} />,
-      );
+    if ('positions' in el && el.positions.length) {
+      // Positions successives : trajet fléché, et à chaque position un « fantôme » de l'élément,
+      // avec son orientation et son numéro (1 = position principale, la dernière = fin).
+      const color = el.kind === 'actor' ? el.color : el.kind === 'light' ? LIGHT_COLOR : CAM_COLOR;
+      const marker = el.kind === 'actor' ? el.color.slice(1) : el.kind === 'light' ? 'light' : 'cam';
+      const pts = [el.at, ...el.positions.map((q) => q.at)].map((q) => `${q.x},${q.y}`).join(' ');
+      paths.push(<polyline key={`p-${el.id}`} points={pts} fill="none" stroke={color} strokeWidth={2 * k} strokeDasharray={`${8 * k} ${5 * k}`} markerEnd={`url(#arrow-${marker})`} opacity={0.85} />);
+      el.positions.forEach((q, i) => {
+        bodies.push(
+          <g key={`g-${el.id}-${i}`} data-pos={`${el.id}:${i}`} transform={`translate(${q.at.x} ${q.at.y}) scale(${k}) rotate(${q.rotation})`} style={{ cursor: 'move' }} opacity={0.55}>
+            <Ghost el={el} urlFor={urlFor} />
+          </g>,
+        );
+        if (isSel && ui.selection.length === 1) {
+          const h = project(q.at, q.rotation, 34 * k);
+          bodies.push(<circle key={`gh-${el.id}-${i}`} data-rotate-pos={`${el.id}:${i}`} cx={h.x} cy={h.y} r={5 * k} fill="#fff" stroke={color} strokeWidth={1.6 * k} style={{ cursor: 'grab' }} />);
+        }
+      });
+      [el.at, ...el.positions.map((q) => q.at)].forEach((q, i) => {
+        labels.push(
+          <g key={`n-${el.id}-${i}`} transform={`translate(${q.x} ${q.y}) scale(${k})`} pointerEvents="none">
+            <circle cx={-16} cy={-16} r={8} fill="#fff" stroke={color} strokeWidth={1.6} />
+            <text x={-16} y={-12.5} fontSize={10} fontWeight={700} textAnchor="middle" fill={color}>
+              {i + 1}
+            </text>
+          </g>,
+        );
+      });
     }
     if (el.kind === 'camera') {
       const loc = el.planId ? locatePlan(doc, el.planId) : null;
@@ -143,8 +192,11 @@ export function FloorScene({ doc, fp, k, numbers, selection = [], urlFor }: Scen
       if (el.showFov) {
         const c1 = fovCone(el.at, el.rotation, fov.start, fovLen);
         if (c1) cones.push(<polygon key={`c-${el.id}`} points={`${el.at.x},${el.at.y} ${c1.left.x},${c1.left.y} ${c1.right.x},${c1.right.y}`} fill={CAM_COLOR} fillOpacity={isSel ? 0.2 : 0.12} stroke={CAM_COLOR} strokeOpacity={0.55} strokeWidth={1.2 * k} />);
-        const c2 = fovCone(el.at, el.rotation, fov.end, fovLen);
-        if (c2) cones.push(<polygon key={`c2-${el.id}`} points={`${el.at.x},${el.at.y} ${c2.left.x},${c2.left.y} ${c2.right.x},${c2.right.y}`} fill="none" stroke={CAM_END} strokeWidth={1.4 * k} strokeDasharray={`${6 * k} ${4 * k}`} />);
+        // Fin du plan : à la dernière position (orientation comprise), focale de fin si elle change.
+        const endPos = el.positions[el.positions.length - 1];
+        const endAt = endPos?.at ?? el.at;
+        const c2 = fovCone(endAt, endPos?.rotation ?? el.rotation, fov.end ?? (endPos ? fov.start : null), fovLen);
+        if (c2) cones.push(<polygon key={`c2-${el.id}`} points={`${endAt.x},${endAt.y} ${c2.left.x},${c2.left.y} ${c2.right.x},${c2.right.y}`} fill="none" stroke={CAM_END} strokeWidth={1.4 * k} strokeDasharray={`${6 * k} ${4 * k}`} />);
         if (!c1 && setup) {
           // Angle inconnu : seulement l'axe, en pointillé (on ne dessine pas un champ inventé).
           const tip = project(el.at, el.rotation, fovLen * 0.6);

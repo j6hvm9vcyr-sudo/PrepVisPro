@@ -17,6 +17,8 @@ import { draggedIcon, placeIcon } from './icons';
 type Drag =
   | { kind: 'move'; ids: string[]; start: Point; base: ReturnType<typeof selectDoc>; key: string; moved: boolean }
   | { kind: 'rotate'; id: string; base: ReturnType<typeof selectDoc>; key: string }
+  | { kind: 'movepos'; id: string; index: number; start: Point; base: ReturnType<typeof selectDoc>; key: string; moved: boolean }
+  | { kind: 'rotatepos'; id: string; index: number; base: ReturnType<typeof selectDoc>; key: string }
   | { kind: 'pan'; startClient: Point; startVp: Viewport };
 
 function fitViewport(fp: FloorPlan, w: number, h: number): Viewport {
@@ -97,10 +99,10 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
     let el: FloorElement | null = null;
     let pre: ReturnType<typeof docNow> | null = null;
     if (st.tool === 'camera' || st.placing) {
-      el = { id: newId('fe'), kind: 'camera', at: p, rotation: 0, planId: st.placing?.planId ?? null, setupId: st.placing?.setupId ?? null, showFov: true, path: [] };
+      el = { id: newId('fe'), kind: 'camera', at: p, rotation: 0, planId: st.placing?.planId ?? null, setupId: st.placing?.setupId ?? null, showFov: true, positions: [] };
     } else if (st.tool === 'actor') {
       const n = fp.elements.filter((e) => e.kind === 'actor').length;
-      el = { id: newId('fe'), kind: 'actor', at: p, rotation: 180, name: `Personnage ${n + 1}`, color: ACTOR_COLORS[n % ACTOR_COLORS.length]!, path: [], icon: null, size: 40 };
+      el = { id: newId('fe'), kind: 'actor', at: p, rotation: 180, name: `Personnage ${n + 1}`, color: ACTOR_COLORS[n % ACTOR_COLORS.length]!, positions: [], icon: null, size: 40 };
     } else if (st.tool === 'text') {
       el = { id: newId('fe'), kind: 'text', at: p, rotation: 0, text: 'Texte', size: 14 };
     } else if (st.tool === 'light') {
@@ -118,6 +120,7 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
         gels: last?.kind === 'light' ? [...last.gels] : [],
         lossStops: 0,
         circuit: last?.kind === 'light' ? last.circuit : '',
+        positions: [],
         label: '',
         icon: null,
         size: 40,
@@ -176,7 +179,12 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
       const id = st.pathFor;
       apply(
         updateElement(docNow(), fp.id, id, (el) => {
-          if ('path' in el) el.path.push(p);
+          if (!('positions' in el)) return;
+          // Nouvelle position : un personnage se tourne dans le sens de la marche ; caméra et
+          // projecteur gardent l'orientation de la position précédente.
+          const prev = el.positions[el.positions.length - 1] ?? { at: el.at, rotation: el.rotation };
+          const rotation = el.kind === 'actor' && (p.x !== prev.at.x || p.y !== prev.at.y) ? Math.round(bearing(prev.at, p)) : prev.rotation;
+          el.positions.push({ at: p, rotation });
         }),
         undefined,
         `path-${id}`,
@@ -185,6 +193,18 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
     }
     if (st.tool !== 'select' || st.placing || st.placingIcon) {
       place(p);
+      return;
+    }
+    // Positions suivantes d'un élément : poignée d'orientation, ou le fantôme lui-même (déplacer).
+    const posHandle = (e.target as Element).closest('[data-rotate-pos]');
+    const ghost = (e.target as Element).closest('[data-pos]');
+    if (posHandle || ghost) {
+      const [id, i] = (posHandle ?? ghost)!.getAttribute(posHandle ? 'data-rotate-pos' : 'data-pos')!.split(':');
+      st.set({ selection: [id!] });
+      drag.current = posHandle
+        ? { kind: 'rotatepos', id: id!, index: Number(i), base: docNow(), key: `rotpos-${id}-${Date.now()}` }
+        : { kind: 'movepos', id: id!, index: Number(i), start: p, base: docNow(), key: `movepos-${id}-${Date.now()}`, moved: false };
+      (e.target as Element).setPointerCapture?.(e.pointerId);
       return;
     }
     if (handle) {
@@ -224,6 +244,33 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
       if (!d.moved && Math.hypot(dx, dy) * vp.zoom < 3) return;
       d.moved = true;
       apply(moveElements(d.base, fp.id, d.ids, dx, dy), undefined, d.key);
+    } else if (d.kind === 'movepos') {
+      const dx = p.x - d.start.x;
+      const dy = p.y - d.start.y;
+      if (!d.moved && Math.hypot(dx, dy) * vp.zoom < 3) return;
+      d.moved = true;
+      apply(
+        updateElement(d.base, fp.id, d.id, (x) => {
+          const q = 'positions' in x ? x.positions[d.index] : undefined;
+          if (q) q.at = { x: q.at.x + dx, y: q.at.y + dy };
+        }),
+        undefined,
+        d.key,
+      );
+    } else if (d.kind === 'rotatepos') {
+      const el = d.base.floorPlans.find((x) => x.id === fp.id)?.elements.find((x) => x.id === d.id);
+      const q = el && 'positions' in el ? el.positions[d.index] : undefined;
+      if (!q) return;
+      let deg = bearing(q.at, p);
+      if (e.shiftKey) deg = Math.round(deg / 15) * 15;
+      apply(
+        updateElement(d.base, fp.id, d.id, (x) => {
+          const r = 'positions' in x ? x.positions[d.index] : undefined;
+          if (r) r.rotation = normalizeDeg(Math.round(deg));
+        }),
+        undefined,
+        d.key,
+      );
     } else if (d.kind === 'rotate') {
       const el = d.base.floorPlans.find((x) => x.id === fp.id)?.elements.find((x) => x.id === d.id);
       if (!el) return;
@@ -353,7 +400,7 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
         const c = structuredClone(x) as FloorElement;
         c.id = newId('fe');
         c.at = { x: x.at.x + off, y: x.at.y + off };
-        if ('path' in c) c.path = c.path.map((q) => ({ x: q.x + off, y: q.y + off }));
+        if ('positions' in c) c.positions = c.positions.map((q) => ({ ...q, at: { x: q.at.x + off, y: q.at.y + off } }));
         if (c.kind === 'camera') {
           c.planId = null;
           c.setupId = null;

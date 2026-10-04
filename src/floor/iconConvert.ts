@@ -33,11 +33,11 @@ export function convertIcon(fp: FloorPlan, el: FloorIcon, role: IconRole) {
     if (!f || i < 0) return;
     const base = { id: el.id, at: el.at, rotation: el.rotation, icon: el.icon, size: el.size };
     let out: FloorElement;
-    if (role === 'light') out = { ...base, kind: 'light', fixtureId: x.settings.fixtures[0]?.id ?? null, mode: 0, dimmer: 1, gels: [], lossStops: 0, circuit: '', label: el.label };
+    if (role === 'light') out = { ...base, kind: 'light', fixtureId: x.settings.fixtures[0]?.id ?? null, mode: 0, dimmer: 1, gels: [], lossStops: 0, circuit: '', label: el.label, positions: [] };
     else if (role === 'reflector') out = { ...base, kind: 'reflector', materialId, widthM: FRAME_SIZES[0]!.m, heightM: FRAME_SIZES[0]!.m, label: el.label };
     else {
       const n = f.elements.filter((e) => e.kind === 'actor').length;
-      out = { ...base, kind: 'actor', name: el.label || `Personnage ${n + 1}`, color: ACTOR_COLORS[n % ACTOR_COLORS.length]!, path: [] };
+      out = { ...base, kind: 'actor', name: el.label || `Personnage ${n + 1}`, color: ACTOR_COLORS[n % ACTOR_COLORS.length]!, positions: [] };
     }
     f.elements[i] = out;
   });

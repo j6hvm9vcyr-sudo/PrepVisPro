@@ -20,7 +20,7 @@ function scene() {
   const s = d.sequences[0]!;
   const fp = { ...newFloorPlan('Salon', [s.id]), scale: computeScale({ x: 0, y: 0 }, { x: 100, y: 0 }, 1) };
   d = addFloorPlan(d, fp);
-  const cam = (i: number, x: number, y: number, rotation: number): FloorElement => ({ id: `c${i}`, kind: 'camera', at: { x, y }, rotation, planId: s.plans[i]!.id, setupId: s.plans[i]!.cameras[0]!.id, showFov: true, path: [] });
+  const cam = (i: number, x: number, y: number, rotation: number): FloorElement => ({ id: `c${i}`, kind: 'camera', at: { x, y }, rotation, planId: s.plans[i]!.id, setupId: s.plans[i]!.cameras[0]!.id, showFov: true, positions: [] });
   d = addElements(d, fp.id, [
     cam(0, 0, 600, 0), // large, regarde vers le haut
     cam(1, 50, 650, 5), // même endroit, même direction

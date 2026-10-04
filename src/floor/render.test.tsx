@@ -14,9 +14,9 @@ function build() {
   d = addFloorPlan(d, fp);
   const [p1, p2] = s.plans;
   d = addElements(d, fp.id, [
-    { id: 'c2', kind: 'camera', at: { x: 1500, y: 500 }, rotation: 270, planId: p2!.id, setupId: p2!.cameras[0]!.id, showFov: true, path: [] },
-    { id: 'c1', kind: 'camera', at: { x: 500, y: 500 }, rotation: 90, planId: p1!.id, setupId: p1!.cameras[0]!.id, showFov: true, path: [] },
-    { id: 'a1', kind: 'actor', at: { x: 1000, y: 500 }, rotation: 0, name: 'Axel', color: '#E5484D', path: [{ x: 1000, y: 300 }], icon: null, size: 40 },
+    { id: 'c2', kind: 'camera', at: { x: 1500, y: 500 }, rotation: 270, planId: p2!.id, setupId: p2!.cameras[0]!.id, showFov: true, positions: [] },
+    { id: 'c1', kind: 'camera', at: { x: 500, y: 500 }, rotation: 90, planId: p1!.id, setupId: p1!.cameras[0]!.id, showFov: true, positions: [] },
+    { id: 'a1', kind: 'actor', at: { x: 1000, y: 500 }, rotation: 0, name: 'Axel', color: '#E5484D', positions: [{ at: { x: 1000, y: 300 }, rotation: 0 }], icon: null, size: 40 },
   ]);
   return { d, fp: d.floorPlans[0]! };
 }

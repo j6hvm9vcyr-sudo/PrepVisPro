@@ -214,7 +214,7 @@ export interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 13 as const;
+export const SCHEMA_VERSION = 14 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;

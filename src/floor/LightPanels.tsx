@@ -244,6 +244,23 @@ export function ActorLight({ fp, actor }: { fp: FloorPlan; actor: FloorActor }) 
           {c.edge && <small>bord du faisceau</small>}
         </div>
       ))}
+      {actor.positions.length > 0 && (
+        <div className="light-readings" aria-label="Lumière à chaque position">
+          {[actor.at, ...actor.positions.map((q) => q.at)].map((at, i) => {
+            const ls = contributionsAt(doc, fp, at).filter((c) => c.lux !== null);
+            const tot = ls.reduce((n, c) => n + c.lux!, 0);
+            return (
+              <div key={i} className="reading">
+                <span>
+                  Position {i + 1}
+                  {i === actor.positions.length ? ' (fin)' : i === 0 ? ' (début)' : ''}
+                </span>
+                <b>{ls.length ? `${ls.some((c) => c.approx) ? '≈ ' : ''}${lx(tot)} · ${formatStop(stopFromLux(tot, e))}` : 'aucune source'}</b>
+              </div>
+            );
+          })}
+        </div>
+      )}
       {lit.length > 1 && (
         <div className="reading total">
           <span>Toutes sources</span>

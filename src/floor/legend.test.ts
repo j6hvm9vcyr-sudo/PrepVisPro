@@ -14,7 +14,7 @@ describe('légende des exports : projecteurs et réflecteurs', () => {
     const fp = newFloorPlan('Salon', [d.sequences[0]!.id]);
     d = addFloorPlan(d, fp);
     d = addElements(d, fp.id, [
-      { id: 'l', kind: 'light', at: { x: 0, y: 0 }, rotation: 90, fixtureId: 'f', mode: 0, dimmer: 1, gels: ['lee-216', 'lee-201'], lossStops: 0, circuit: 'A', label: '', icon: null, size: 40 },
+      { id: 'l', kind: 'light', at: { x: 0, y: 0 }, rotation: 90, fixtureId: 'f', mode: 0, dimmer: 1, gels: ['lee-216', 'lee-201'], lossStops: 0, circuit: 'A', label: '', icon: null, size: 40, positions: [] },
       { id: 'r', kind: 'reflector', at: { x: 200, y: 0 }, rotation: 270, materialId: 'p', widthM: 1.22, heightM: 1.22, label: '', icon: null, size: 40 },
     ]);
     const lg = lightLegend(d, d.floorPlans[0]!);

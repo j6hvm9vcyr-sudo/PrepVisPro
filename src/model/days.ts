@@ -190,13 +190,13 @@ export function equipmentFor(doc: ProjectDoc, sequenceIds: readonly Id[]): Equip
   for (const fp of floorPlans) {
     const name = fp.name || 'Plan au sol';
     for (const e of fp.elements) {
-      if (e.kind !== 'camera' || !e.planId || !planIds.has(e.planId) || !e.path.length) continue;
+      if (e.kind !== 'camera' || !e.planId || !planIds.has(e.planId) || !e.positions.length) continue;
       const cam = e as FloorCamera;
       let len = 0;
       let prev = cam.at;
-      for (const q of cam.path) {
-        len += Math.hypot(q.x - prev.x, q.y - prev.y);
-        prev = q;
+      for (const q of cam.positions) {
+        len += Math.hypot(q.at.x - prev.x, q.at.y - prev.y);
+        prev = q.at;
       }
       moves.push({ plan: code(cam.planId!), floorPlan: name, grip: planGrip.get(cam.planId!) ?? [], lengthM: fp.scale ? m2(len * fp.scale.metersPerUnit) : null });
     }

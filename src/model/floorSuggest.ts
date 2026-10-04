@@ -87,15 +87,21 @@ export type SuggestResult =
   | { ok: false; reason: string };
 
 /** Personnage le plus proche dans le champ (ou à défaut dans un cône de ±30° autour de l'axe). */
-function subjectFor(fp: FloorPlan, at: Point, rotation: number, halfFov: number): FloorActor | null {
+/**
+ * Personnage le plus proche dans le champ. `end` : chaque personnage est pris à sa dernière
+ * position (fin du plan), avec l'orientation qu'il a là.
+ */
+function subjectFor(fp: FloorPlan, at: Point, rotation: number, halfFov: number, end = false): FloorActor | null {
   let best: { a: FloorActor; d: number } | null = null;
   for (const el of fp.elements) {
     if (el.kind !== 'actor') continue;
-    const off = normalizeDeg(bearing(at, el.at) - rotation);
+    const last = end ? el.positions[el.positions.length - 1] : undefined;
+    const a: FloorActor = last ? { ...el, at: last.at, rotation: last.rotation } : el;
+    const off = normalizeDeg(bearing(at, a.at) - rotation);
     const dev = off > 180 ? 360 - off : off;
     if (dev > halfFov) continue;
-    const d = Math.hypot(el.at.x - at.x, el.at.y - at.y);
-    if (d > 0 && (!best || d < best.d)) best = { a: el, d };
+    const d = Math.hypot(a.at.x - at.x, a.at.y - at.y);
+    if (d > 0 && (!best || d < best.d)) best = { a, d };
   }
   return best?.a ?? null;
 }
@@ -109,10 +115,10 @@ export function suggestFraming(doc: ProjectDoc, fp: FloorPlan, cam: FloorCamera)
   const ratio = parseAspectRatio(doc.meta.aspectRatio);
   const terms = doc.settings.terms;
 
-  const guess = (at: Point, rotation: number, focal: number | null): FramingGuess | { reason: string } => {
+  const guess = (at: Point, rotation: number, focal: number | null, end = false): FramingGuess | { reason: string } => {
     const fov = fieldOfView(projCam, focal, ratio);
     const half = fov.horizontal !== null ? fov.horizontal / 2 : 30;
-    const actor = subjectFor(fp, at, rotation, half);
+    const actor = subjectFor(fp, at, rotation, half, end);
     if (!actor) return { reason: 'Aucun personnage dans le champ de la caméra.' };
     const distanceM = metersBetween(fp, at, actor.at)!;
     const hMm = fov.frame?.heightMm ?? null;
@@ -123,12 +129,14 @@ export function suggestFraming(doc: ProjectDoc, fp: FloorPlan, cam: FloorCamera)
 
   const start = guess(cam.at, cam.rotation, setup.start.focalMm);
   if ('reason' in start) return { ok: false, reason: start.reason };
-  // Plan évolutif : position de fin = bout du trajet de la caméra, focale de fin si elle change.
-  const endAt = cam.path.length ? cam.path[cam.path.length - 1]! : null;
+  // Fin du plan : dernière position de la caméra (avec son orientation), personnages à leur
+  // dernière position, focale de fin si elle change.
+  const endPos = cam.positions[cam.positions.length - 1] ?? null;
+  const actorsMove = fp.elements.some((e) => e.kind === 'actor' && e.positions.length > 0);
   const endFocal = setup.end?.focalMm ?? null;
   let end: FramingGuess | null = null;
-  if (endAt || (endFocal !== null && endFocal !== setup.start.focalMm)) {
-    const g = guess(endAt ?? cam.at, endAt ? bearing(endAt, start.actor.at) : cam.rotation, endFocal ?? setup.start.focalMm);
+  if (endPos || actorsMove || (endFocal !== null && endFocal !== setup.start.focalMm)) {
+    const g = guess(endPos?.at ?? cam.at, endPos?.rotation ?? cam.rotation, endFocal ?? setup.start.focalMm, true);
     end = 'reason' in g ? null : g;
   }
   return { ok: true, start, end };

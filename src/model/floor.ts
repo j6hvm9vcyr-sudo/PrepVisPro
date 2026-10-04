@@ -31,6 +31,12 @@ export interface FloorScale {
   meters: number;
 }
 
+/** Position suivante d'un élément qui se déplace (2, 3… ; la position 1 est `at` / `rotation`). */
+export interface Waypoint {
+  at: Point;
+  rotation: number;
+}
+
 interface Base {
   id: Id;
   at: Point;
@@ -43,15 +49,16 @@ export interface FloorCamera extends Base {
   planId: Id | null;
   setupId: Id | null;
   showFov: boolean;
-  /** Trajet d'un mouvement de caméra (travelling…), en unités du plan. */
-  path: Point[];
+  /** Positions suivantes (travelling…) ; la dernière est la position de fin d'un plan évolutif. */
+  positions: Waypoint[];
 }
 
 export interface FloorActor extends Base {
   kind: 'actor';
   name: string;
   color: string;
-  path: Point[];
+  /** Positions suivantes du personnage (déplacement), chacune avec son orientation. */
+  positions: Waypoint[];
   /** Icône de la bibliothèque (sinon le rond de couleur). */
   icon: string | null;
   size: number;
@@ -87,6 +94,8 @@ export interface FloorLight extends Base {
   lossStops: number;
   /** Circuit électrique (A, B…) pour les totaux de puissance. */
   circuit: string;
+  /** Positions suivantes (projecteur qui se déplace pendant le plan). Calculs : position 1. */
+  positions: Waypoint[];
   label: string;
   /** Icône de la bibliothèque copiée dans le projet (sinon symbole standard). */
   icon: string | null;

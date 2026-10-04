@@ -42,8 +42,8 @@ describe('suggestion complète depuis le plan au sol', () => {
     // 100 unités = 1 m.
     const fp = { ...newFloorPlan('Salon', [d.sequences[0]!.id]), scale: computeScale({ x: 0, y: 0 }, { x: 100, y: 0 }, 1) };
     d = addFloorPlan(d, fp);
-    const cam: FloorCamera = { id: 'c', kind: 'camera', at: { x: 0, y: 0 }, rotation: 90, planId: p.id, setupId: p.cameras[0]!.id, showFov: true, path: [] };
-    const actor: FloorActor = { id: 'a', kind: 'actor', at: { x: distanceM * 100, y: 0 }, rotation: 270, name: 'Léa', color: '#E5484D', path: [], icon: null, size: 40 };
+    const cam: FloorCamera = { id: 'c', kind: 'camera', at: { x: 0, y: 0 }, rotation: 90, planId: p.id, setupId: p.cameras[0]!.id, showFov: true, positions: [] };
+    const actor: FloorActor = { id: 'a', kind: 'actor', at: { x: distanceM * 100, y: 0 }, rotation: 270, name: 'Léa', color: '#E5484D', positions: [], icon: null, size: 40 };
     d = addElements(d, fp.id, [cam, actor]);
     return { d, fp: d.floorPlans[0]!, cam };
   }
@@ -58,6 +58,28 @@ describe('suggestion complète depuis le plan au sol', () => {
     expect(r.start.size).toBe('Moyen');
     expect(r.start.axis).toBe('Face');
     expect(r.end).toBeNull();
+  });
+
+  it('positions : la fin du plan se lit à la dernière position de la caméra et du personnage', () => {
+    const { d, fp, cam } = build(24, 4);
+    // La caméra avance de 2 m (travelling avant) ; Léa, elle, se tourne de profil.
+    const moved = produce(d, (x) => {
+      const els = x.floorPlans[0]!.elements;
+      const c = els.find((e) => e.id === 'c');
+      const a = els.find((e) => e.id === 'a');
+      if (c?.kind === 'camera') c.positions = [{ at: { x: 200, y: 0 }, rotation: 90 }];
+      if (a?.kind === 'actor') a.positions = [{ at: { x: 400, y: 0 }, rotation: 0 }];
+    });
+    const r = suggestFraming(moved, moved.floorPlans[0]!, moved.floorPlans[0]!.elements.find((e) => e.id === 'c') as FloorCamera);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.start.size).toBe('Moyen');
+    // 2 m à 50 mm : cadre de 0,96 m → Poitrine ; Léa vue de profil.
+    expect(r.end!.distanceM).toBeCloseTo(2);
+    expect(r.end!.frameHeightM).toBeCloseTo(0.96);
+    expect(r.end!.axis).toBe('Profil');
+    void fp;
+    void cam;
   });
 
   it('sans hauteur capteur ni ratio : distance et axe, mais pas de valeur devinée', () => {
@@ -85,8 +107,8 @@ describe('écarts découpage / plan au sol', () => {
     const fp = { ...newFloorPlan('Salon', [d.sequences[0]!.id]), scale: computeScale({ x: 0, y: 0 }, { x: 100, y: 0 }, 1) };
     d = addFloorPlan(d, fp);
     d = addElements(d, fp.id, [
-      { id: 'c', kind: 'camera', at: { x: 0, y: 0 }, rotation: 90, planId: p.id, setupId: p.cameras[0]!.id, showFov: true, path: [] },
-      { id: 'a', kind: 'actor', at: { x: 400, y: 0 }, rotation: 270, name: 'Léa', color: '#E5484D', path: [], icon: null, size: 40 },
+      { id: 'c', kind: 'camera', at: { x: 0, y: 0 }, rotation: 90, planId: p.id, setupId: p.cameras[0]!.id, showFov: true, positions: [] },
+      { id: 'a', kind: 'actor', at: { x: 400, y: 0 }, rotation: 270, name: 'Léa', color: '#E5484D', positions: [], icon: null, size: 40 },
     ]);
     const m = floorMismatches(d).get(p.cameras[0]!.id)!;
     expect(m).toEqual([{ field: 'size', suggested: 'Moyen', current: 'GP', floorPlan: 'Salon' }]);

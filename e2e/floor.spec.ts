@@ -445,3 +445,52 @@ test('soleil : position GPS du décor, nord du plan, heure simulée, rapport ave
   await sun.getByLabel('Heure simulée').fill('19:00');
   await expect(sun.getByLabel('Soleil et caméras')).toContainText(/2\/1\s*latéral, à droite/);
 });
+
+test('positions : début, intermédiaire et fin d’un personnage, orientation, déplacement, lumière à chaque position', async ({ page }) => {
+  await page.goto('/?exemple');
+  await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
+  await page.keyboard.press('ControlOrMeta+3');
+  await page.getByLabel('Créer un plan au sol pour la séquence').selectOption({ label: '2 — Wagon' });
+  const chooser = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Importer un fond…' }).click();
+  await (await chooser).setFiles(resolve('e2e/plan-decor.png'));
+  const img = (await page.locator('.floor-canvas image').boundingBox())!;
+  const at = (x: number, y: number) => ({ x: img.x + (x / 1200) * img.width, y: img.y + (y / 800) * img.height });
+  const canvas = page.getByRole('application', { name: 'Plan au sol' });
+  await canvas.press('Escape');
+  await canvas.press('p');
+  const p1 = at(400, 400);
+  await page.mouse.click(p1.x, p1.y);
+  await page.getByRole('button', { name: '+ Positions (déplacement)' }).click();
+  // Deux positions de plus : vers la droite, puis vers le bas.
+  const p2 = at(700, 400);
+  const p3 = at(700, 600);
+  await page.mouse.click(p2.x, p2.y);
+  await page.mouse.click(p3.x, p3.y);
+  await canvas.press('Enter');
+  const field = page.getByLabel('Positions', { exact: true });
+  await expect(field.locator('.pos-row')).toHaveText([/1\s*début/, /2\s*intermédiaire/, /3\s*fin/]);
+  // Le personnage se tourne dans le sens de la marche : 90° (droite) puis 180° (bas).
+  await expect(page.getByLabel('Orientation à la position 2 en degrés')).toHaveValue('90');
+  await expect(page.getByLabel('Orientation à la position 3 en degrés')).toHaveValue('180');
+  await page.getByLabel('Orientation à la position 3 en degrés').fill('45');
+  await page.keyboard.press('Enter');
+  const ghosts = page.locator('.floor-canvas [data-pos]');
+  await expect(ghosts).toHaveCount(2);
+  await expect(ghosts.nth(1)).toHaveAttribute('transform', /rotate\(45\)/);
+  await page.screenshot({ path: 'test-results/25-positions.png' });
+  // Le fantôme se déplace à la souris.
+  const before = await ghosts.nth(0).getAttribute('transform');
+  const gb = (await ghosts.nth(0).boundingBox())!;
+  await page.mouse.move(gb.x + gb.width / 2, gb.y + gb.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(gb.x + gb.width / 2, gb.y + gb.height / 2 + 60, { steps: 5 });
+  await page.mouse.up();
+  await expect(ghosts.nth(0)).not.toHaveAttribute('transform', before!);
+  // ⌘Z annule le déplacement ; retirer une position.
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(ghosts.nth(0)).toHaveAttribute('transform', before!);
+  await page.getByRole('button', { name: 'Retirer la position 2' }).click();
+  await expect(ghosts).toHaveCount(1);
+  await expect(field.locator('.pos-row')).toHaveText([/1\s*début/, /2\s*fin/]);
+});

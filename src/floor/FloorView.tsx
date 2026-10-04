@@ -20,7 +20,7 @@ import { SunPanel } from './SunPanel';
 import { Fold } from '../ui/Fold';
 import { useIcons } from '../platform/iconLibrary';
 import { planSun, sunForCamera } from '../model/sunPlan';
-import type { FloorCamera } from '../model/floor';
+import type { FloorActor, FloorCamera, FloorLight } from '../model/floor';
 
 const TOOLS: { id: FloorTool; label: string; key: string }[] = [
   { id: 'select', label: 'Sélection', key: 'V' },
@@ -317,18 +317,7 @@ function FloorInspector({ fp }: { fp: FloorPlan }) {
                 <DecimalField label="Orientation en degrés" unit="°" width={80} required min={-360} max={360} value={Math.round(el.rotation)} onChange={(v) => v !== null && upd((x) => void (x.rotation = ((v % 360) + 360) % 360), 'rot')} />
               </div>
             )}
-            {(el.kind === 'camera' || el.kind === 'actor') && (
-              <div className="row">
-                <button type="button" className="btn" onClick={() => useFloor.getState().set({ tool: 'path', pathFor: el.id })}>
-                  {el.path.length ? 'Prolonger le trajet' : 'Tracer un déplacement'}
-                </button>
-                {el.path.length > 0 && (
-                  <button type="button" className="btn ghost" onClick={() => upd((x) => void ('path' in x && (x.path = [])), 'clearpath')}>
-                    Effacer le trajet
-                  </button>
-                )}
-              </div>
-            )}
+            {(el.kind === 'camera' || el.kind === 'actor' || el.kind === 'light') && <PositionsField fp={fp} el={el} />}
             <button type="button" className="btn danger" onClick={() => (apply((d) => deleteElements(d, fp.id, [el.id]), 'Élément supprimé · ⌘Z pour annuler'), useFloor.getState().set({ selection: [] }))}>
               Supprimer
             </button>
@@ -446,5 +435,64 @@ function CameraSun({ fp, cam }: { fp: FloorPlan; cam: FloorCamera }) {
     <p className="note" style={{ margin: 0 }} aria-label="Soleil pour cette caméra">
       Soleil à {fp.sunAt!.time} : <b>{rel ?? 'couché'}</b>
     </p>
+  );
+}
+
+/**
+ * Positions d'un élément qui se déplace : 1 = position principale (calculs, champ de début),
+ * puis 2, 3… ; la dernière est la position de fin (champ de fin de la caméra).
+ */
+function PositionsField({ fp, el }: { fp: FloorPlan; el: FloorCamera | FloorActor | FloorLight }) {
+  const tool = useFloor((s) => s.tool);
+  const pathFor = useFloor((s) => s.pathFor);
+  const adding = tool === 'path' && pathFor === el.id;
+  const st = useApp.getState;
+  const upd = (fn: (x: FloorCamera | FloorActor | FloorLight) => void, key?: string) =>
+    st().applyDoc(updateElement(selectDoc(st()), fp.id, el.id, (x) => void ('positions' in x && fn(x as FloorCamera | FloorActor | FloorLight))), undefined, key ? `${key}-${el.id}` : undefined);
+  const n = el.positions.length;
+  return (
+    <div className="field" aria-label="Positions">
+      Positions
+      {n > 0 && (
+        <div className="positions">
+          <div className="pos-row">
+            <span className="pos-n">1</span>
+            <span className="note">début (position principale)</span>
+          </div>
+          {el.positions.map((q, i) => (
+            <div key={i} className="pos-row">
+              <span className="pos-n">{i + 2}</span>
+              <span className="note">{i === n - 1 ? 'fin' : 'intermédiaire'}</span>
+              <span className="spacer" />
+              <DecimalField
+                label={`Orientation à la position ${i + 2} en degrés`}
+                unit="°"
+                width={56}
+                required
+                min={-360}
+                max={360}
+                value={Math.round(q.rotation)}
+                onChange={(v) => v !== null && upd((x) => void (x.positions[i]!.rotation = ((v % 360) + 360) % 360), `posrot${i}`)}
+              />
+              <button type="button" className="icon-btn danger" aria-label={`Retirer la position ${i + 2}`} onClick={() => upd((x) => void x.positions.splice(i, 1))}>
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="row" style={{ gap: 6 }}>
+        <button type="button" className={`btn ${adding ? 'on' : ''}`} onClick={() => useFloor.getState().set(adding ? { tool: 'select', pathFor: null } : { tool: 'path', pathFor: el.id })}>
+          {adding ? 'Terminer (↩)' : n ? '+ Positions suivantes' : '+ Positions (déplacement)'}
+        </button>
+        {n > 0 && (
+          <button type="button" className="btn ghost" onClick={() => upd((x) => void (x.positions = []))}>
+            Tout retirer
+          </button>
+        )}
+      </div>
+      {adding && <span className="note">Cliquez sur le plan pour chaque nouvelle position ; ↩ pour terminer.</span>}
+      {el.kind === 'light' && n > 0 && <span className="note">Éclairement et puissance calculés à la position 1.</span>}
+    </div>
   );
 }

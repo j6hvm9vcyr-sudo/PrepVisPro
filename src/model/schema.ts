@@ -63,10 +63,11 @@ const sequence = z.object({
 });
 
 const point = z.object({ x: z.number().finite(), y: z.number().finite() });
+const waypoints = z.array(z.object({ at: z.object({ x: z.number().finite(), y: z.number().finite() }), rotation: z.number().finite() })).max(100);
 const elemBase = { id, at: point, rotation: z.number().finite() };
 const floorElement = z.discriminatedUnion('kind', [
-  z.object({ ...elemBase, kind: z.literal('camera'), planId: id.nullable(), setupId: id.nullable(), showFov: z.boolean(), path: z.array(point) }),
-  z.object({ ...elemBase, kind: z.literal('actor'), name: z.string(), color: z.string(), path: z.array(point), icon: z.string().min(1).nullable(), size: z.number().finite().positive() }),
+  z.object({ ...elemBase, kind: z.literal('camera'), planId: id.nullable(), setupId: id.nullable(), showFov: z.boolean(), positions: waypoints }),
+  z.object({ ...elemBase, kind: z.literal('actor'), name: z.string(), color: z.string(), positions: waypoints, icon: z.string().min(1).nullable(), size: z.number().finite().positive() }),
   z.object({ ...elemBase, kind: z.literal('icon'), icon: z.string().min(1), label: z.string(), size: z.number().finite().positive() }),
   z.object({ ...elemBase, kind: z.literal('text'), text: z.string(), size: z.number().finite().positive() }),
   z.object({
@@ -78,6 +79,7 @@ const floorElement = z.discriminatedUnion('kind', [
     gels: z.array(z.string().min(1)).max(20),
     lossStops: z.number().min(0).max(20),
     circuit: z.string(),
+    positions: waypoints,
     label: z.string(),
     icon: z.string().min(1).nullable(),
     size: z.number().finite().positive(),

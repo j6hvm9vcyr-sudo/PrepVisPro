@@ -59,7 +59,7 @@ export function contentBounds(fp: FloorPlan, k: number, doc?: ProjectDoc): Bound
       const half = fp.scale ? el.widthM / 2 / fp.scale.metersPerUnit : 30 * k;
       add(el.at, half + 20 * k, half + 20 * k, half + 20 * k, half + 20 * k);
     } else add(el.at, Math.max(el.text.length, 4) * el.size * 0.35 * k, el.size * k, Math.max(el.text.length, 4) * el.size * 0.35 * k, el.size * k);
-    if ('path' in el) for (const p of el.path) add(p, 12 * k, 12 * k, 12 * k, 12 * k);
+    if ('positions' in el) for (const p of el.positions) add(p.at, 40 * k, 40 * k, 40 * k, 40 * k);
   }
   // Nord et soleil (le soleil est dessiné hors du plan, dans sa direction).
   const marks = doc ? sunMarks(doc, fp, k) : null;

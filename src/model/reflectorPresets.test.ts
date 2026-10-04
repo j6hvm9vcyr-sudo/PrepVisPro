@@ -35,8 +35,8 @@ describe('fichiers du projet', () => {
     const fp = newFloorPlan('P', []);
     d = addFloorPlan(d, fp);
     d = addElements(d, fp.id, [
-      { id: 'a', kind: 'actor', at: { x: 0, y: 0 }, rotation: 0, name: 'A', color: '#000', path: [], icon: 'icons/a.png', size: 40 },
-      { id: 'l', kind: 'light', at: { x: 0, y: 0 }, rotation: 0, fixtureId: null, mode: 0, dimmer: 1, gels: [], lossStops: 0, circuit: '', label: '', icon: 'icons/l.png', size: 40 },
+      { id: 'a', kind: 'actor', at: { x: 0, y: 0 }, rotation: 0, name: 'A', color: '#000', positions: [], icon: 'icons/a.png', size: 40 },
+      { id: 'l', kind: 'light', at: { x: 0, y: 0 }, rotation: 0, fixtureId: null, mode: 0, dimmer: 1, gels: [], lossStops: 0, circuit: '', label: '', icon: 'icons/l.png', size: 40, positions: [] },
       { id: 'r', kind: 'reflector', at: { x: 0, y: 0 }, rotation: 0, materialId: null, widthM: 1, heightM: 1, label: '', icon: 'icons/r.png', size: 40 },
       { id: 'i', kind: 'icon', at: { x: 0, y: 0 }, rotation: 0, icon: 'icons/i.png', label: '', size: 40 },
     ]);

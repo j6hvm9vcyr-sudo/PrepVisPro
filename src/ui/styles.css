@@ -543,3 +543,8 @@ table.modes input:not(.decimal-field input) { border: 1px solid var(--border); b
 
 /* Focales : chiffres alignés, sans retour à la ligne entre le nombre et « mm ». */
 .cell.num, .num-cell { font-variant-numeric: tabular-nums; }
+
+/* Positions successives d'un élément (plan au sol) */
+.positions { display: flex; flex-direction: column; gap: 3px; }
+.pos-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.pos-n { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--accent); color: var(--accent); font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; justify-content: center; flex: none; }

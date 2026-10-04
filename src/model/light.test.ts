@@ -31,7 +31,7 @@ describe('éclairement sur le plan', () => {
     });
     const fp = { ...newFloorPlan('Salon', [d.sequences[0]!.id]), scale: computeScale({ x: 0, y: 0 }, { x: 100, y: 0 }, 1) };
     d = addFloorPlan(d, fp);
-    const light: FloorLight = { id: 'l', kind: 'light', at: { x: 0, y: 0 }, rotation, fixtureId: 'f2k', mode: 1, dimmer: 1, gels: [], lossStops: 0, circuit: 'A', label: '', icon: null, size: 40 };
+    const light: FloorLight = { id: 'l', kind: 'light', at: { x: 0, y: 0 }, rotation, fixtureId: 'f2k', mode: 1, dimmer: 1, gels: [], lossStops: 0, circuit: 'A', label: '', icon: null, size: 40, positions: [] };
     d = addElements(d, fp.id, [light]);
     return { d, fp: d.floorPlans[0]!, light };
   }
@@ -105,7 +105,7 @@ describe('gélatines et réflecteurs sur le plan', () => {
     // 100 unités = 1 m.
     const fp = { ...newFloorPlan('Salon', [d.sequences[0]!.id]), scale: computeScale({ x: 0, y: 0 }, { x: 100, y: 0 }, 1) };
     d = addFloorPlan(d, fp);
-    const light: FloorLight = { id: 'l', kind: 'light', at: { x: 0, y: 0 }, rotation: 90, fixtureId: 'f', mode: 0, dimmer: 1, gels: [], lossStops: 0, circuit: '', label: '', icon: null, size: 40 };
+    const light: FloorLight = { id: 'l', kind: 'light', at: { x: 0, y: 0 }, rotation: 90, fixtureId: 'f', mode: 0, dimmer: 1, gels: [], lossStops: 0, circuit: '', label: '', icon: null, size: 40, positions: [] };
     d = addElements(d, fp.id, [light]);
     return { d, fp: d.floorPlans[0]!, light };
   }

@@ -94,9 +94,9 @@ describe('matériel déduit', () => {
     const fpA = { ...newFloorPlan('Quai', [s1.id]), scale: computeScale({ x: 0, y: 0 }, { x: 100, y: 0 }, 1) };
     const fpB = newFloorPlan('Wagon', [s2.id]);
     d = addFloorPlan(addFloorPlan(d, fpA), fpB);
-    const light = (id: string, fixtureId: string | null, gels: string[] = []) => ({ id, kind: 'light' as const, at: { x: 0, y: 0 }, rotation: 0, fixtureId, mode: 0, dimmer: 1, gels, lossStops: 0, circuit: '', label: '', icon: null, size: 40 });
+    const light = (id: string, fixtureId: string | null, gels: string[] = []) => ({ id, kind: 'light' as const, at: { x: 0, y: 0 }, rotation: 0, fixtureId, mode: 0, dimmer: 1, gels, lossStops: 0, circuit: '', label: '', icon: null, size: 40, positions: [] });
     d = addElements(d, fpA.id, [
-      { id: 'c1', kind: 'camera', at: { x: 0, y: 0 }, rotation: 0, planId: s1.plans[0]!.id, setupId: s1.plans[0]!.cameras[0]!.id, showFov: true, path: [{ x: 300, y: 0 }, { x: 300, y: 400 }] },
+      { id: 'c1', kind: 'camera', at: { x: 0, y: 0 }, rotation: 0, planId: s1.plans[0]!.id, setupId: s1.plans[0]!.cameras[0]!.id, showFov: true, positions: [{ at: { x: 300, y: 0 }, rotation: 0 }, { at: { x: 300, y: 400 }, rotation: 0 }] },
       light('l1', 'f2k', ['lee-216', 'lee-201']),
       light('l2', 'f2k', ['lee-216']),
       light('l3', 'led'),
