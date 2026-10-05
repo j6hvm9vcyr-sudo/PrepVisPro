@@ -4,6 +4,7 @@
  */
 import { Picker } from './Picker';
 import { reorderKeys } from './reorder';
+import { DragRow } from './DragRow';
 import { create } from 'zustand';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
@@ -70,7 +71,7 @@ export function DaysView() {
           </span>
         </button>
         {loose.length > 0 && doc.shootingDays.length > 0 && (
-          <div className="loose" role="group" aria-label="Séquences sans jour">
+          <div className="days-loose" role="group" aria-label="Séquences sans jour">
             <span className="note" style={{ color: 'var(--warn-text)' }}>Sans jour :</span>
             {loose.map((s) =>
               !showAll && day ? (
@@ -221,8 +222,11 @@ function DayPage({ doc, day, label, labels }: { doc: ProjectDoc; day: ShootingDa
             .filter((d) => d.id !== day.id)
             .map((d) => labels.get(d.id));
           return (
-            <div key={s.id} className="day-seq">
+            <DragRow key={s.id} list={`day-${day.id}`} index={k} move={(from, to) => upd((x) => void x.sequenceIds.splice(to, 0, x.sequenceIds.splice(from, 1)[0]!))} className="day-seq">
+              {(grip) => (
+              <>
               <div className="day-seq-h reorder" onKeyDown={reorderKeys((d) => upd((x) => void x.sequenceIds.splice(k + d, 0, x.sequenceIds.splice(k, 1)[0]!)), { up: k > 0, down: k < seqs.length - 1 })}>
+                {grip}
                 <span className="strip" style={{ background: c.fill, borderColor: c.edge }} />
                 <b>
                   SÉQ. {s.number || '?'} — {sequenceTitle(s)}
@@ -271,7 +275,9 @@ function DayPage({ doc, day, label, labels }: { doc: ProjectDoc; day: ShootingDa
                   Ordre de tournage à établir (vue Tournage)
                 </button>
               )}
-            </div>
+              </>
+              )}
+            </DragRow>
           );
         })}
       </section>

@@ -3,6 +3,7 @@
  * L'ordre est proposé d'après les plans au sol, puis ajusté à la main (glisser-déposer).
  */
 import { reorderKeys } from './reorder';
+import { DragRow } from './DragRow';
 import { plural } from '../model/text';
 import { useState, type DragEvent } from 'react';
 import { create } from 'zustand';
@@ -11,7 +12,7 @@ import { selectDoc } from '../state/store';
 import { computeNumbers } from '../model/numbering';
 import { displayText } from '../model/entry';
 import type { Id, Plan, ProjectDoc, Sequence } from '../model/types';
-import { addInstallation, effectiveShooting, moveInstallation, movePlanToInstallation, proposeShooting, removeInstallation, setShooting, updateInstallation } from '../model/shooting';
+import { addInstallation, effectiveShooting, moveInstallation, moveInstallationTo, movePlanToInstallation, proposeShooting, removeInstallation, setShooting, updateInstallation } from '../model/shooting';
 import { getBackend } from '../platform/backend';
 import { sequenceTitle, stripColors } from './strip';
 
@@ -105,8 +106,11 @@ function SequenceShooting({ doc, seq, numbers }: { doc: ProjectDoc; seq: Sequenc
       ) : (
         <>
           {e.installations.map((ins, i) => (
-            <section key={ins.id} className="install" aria-label={`Installation ${ins.name}`} onDragOver={(ev) => dragged && ev.preventDefault()} onDrop={(ev) => drop(ev, seq.id, ins.id)}>
+            <DragRow key={ins.id} as="section" list={`ins-${seq.id}`} index={i} move={(from, to) => apply((x) => moveInstallationTo(x, seq.id, e.installations[from]!.id, to))} className="install" label={`Installation ${ins.name}`}>
+              {(grip) => (
+              <div className="install-in" onDragOver={(ev) => dragged && ev.preventDefault()} onDrop={(ev) => drop(ev, seq.id, ins.id)}>
               <div className="install-h reorder" onKeyDown={reorderKeys((d) => apply((x) => moveInstallation(x, seq.id, ins.id, d)), { up: i > 0, down: i < e.installations.length - 1 })}>
+                {grip}
                 <span className="install-n">{i + 1}</span>
                 <input className="install-name" aria-label="Nom de l’installation" value={ins.name} onChange={(ev) => apply((d) => updateInstallation(d, seq.id, ins.id, (x) => void (x.name = ev.target.value)), undefined, `insname-${ins.id}`)} />
                 <span className="note">
@@ -136,7 +140,9 @@ function SequenceShooting({ doc, seq, numbers }: { doc: ProjectDoc; seq: Sequenc
                   <PlanRow key={p.id} p={p} code={numbers.get(p.id)?.code ?? '?'} order={++order} seqId={seq.id} installationId={ins.id} index={k} count={ins.plans.length} doc={doc} />
                 ))}
               </div>
-            </section>
+              </div>
+              )}
+            </DragRow>
           ))}
           {e.loose.length > 0 && (
             <section className="install loose" aria-label="À ranger">

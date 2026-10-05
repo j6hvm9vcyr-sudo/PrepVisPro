@@ -262,6 +262,13 @@ test('tournage : installations proposées d’après le plan au sol, réorganis�
   // Glisser 1/2B dans la première installation.
   await page.locator('.shot-row', { hasText: '1/2B' }).dragTo(installs.nth(0).locator('.shot-row').first());
   await expect(installs.nth(0).locator('.shot-code')).toHaveText(['1/2B', '1/3']);
+  // Glisser une installation par sa poignée : la 3e passe en tête.
+  await installs.nth(2).locator('.drag-handle').dragTo(installs.nth(0), { targetPosition: { x: 60, y: 4 } });
+  await expect(installs.nth(0).locator('.install-name')).toHaveValue('Sans position sur le plan');
+  await expect(installs.nth(1).locator('.install-name')).toHaveValue('Champ 1');
+  await expect(installs.nth(2).locator('.install-name')).toHaveValue('Contrechamp 2');
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(installs.nth(0).locator('.install-name')).toHaveValue('Champ 1');
   // Un plan ajouté au découpage apparaît « à ranger ».
   await page.keyboard.press('ControlOrMeta+1');
   await page.keyboard.press('ControlOrMeta+Enter');

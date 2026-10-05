@@ -175,13 +175,18 @@ export function updateInstallation(doc: ProjectDoc, seqId: Id, installationId: I
 }
 
 export function moveInstallation(doc: ProjectDoc, seqId: Id, installationId: Id, delta: -1 | 1): ProjectDoc {
+  const i = doc.sequences.find((s) => s.id === seqId)?.shooting?.installations.findIndex((x) => x.id === installationId) ?? -1;
+  return i < 0 ? doc : moveInstallationTo(doc, seqId, installationId, i + delta);
+}
+
+/** Place une installation au rang `to` (glisser-déposer). */
+export function moveInstallationTo(doc: ProjectDoc, seqId: Id, installationId: Id, to: number): ProjectDoc {
   return produce(doc, (d) => {
     const list = draftSeq(d, seqId).shooting?.installations;
     if (!list) return;
     const i = list.findIndex((x) => x.id === installationId);
-    const j = i + delta;
-    if (i < 0 || j < 0 || j >= list.length) return;
-    [list[i], list[j]] = [list[j]!, list[i]!];
+    if (i < 0 || to < 0 || to >= list.length || to === i) return;
+    list.splice(to, 0, list.splice(i, 1)[0]!);
   });
 }
 

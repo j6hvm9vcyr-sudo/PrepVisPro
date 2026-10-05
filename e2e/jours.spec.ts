@@ -37,6 +37,11 @@ test('jours de tournage : séquences du jour, ordre, soleil à la date du jour, 
   await expect(seqs.locator('.day-seq-h b')).toHaveText([/SÉQ\. 2/, /SÉQ\. 1/]);
   await page.keyboard.press('Alt+ArrowDown');
   await expect(seqs.locator('.day-seq-h b')).toHaveText([/SÉQ\. 1/, /SÉQ\. 2/]);
+  // Ou en glissant la poignée : la séquence 2 lâchée en haut de la 1.
+  await seqs.locator('.drag-handle').nth(1).dragTo(seqs.locator('.day-seq').first(), { targetPosition: { x: 40, y: 4 } });
+  await expect(seqs.locator('.day-seq-h b')).toHaveText([/SÉQ\. 2/, /SÉQ\. 1/]);
+  await seqs.locator('.drag-handle').nth(0).dragTo(seqs.locator('.day-seq').nth(1), { targetPosition: { x: 40, y: 30 } });
+  await expect(seqs.locator('.day-seq-h b')).toHaveText([/SÉQ\. 1/, /SÉQ\. 2/]);
   await expect(seqs.getByRole('button', { name: 'Ordre de tournage à établir (vue Tournage)' }).first()).toBeVisible();
   // Soleil à la date du jour (référence NREL SPA : lever 05:46:56, coucher 21:57:51).
   const sun = page.getByRole('region', { name: 'Soleil du jour' });
@@ -44,7 +49,7 @@ test('jours de tournage : séquences du jour, ordre, soleil à la date du jour, 
   // Matériel du jour : focales des séquences 1 et 2.
   await expect(mat).toContainText(/300 mm/);
   await expect(mat).toContainText(/25 mm/);
-  await expect(list.locator('.loose')).toHaveText(/Sans jour :\s*séq\. 3\s*séq\. 4/);
+  await expect(list.locator('.days-loose')).toHaveText(/Sans jour :\s*séq\. 3\s*séq\. 4/);
   await page.screenshot({ path: 'test-results/24-jour.png' });
 
   // J2 : la séquence 2 continue → signalée sur les deux jours.
