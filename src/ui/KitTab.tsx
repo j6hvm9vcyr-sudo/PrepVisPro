@@ -75,6 +75,21 @@ export function KitTab() {
         );
       })}
 
+      <section className="kit-sec" aria-label="Modèles d’export">
+        <h4>
+          Modèles d’export <span className="note">{kit.exportPresets.length || ''}</span>
+        </h4>
+        {kit.exportPresets.length === 0 && <p className="note kit-empty">Aucun. Fenêtre Exporter › « Enregistrer comme modèle… ».</p>}
+        {kit.exportPresets.map((p) => (
+          <div key={p.id} className="kit-item">
+            <span className="kit-name">{p.name}</span>
+            <button type="button" className="linkbtn danger" aria-label={`Retirer le modèle ${p.name}`} onClick={() => void run((k) => ({ ...k, exportPresets: k.exportPresets.filter((x) => x.id !== p.id) }), 'Modèle d’export retiré')}>
+              Retirer
+            </button>
+          </div>
+        ))}
+      </section>
+
       <section className="kit-sec" aria-label="Réglages de départ des nouveaux projets">
         <h4>Réglages de départ des nouveaux projets</h4>
         <div className="kit-item">

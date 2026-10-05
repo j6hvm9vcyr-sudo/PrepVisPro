@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
 import { ALL_COLUMNS, BUILTIN_PRESETS, COLUMN_DEFS, type ColumnId, type ExportOptions } from '../export/model';
-import { allPresets, deleteUserPreset, lastUsed, rememberLast, sameOptions, saveUserPreset } from '../export/presets';
+import { deleteUserPreset, importOldPresets, lastUsed, rememberLast, sameOptions, saveUserPreset, userPresetsOf } from '../export/presets';
+import { useKit } from '../platform/kit';
 import { buildExport, floorPlansFor, saveExport, type ExportFormat } from '../export/service';
 import { getBackend } from '../platform/backend';
 import { focusGrid, useDialogFocus } from './focus';
@@ -17,7 +18,9 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   const [initial] = useState(lastUsed);
   const [presetId, setPresetId] = useState(initial.presetId);
   const [opts, setOpts] = useState<ExportOptions>(initial.options);
-  const [presets, setPresets] = useState(allPresets);
+  const { kit } = useKit();
+  const presets = [...BUILTIN_PRESETS, ...userPresetsOf(kit)];
+  useEffect(() => void importOldPresets(), []);
   const [busy, setBusy] = useState<Busy>(null);
   const [done, setDone] = useState<Done>(null);
   const [error, setError] = useState<string | null>(null);
@@ -120,8 +123,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                           className="linkbtn danger"
                           aria-label={`Supprimer le modèle ${p.name}`}
                           onClick={() => {
-                            deleteUserPreset(p.id);
-                            setPresets(allPresets());
+                            void deleteUserPreset(p.id).then((r) => !r.ok && setError(r.error));
                           }}
                         >
                           ×
@@ -142,10 +144,11 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                     className="row"
                     onSubmit={(e) => {
                       e.preventDefault();
-                      const p = saveUserPreset(naming, opts);
-                      setPresets(allPresets());
-                      setPresetId(p.id);
-                      setNaming(null);
+                      void saveUserPreset(naming, opts).then((r) => {
+                        if (!r.ok) return setError(r.error);
+                        setPresetId(r.preset.id);
+                        setNaming(null);
+                      });
                     }}
                   >
                     <input autoFocus className="field-input" placeholder="Nom du modèle" value={naming} onChange={(e) => setNaming(e.target.value)} aria-label="Nom du modèle" />
@@ -187,86 +190,10 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="export-col">
-            <section className="sec">
-              <div className="sec-h">Présentation (PDF et Excel)</div>
-              <div className="seg" role="group" aria-label="Présentation">
-                <button type="button" aria-pressed={opts.layout === 'dt'} onClick={() => set({ layout: 'dt' })}>
-                  Découpage technique
-                </button>
-                <button type="button" aria-pressed={opts.layout === 'columns'} onClick={() => set({ layout: 'columns' })}>
-                  Une colonne par réglage
-                </button>
-              </div>
-              <p className="note" style={{ margin: 0 }}>
-                {opts.layout === 'dt'
-                  ? 'Valeur, axe, angle, focale, mouvement et machinerie regroupés dans une case Description ; lignes aux couleurs de l’effet de chaque séquence.'
-                  : 'Chaque réglage dans sa propre colonne : pratique pour trier ou filtrer dans Excel.'}
-              </p>
-              <label className="check">
-                <input type="checkbox" checked={opts.showCamera} onChange={(e) => set({ showCamera: e.target.checked })} />
-                Caméra (A, B…) des plans à plusieurs caméras
-              </label>
-              {doc.sequences.some((x) => x.shooting) && (
-                <label className="check">
-                  <input type="checkbox" checked={opts.shootingOrder} onChange={(e) => set({ shootingOrder: e.target.checked })} />
-                  Ordre de tournage (installations), en PDF et Excel
-                </label>
-              )}
-              {doc.shootingDays.length > 0 && (
-                <label className="check">
-                  <input type="checkbox" checked={opts.days} onChange={(e) => set({ days: e.target.checked })} />
-                  Jours de tournage et matériel (tous les jours), en PDF et Excel
-                </label>
-              )}
-              {doc.floorPlans.length > 0 && (
-                <label className="check">
-                  <input type="checkbox" checked={opts.floorPlans} onChange={(e) => set({ floorPlans: e.target.checked })} />
-                  Plans au sol des séquences exportées ({plural(floorPlansFor(doc, opts.sequenceIds).length, 'plan')}), en PDF et Excel
-                </label>
-              )}
-            </section>
-
-            <section className="sec">
-              <div className="sec-h">Mise en page (PDF)</div>
-              <div className="row">
-                <div className="seg" role="group" aria-label="Orientation">
-                  <button type="button" aria-pressed={opts.orientation === 'landscape'} onClick={() => set({ orientation: 'landscape' })}>
-                    Paysage
-                  </button>
-                  <button type="button" aria-pressed={opts.orientation === 'portrait'} onClick={() => set({ orientation: 'portrait' })}>
-                    Portrait
-                  </button>
-                </div>
-                <div className="seg" role="group" aria-label="Taille des images">
-                  {(['small', 'medium', 'large'] as const).map((k) => (
-                    <button key={k} type="button" aria-pressed={opts.imageSize === k} onClick={() => set({ imageSize: k })} disabled={!opts.columns.includes('image')}>
-                      {{ small: 'Petites', medium: 'Moyennes', large: 'Grandes' }[k]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <label className="check">
-                <input type="checkbox" checked={opts.coverPage} onChange={(e) => set({ coverPage: e.target.checked })} />
-                Page de garde (titre, équipe)
-              </label>
-              <label className="check">
-                <input type="checkbox" checked={opts.sequenceComments} onChange={(e) => set({ sequenceComments: e.target.checked })} />
-                Commentaires de séquence
-              </label>
-              <label className="check">
-                <input type="checkbox" checked={opts.markIncomplete} onChange={(e) => set({ markIncomplete: e.target.checked })} />
-                Signaler les plans à compléter
-              </label>
-              <label className="check">
-                <input type="checkbox" checked={opts.breakdown} onChange={(e) => set({ breakdown: e.target.checked })} />
-                Dépouillement image (caméra, machinerie, lumière, autre)
-              </label>
-
-            </section>
-
-            <section className="sec">
-              <div className="sec-h">
-                Séquences
+            <section className="sec" aria-label="Contenu">
+              <div className="sec-h">Contenu</div>
+              <div className="sub-h">
+                Séquences exportées
                 <label className="check" style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 500 }}>
                   <input type="checkbox" checked={seqAll} onChange={(e) => set({ sequenceIds: e.target.checked ? [] : doc.sequences.map((s) => s.id) })} />
                   Toutes
@@ -292,6 +219,79 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                   })}
                 </div>
               )}
+              <label className="check">
+                <input type="checkbox" checked={opts.sequenceComments} onChange={(e) => set({ sequenceComments: e.target.checked })} />
+                Commentaires de séquence
+              </label>
+              <label className="check">
+                <input type="checkbox" checked={opts.breakdown} onChange={(e) => set({ breakdown: e.target.checked })} />
+                Dépouillement image (caméra, machinerie, lumière, autre)
+              </label>
+              <label className="check">
+                <input type="checkbox" checked={opts.showCamera} onChange={(e) => set({ showCamera: e.target.checked })} />
+                Caméra (A, B…) des plans à plusieurs caméras
+              </label>
+              <label className="check">
+                <input type="checkbox" checked={opts.markIncomplete} onChange={(e) => set({ markIncomplete: e.target.checked })} />
+                Signaler les plans à compléter
+              </label>
+              {doc.sequences.some((x) => x.shooting) && (
+                <label className="check">
+                  <input type="checkbox" checked={opts.shootingOrder} onChange={(e) => set({ shootingOrder: e.target.checked })} />
+                  Ordre de tournage (installations), en PDF et Excel
+                </label>
+              )}
+              {doc.shootingDays.length > 0 && (
+                <label className="check">
+                  <input type="checkbox" checked={opts.days} onChange={(e) => set({ days: e.target.checked })} />
+                  Jours de tournage et matériel (tous les jours), en PDF et Excel
+                </label>
+              )}
+              {doc.floorPlans.length > 0 && (
+                <label className="check">
+                  <input type="checkbox" checked={opts.floorPlans} onChange={(e) => set({ floorPlans: e.target.checked })} />
+                  Plans au sol des séquences exportées ({plural(floorPlansFor(doc, opts.sequenceIds).length, 'plan')}), en PDF et Excel
+                </label>
+              )}
+            </section>
+
+            <section className="sec" aria-label="Mise en page">
+              <div className="sec-h">Mise en page</div>
+              <div className="seg" role="group" aria-label="Présentation">
+                <button type="button" aria-pressed={opts.layout === 'dt'} onClick={() => set({ layout: 'dt' })}>
+                  Découpage technique
+                </button>
+                <button type="button" aria-pressed={opts.layout === 'columns'} onClick={() => set({ layout: 'columns' })}>
+                  Une colonne par réglage
+                </button>
+              </div>
+              <p className="note" style={{ margin: 0 }}>
+                {opts.layout === 'dt'
+                  ? 'Valeur, axe, angle, focale, mouvement et machinerie regroupés dans une case Description ; lignes aux couleurs de l’effet de chaque séquence.'
+                  : 'Chaque réglage dans sa propre colonne : pratique pour trier ou filtrer dans Excel.'}
+              </p>
+              <div className="row">
+                <div className="seg" role="group" aria-label="Orientation">
+                  <button type="button" aria-pressed={opts.orientation === 'landscape'} onClick={() => set({ orientation: 'landscape' })}>
+                    Paysage
+                  </button>
+                  <button type="button" aria-pressed={opts.orientation === 'portrait'} onClick={() => set({ orientation: 'portrait' })}>
+                    Portrait
+                  </button>
+                </div>
+                <div className="seg" role="group" aria-label="Taille des images">
+                  {(['small', 'medium', 'large'] as const).map((k) => (
+                    <button key={k} type="button" aria-pressed={opts.imageSize === k} onClick={() => set({ imageSize: k })} disabled={!opts.columns.includes('image')}>
+                      {{ small: 'Petites', medium: 'Moyennes', large: 'Grandes' }[k]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <label className="check">
+                <input type="checkbox" checked={opts.coverPage} onChange={(e) => set({ coverPage: e.target.checked })} />
+                Page de garde (titre, équipe)
+              </label>
+              <p className="note" style={{ margin: 0 }}>Orientation, images et page de garde : PDF seulement.</p>
             </section>
 
             <section className="sec export-actions">

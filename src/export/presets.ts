@@ -1,8 +1,11 @@
-/** Modèles d'export : intégrés + modèles personnels (enregistrés sur cet ordinateur). */
+/** Modèles d'export : intégrés + modèles personnels (dans « Mon matériel », sur cet ordinateur). */
+import { updateKit } from '../platform/kit';
+import type { Kit } from '../model/kit';
 import { ALL_COLUMNS, BUILTIN_PRESETS, type ColumnId, type ExportOptions, type ExportPreset } from './model';
 
 const KEY = 'prepvispro.exportPresets';
 const LAST = 'prepvispro.exportLast';
+const MIGRATED = 'prepvispro.exportPresets.dansMonMateriel';
 
 function sanitize(o: Partial<ExportOptions> | undefined): ExportOptions | null {
   if (!o || !Array.isArray(o.columns)) return null;
@@ -25,42 +28,48 @@ function sanitize(o: Partial<ExportOptions> | undefined): ExportOptions | null {
   };
 }
 
-function userPresets(): ExportPreset[] {
-  try {
-    const raw = JSON.parse(localStorage.getItem(KEY) ?? '[]');
-    if (!Array.isArray(raw)) return [];
-    return raw
-      .map((p) => {
-        const options = sanitize(p?.options);
-        return options && typeof p.id === 'string' && typeof p.name === 'string' ? { id: p.id, name: p.name, options } : null;
-      })
-      .filter((p): p is ExportPreset => p !== null);
-  } catch {
-    return [];
-  }
+/** Modèles personnels gardés dans « Mon matériel » (options vérifiées une à une). */
+export function userPresetsOf(kit: Kit): ExportPreset[] {
+  return kit.exportPresets
+    .map((p) => {
+      const options = sanitize(p.options as Partial<ExportOptions>);
+      return options ? { id: p.id, name: p.name, options } : null;
+    })
+    .filter((p): p is ExportPreset => p !== null);
 }
 
-export function saveUserPreset(name: string, options: ExportOptions): ExportPreset {
-  const p: ExportPreset = { id: `u-${Date.now().toString(36)}`, name: name.trim() || 'Mon modèle', options: { ...options, sequenceIds: [] } };
-  const list = [...userPresets().filter((x) => x.name !== p.name), p];
-  try {
-    localStorage.setItem(KEY, JSON.stringify(list));
-  } catch {
-    /* stockage indisponible : le modèle reste valable pour cette session */
-  }
-  return p;
+export async function saveUserPreset(name: string, options: ExportOptions): Promise<{ ok: true; preset: ExportPreset } | { ok: false; error: string }> {
+  const preset: ExportPreset = { id: `u-${Date.now().toString(36)}`, name: name.trim() || 'Mon modèle', options: { ...options, sequenceIds: [] } };
+  const r = await updateKit((k) => ({ ...k, exportPresets: [...k.exportPresets.filter((x) => x.name !== preset.name), preset] }));
+  return r.ok ? { ok: true, preset } : r;
 }
 
-export function deleteUserPreset(id: string) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(userPresets().filter((p) => p.id !== id)));
-  } catch {
-    /* sans conséquence */
-  }
+export async function deleteUserPreset(id: string) {
+  return updateKit((k) => ({ ...k, exportPresets: k.exportPresets.filter((p) => p.id !== id) }));
 }
 
-export function allPresets(): ExportPreset[] {
-  return [...BUILTIN_PRESETS, ...userPresets()];
+/**
+ * Les modèles d'avant la v0.8.2 étaient gardés à part (stockage du navigateur interne) :
+ * ils passent une fois dans « Mon matériel », sans écraser un modèle du même nom.
+ */
+export async function importOldPresets(): Promise<void> {
+  let raw: unknown;
+  try {
+    if (localStorage.getItem(MIGRATED)) return;
+    raw = JSON.parse(localStorage.getItem(KEY) ?? '[]');
+  } catch {
+    return;
+  }
+  const old = (Array.isArray(raw) ? raw : [])
+    .map((p) => (p && typeof p.id === 'string' && typeof p.name === 'string' && sanitize(p.options) ? { id: p.id as string, name: p.name as string, options: sanitize(p.options) } : null))
+    .filter((p): p is { id: string; name: string; options: ExportOptions } => p !== null);
+  const r = old.length ? await updateKit((k) => ({ ...k, exportPresets: [...k.exportPresets, ...old.filter((o) => !k.exportPresets.some((x) => x.name === o.name))] })) : { ok: true };
+  if (r.ok)
+    try {
+      localStorage.setItem(MIGRATED, '1');
+    } catch {
+      /* on réessaiera : sans doublon, grâce au nom */
+    }
 }
 
 export function rememberLast(presetId: string, options: ExportOptions) {

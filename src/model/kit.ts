@@ -26,13 +26,15 @@ export interface Kit {
   terms: Record<TermCategory, string[]> | null;
   /** Exposition de départ des nouveaux projets ; null : celle de l'application. */
   exposure: Exposure | null;
+  /** Modèles d'export personnels (options relues et vérifiées par export/presets.ts). */
+  exportPresets: { id: string; name: string; options: unknown }[];
 }
 
 export type KitKind = 'cameras' | 'lenses' | 'fixtures' | 'reflectors';
 type ItemOf<K extends KitKind> = Kit[K][number];
 
 export function emptyKit(): Kit {
-  return { version: KIT_VERSION, cameras: [], lenses: [], fixtures: [], reflectors: [], terms: null, exposure: null };
+  return { version: KIT_VERSION, cameras: [], lenses: [], fixtures: [], reflectors: [], terms: null, exposure: null, exportPresets: [] };
 }
 
 const kitSchema = z.object({
@@ -43,6 +45,8 @@ const kitSchema = z.object({
   reflectors: z.array(settingsSchemas.reflector),
   terms: settingsSchemas.terms.nullable(),
   exposure: settingsSchemas.exposure.nullable(),
+  // Ajouté après la première version du fichier : absent = aucun.
+  exportPresets: z.array(z.object({ id: z.string().min(1), name: z.string(), options: z.unknown() })).default([]),
 });
 
 /** Lecture du fichier « Mon matériel » : refusé en bloc s'il n'est pas valide (jamais à moitié). */

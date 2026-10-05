@@ -36,4 +36,21 @@ test('modèle personnalisé : colonnes, ordre, enregistrement', async ({ page })
   await dlg.getByLabel('Nom du modèle').fill('Réal + divers');
   await dlg.getByRole('button', { name: 'Enregistrer', exact: true }).click();
   await expect(dlg.getByRole('radio', { name: 'Réal + divers' })).toHaveAttribute('aria-checked', 'true');
+  // Gardé dans Mon matériel : visible là aussi, et retrouvé après redémarrage.
+  await page.keyboard.press('Escape');
+  await page.reload();
+  await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
+  await page.getByRole('button', { name: 'Exporter…' }).click();
+  await expect(dlg.getByRole('radio', { name: 'Réal + divers' })).toBeVisible();
+});
+
+test('anciens modèles d’export (gardés à part avant la v0.8.2) : repris une fois dans Mon matériel', async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.setItem('prepvispro.exportPresets', JSON.stringify([{ id: 'u-ancien', name: 'Ancien modèle', options: { columns: ['plan', 'action'], orientation: 'portrait' } }]));
+  });
+  await page.getByRole('button', { name: 'Exporter…' }).click();
+  const dlg = page.getByRole('dialog', { name: 'Exporter' });
+  await expect(dlg.getByRole('radio', { name: 'Ancien modèle' })).toBeVisible();
+  const kit = await page.evaluate(() => JSON.parse(localStorage.getItem('prepvispro.kit') ?? '{}'));
+  expect(kit.exportPresets.map((p: { name: string }) => p.name)).toEqual(['Ancien modèle']);
 });

@@ -260,7 +260,7 @@ function PresetPicker({ planId, setup }: { planId: string; setup: CameraSetup })
   const canSave = !current && !emptySetup(setup);
   if (!presets.length && !canSave) return null;
   return (
-    <div className="preset-row">
+    <div className="shotpreset-row">
       <Picker
         label="Plan type"
         variant="add"

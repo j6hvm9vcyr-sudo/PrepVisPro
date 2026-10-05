@@ -65,6 +65,10 @@ describe('Mon matériel', () => {
     expect(parseKit({ ...emptyKit(), cameras: [{ ...venice, sensorWidthMm: -1 }] }).ok).toBe(false);
     expect(parseKit({ version: 2 }).ok).toBe(false);
     expect(parseKit(null).ok).toBe(false);
+    // Fichier écrit par la v0.8.0 (sans modèles d'export) : relu, sans modèle.
+    const { exportPresets: _e, ...v080 } = emptyKit();
+    const r = parseKit(v080);
+    expect(r.ok && r.kit.exportPresets).toEqual([]);
   });
 });
 
