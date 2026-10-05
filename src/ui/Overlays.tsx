@@ -60,7 +60,7 @@ const SHORTCUTS: { title: string; items: [string, string][] }[] = [
     items: [
       ['Remplacer le contenu', 'taper'],
       ['Modifier le contenu (toute la liste proposée)', '↩'],
-      ['Valider et descendre', '↩'],
+      ['Valider (on reste sur la case ; ↓ pour descendre)', '↩'],
       ['Valider et passer à droite', '⇥'],
       ['Choisir une suggestion', '↑ ↓'],
       ['Annuler la saisie', 'esc'],

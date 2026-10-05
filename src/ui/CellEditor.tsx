@@ -48,7 +48,7 @@ export function CellEditor({ field }: { field: EditableField }) {
     if (key === 'Enter' && meta) {
       // ⌘↩ : valider puis enchaîner sur un nouveau plan (⇧ pour une reprise).
       if (st().commitEdit('stay', at)) st().newPlan(shift);
-    } else if (key === 'Enter') done(st().commitEdit('down', at));
+    } else if (key === 'Enter') done(st().commitEdit('stay', at)); // ↩ valide et reste sur la case (↓ pour descendre)
     else done(st().commitEdit(shift ? 'left' : 'right', at));
   };
 

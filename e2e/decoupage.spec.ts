@@ -34,7 +34,9 @@ test('saisie clavier : suggestion, évolutif, Tab, Entrée', async ({ page }) =>
   await page.keyboard.type('pr');
   await page.keyboard.press('Enter');
   await expect(cell(page, 0, 'axis')).toHaveText('Profil');
-  // Entrée descend : on est sur l'axe du plan 1/2.
+  // Entrée valide et reste sur la case ; ↓ pour descendre.
+  await expect(cell(page, 0, 'axis')).toHaveClass(/active/);
+  await page.keyboard.press('ArrowDown');
   await expect(cell(page, 1, 'axis')).toHaveClass(/active/);
 });
 
@@ -198,7 +200,7 @@ test('Entrée valide aussi pendant une composition (accents, texte prédictif de
   await expect(input).toHaveValue('poi');
   await page.keyboard.press('Enter');
   await expect(cell(page, 0, 'size')).toHaveText('Poitrine');
-  await expect(cell(page, 1, 'size')).toHaveClass(/active/);
+  await expect(cell(page, 0, 'size')).toHaveClass(/active/);
   await expect(input).toHaveCount(0);
 });
 
