@@ -187,7 +187,7 @@ fn icons_remove(app: AppHandle, ids: Vec<String>) -> Result<usize, String> {
     icons::remove(&icons_dir(&app)?, &ids)
 }
 
-// ------------------------------------------------------------------ « Mon matériel »
+// ------------------------------------------------------------------ ancien « Mon matériel » (lecture seule)
 
 fn data_dir(app: &AppHandle) -> Result<PathBuf, String> {
     app.path().app_data_dir().map_err(|e| format!("Dossier de l'application introuvable : {e}"))
@@ -196,11 +196,6 @@ fn data_dir(app: &AppHandle) -> Result<PathBuf, String> {
 #[tauri::command]
 fn kit_read(app: AppHandle) -> Result<Option<String>, String> {
     kit::read(&data_dir(&app)?)
-}
-
-#[tauri::command]
-fn kit_write(app: AppHandle, json: String) -> Result<(), String> {
-    kit::write(&data_dir(&app)?, &json)
 }
 
 /// Écrit un export ; chemin dans l'en-tête (encodé), octets bruts dans le corps.
@@ -383,7 +378,7 @@ fn request_quit(app: &AppHandle) {
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![project_create, project_load, project_save, image_write, reveal_in_finder, quit_ack, quit_now, take_pending_open, image_read, export_write, open_file, script_read, project_save_conflict_copy, icons_list, icons_scan, icons_read_source, icons_store, icons_read, icons_remove, kit_read, kit_write, version_create, version_list, version_read])
+        .invoke_handler(tauri::generate_handler![project_create, project_load, project_save, image_write, reveal_in_finder, quit_ack, quit_now, take_pending_open, image_read, export_write, open_file, script_read, project_save_conflict_copy, icons_list, icons_scan, icons_read_source, icons_store, icons_read, icons_remove, kit_read, version_create, version_list, version_read])
         .setup(|app| {
             build_menu(app)?;
             Ok(())

@@ -57,16 +57,17 @@ export async function install() {
       const { invoke } = await import('@tauri-apps/api/core');
       return new TextDecoder().decode(new Uint8Array(await invoke<ArrayBuffer>('script_read', { path })));
     },
-    /** Mon matériel : enregistre une caméra, puis relit le fichier materiel.json écrit sur disque. */
-    async kitRoundTrip() {
-      const { updateKit } = await import('./platform/kit');
-      const { saveToKit, parseKit } = await import('./model/kit');
-      const cam = { id: 'c', label: 'A', body: 'Caméra d’essai é', mode: '4K', sensorWidthMm: 24.9, sensorHeightMm: 14, squeeze: 1 };
-      const w = await updateKit((k) => saveToKit(k, 'cameras', cam).kit);
-      const { invoke } = await import('@tauri-apps/api/core');
-      const raw = await invoke<string | null>('kit_read');
-      const r = raw ? parseKit(JSON.parse(raw)) : null;
-      return { w, body: r && r.ok ? r.kit.cameras.find((c) => c.mode === '4K')?.body : null };
+    /** Ancien « Mon matériel » (lecture seule) : ce qu'il propose de reprendre. */
+    async oldEquipment() {
+      const { readOldEquipment } = await import('./platform/kit');
+      const r = await readOldEquipment();
+      return r && 'source' in r ? { cameras: r.source.cameras.map((c) => c.body), exportPresets: r.source.exportPresets.map((p) => p.name) } : r;
+    },
+    /** Lit un autre projet sans l'ouvrir (reprise du matériel). */
+    async otherProject(path: string) {
+      const { readProjectAt } = await import('./state/project');
+      const r = await readProjectAt(path);
+      return 'doc' in r ? { name: r.name, cameras: r.doc.settings.cameras.length } : r;
     },
     /** Ajoute des séquences (décors accentués), pour les listes à recherche. */
     async addSequences(names: string[]) {

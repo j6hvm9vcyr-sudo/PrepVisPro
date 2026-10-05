@@ -4,8 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
 import { ALL_COLUMNS, BUILTIN_PRESETS, COLUMN_DEFS, type ColumnId, type ExportOptions } from '../export/model';
-import { deleteUserPreset, importOldPresets, lastUsed, rememberLast, sameOptions, saveUserPreset, userPresetsOf } from '../export/presets';
-import { useKit } from '../platform/kit';
+import { deleteProjectPreset, lastUsed, projectPresets, rememberLast, sameOptions, saveProjectPreset } from '../export/presets';
 import { buildExport, floorPlansFor, saveExport, type ExportFormat } from '../export/service';
 import { getBackend } from '../platform/backend';
 import { focusGrid, useDialogFocus } from './focus';
@@ -18,9 +17,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   const [initial] = useState(lastUsed);
   const [presetId, setPresetId] = useState(initial.presetId);
   const [opts, setOpts] = useState<ExportOptions>(initial.options);
-  const { kit } = useKit();
-  const presets = [...BUILTIN_PRESETS, ...userPresetsOf(kit)];
-  useEffect(() => void importOldPresets(), []);
+  const presets = [...BUILTIN_PRESETS, ...projectPresets(doc.settings.exportPresets)];
   const [busy, setBusy] = useState<Busy>(null);
   const [done, setDone] = useState<Done>(null);
   const [error, setError] = useState<string | null>(null);
@@ -122,9 +119,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                           type="button"
                           className="linkbtn danger"
                           aria-label={`Supprimer le modèle ${p.name}`}
-                          onClick={() => {
-                            void deleteUserPreset(p.id).then((r) => !r.ok && setError(r.error));
-                          }}
+                          onClick={() => deleteProjectPreset(p.id)}
                         >
                           ×
                         </button>
@@ -144,11 +139,8 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                     className="row"
                     onSubmit={(e) => {
                       e.preventDefault();
-                      void saveUserPreset(naming, opts).then((r) => {
-                        if (!r.ok) return setError(r.error);
-                        setPresetId(r.preset.id);
-                        setNaming(null);
-                      });
+                      setPresetId(saveProjectPreset(naming, opts).id);
+                      setNaming(null);
                     }}
                   >
                     <input autoFocus className="field-input" placeholder="Nom du modèle" value={naming} onChange={(e) => setNaming(e.target.value)} aria-label="Nom du modèle" />

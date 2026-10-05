@@ -144,6 +144,8 @@ const fixture = z.object({
   modes: z.array(z.object({ label: z.string(), lux: z.number().finite().positive().nullable(), distanceM: z.number().finite().positive().nullable(), beamDeg: z.number().finite().positive().max(180).nullable() })),
 });
 
+const figureIcon = z.object({ file: z.string().min(1), name: z.string(), turn: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]) });
+
 const exposure = z.object({ iso: z.number().finite().positive(), fps: z.number().finite().positive(), shutterDeg: z.number().finite().positive().max(360) });
 
 const reflector = z.object({ id, name: z.string(), type: z.enum(['diffuse', 'mirror']), reflectance: z.number().finite().positive().max(1).nullable(), presetId: z.string().min(1).nullable() });
@@ -180,6 +182,8 @@ const projectSchema = z.object({
     carryOver: z.object({ size: z.boolean(), axis: z.boolean(), angle: z.boolean(), focal: z.boolean(), movement: z.boolean(), grip: z.boolean() }),
     aliases: z.record(z.string(), z.array(z.string())),
     shotPresets: z.array(z.object({ id, start: framing, end: framing.nullable(), movements: z.array(z.string()), grip: z.array(z.string()) })),
+    exportPresets: z.array(z.object({ id, name: z.string(), options: z.unknown() })),
+    floorIcons: z.object({ camera: figureIcon.nullable(), actor: figureIcon.nullable(), light: figureIcon.nullable() }),
     timeZone: z.string().min(1).nullable(),
   }),
   sequences: z.array(sequence),

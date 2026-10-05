@@ -11,19 +11,13 @@ import { formatNumber } from '../model/text';
 import { fieldOfView, formatDeg, parseAspectRatio } from '../model/optics';
 import type { ProjectCamera } from '../model/types';
 import { DecimalField } from './DecimalField';
-import { Picker } from './Picker';
-import { addPickedFromKit, kitGroup, SaveToKit } from './KitControls';
-import { nextCameraLabel } from '../model/kit';
-import { useKit } from '../platform/kit';
-
-const BLANK = '__vierge';
+import { nextCameraLabel } from '../model/equipment';
 
 const FF = { w: 36, h: 24 };
 
 export function CamerasTab() {
   const doc = useApp(selectDoc);
   const st = useApp.getState;
-  const { kit } = useKit();
   const [selId, setSelId] = useState(doc.settings.cameras[0]?.id ?? '');
   const cams = doc.settings.cameras;
   const idx = Math.max(0, cams.findIndex((c) => c.id === selId));
@@ -47,26 +41,18 @@ export function CamerasTab() {
             </span>
           </button>
         ))}
-        <div style={{ marginTop: 6 }}>
-          <Picker
-            label="Ajouter une caméra"
-            variant="add"
-            groups={[kitGroup(kit, doc, 'cameras')]}
-            actions={[{ id: BLANK, label: 'Caméra vierge' }]}
-            onPick={(id) => {
-              if (id === BLANK) {
-                const c = newProjectCamera(nextCameraLabel(doc));
-                st().updateDoc((d) => void d.settings.cameras.push(c));
-                setSelId(c.id);
-              } else {
-                const got = addPickedFromKit(kit, 'cameras', id);
-                if (got) setSelId(got);
-              }
-            }}
-          >
-            + Caméra
-          </Picker>
-        </div>
+        <button
+          type="button"
+          className="linkbtn"
+          style={{ alignSelf: 'flex-start', marginTop: 6 }}
+          onClick={() => {
+            const c = newProjectCamera(nextCameraLabel(doc));
+            st().updateDoc((d) => void d.settings.cameras.push(c));
+            setSelId(c.id);
+          }}
+        >
+          + Caméra
+        </button>
         <p className="note" style={{ fontSize: 11.5, lineHeight: '16px', marginTop: 'auto' }}>
           Une deuxième caméra n’est utile que pour les plans tournés à plusieurs caméras (⇧⌘C sur un plan).
         </p>
@@ -118,7 +104,7 @@ export function CamerasTab() {
         )}
 
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <SaveToKit kind="cameras" item={cam} />
+          <span />
           <button
             type="button"
             className="btn danger"

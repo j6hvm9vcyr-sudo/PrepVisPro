@@ -210,10 +210,17 @@ try {
     ok(w > 0 && w <= 512, `icône affichée depuis la bibliothèque, réduite (${w} px)`);
   }
 
-  // Mon matériel : écrit dans le dossier de l'application, relu à l'identique (accents compris).
+  // Ancien « Mon matériel » (fichier du Mac, accents compris) : lu pour être repris dans un projet.
   {
-    const k = await exec('return await window.__prepvis.kitRoundTrip();');
-    ok(k?.w?.ok === true && k?.body === 'Caméra d’essai é', `Mon matériel enregistré et relu (${JSON.stringify(k).slice(0, 200)})`);
+    const { mkdirSync: md } = await import('node:fs');
+    const appData = join(process.env.XDG_DATA_HOME ?? join(process.env.HOME, '.local/share'), 'fr.adrienrousseau.prepvispro');
+    md(appData, { recursive: true });
+    wf(join(appData, 'materiel.json'), JSON.stringify({ version: 1, cameras: [{ id: 'k1', label: 'A', body: 'Caméra d’essai é', mode: '4K', sensorWidthMm: 24.9, sensorHeightMm: 14, squeeze: 1 }], lenses: [], fixtures: [], reflectors: [], terms: null, exposure: null }));
+    const k = await exec('return await window.__prepvis.oldEquipment();');
+    ok(k?.cameras?.[0] === 'Caméra d’essai é', `ancien « Mon matériel » lu (${JSON.stringify(k).slice(0, 200)})`);
+    rmSync(join(appData, 'materiel.json'));
+    const o = await exec(`return await window.__prepvis.otherProject(${JSON.stringify(projectDir)});`);
+    ok(o?.name === 'Film test' && o?.cameras >= 1, `autre projet lu sans l’ouvrir (${JSON.stringify(o)})`);
   }
 
   // Fermer puis rouvrir : le projet revient à l'identique.

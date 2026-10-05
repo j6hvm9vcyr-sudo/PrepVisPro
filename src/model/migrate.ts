@@ -32,6 +32,7 @@ export function migrate(raw: unknown): MigrateResult {
   if (v <= 13) doc = from13to14(doc);
   if (v <= 14) doc = from14to15(doc);
   if (v <= 15) doc = from15to16(doc);
+  if (v <= 16) doc = from16to17(doc);
   return { ok: true, raw: doc };
 }
 
@@ -207,4 +208,14 @@ function from15to16(doc: Record<string, unknown>): Record<string, unknown> {
   // Même ordre de clés que defaults.ts (relecture à l'identique).
   const { timeZone, ...rest } = settings;
   return { ...doc, schemaVersion: 16, settings: { ...rest, carryOver: all, aliases: structuredClone(TERM_ALIASES), shotPresets: [], timeZone } };
+}
+
+/**
+ * Format 16 → 17 : modèles d'export et icônes des figures du plan au sol, dans le projet
+ * (aucun : les modèles gardés sur le Mac se reprennent dans Réglages › Matériel).
+ */
+function from16to17(doc: Record<string, unknown>): Record<string, unknown> {
+  const settings = doc.settings && typeof doc.settings === 'object' ? (doc.settings as Record<string, unknown>) : {};
+  const { timeZone, ...rest } = settings;
+  return { ...doc, schemaVersion: 17, settings: { ...rest, exportPresets: [], floorIcons: { camera: null, actor: null, light: null }, timeZone } };
 }

@@ -9,8 +9,6 @@
  *   suivante ou sur demande (⌘S) ; rien n'est perdu tant que l'application est ouverte.
  */
 import { projectFrom } from '../model/template';
-import { loadKit } from '../platform/kit';
-import { applyKitDefaults } from '../model/kit';
 import { create } from 'zustand';
 import type { ProjectDoc } from '../model/types';
 import { validateProject } from '../model/schema';
@@ -281,14 +279,29 @@ export async function newProjectWithDoc(doc: ProjectDoc, suggestedName: string):
   return newProjectAt(dir, doc);
 }
 
-/** Nouveau projet, avec le vocabulaire et l'exposition de départ de « Mon matériel » s'ils sont enregistrés. */
-export async function freshProject(title: string): Promise<ProjectDoc> {
-  return applyKitDefaults(newProject(title), await loadKit());
-}
 
 /** Nouveau projet qui reprend les réglages et l'équipe du projet ouvert (model/template.ts). */
 export async function newProjectFromCurrent(): Promise<boolean> {
   return newProjectWithDoc(projectFrom(selectDoc(useApp.getState()), 'Sans titre'), 'Nouveau projet');
+}
+
+/** Lit un autre projet sans l'ouvrir (pour reprendre son matériel). */
+export async function readProjectAt(path: string): Promise<{ doc: ProjectDoc; name: string } | { error: string }> {
+  backend ??= await getBackend();
+  try {
+    const { dir, json } = await backend.load(path);
+    const r = parseProject(json);
+    return r.ok ? { doc: r.doc, name: baseName(dir) } : { error: `Impossible de lire « ${baseName(dir)} ». ${r.error}` };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Choisit un autre projet sur le disque et le lit sans l'ouvrir ; null si on annule. */
+export async function pickOtherProject(): Promise<{ doc: ProjectDoc; name: string } | { error: string } | null> {
+  backend ??= await getBackend();
+  const p = await backend.pickOpen();
+  return p ? readProjectAt(p) : null;
 }
 
 /** Nouveau projet qui reprend les réglages et l'équipe d'un projet choisi sur le disque. */
@@ -312,7 +325,7 @@ export async function newProjectFromOther(): Promise<boolean> {
 /** Crée un projet dans `dir` (dossier .prepvis) et l'ouvre. */
 export async function newProjectAt(dir: string, prepared?: ProjectDoc): Promise<boolean> {
   backend ??= await getBackend();
-  const doc = prepared ?? (await freshProject(baseName(dir)));
+  const doc = prepared ?? newProject(baseName(dir));
   try {
     // Créé d'abord sur disque : en cas d'échec, le projet en cours reste ouvert.
     const { dir: real, fp } = await backend.create(dir, serializeProject(doc));
@@ -358,7 +371,7 @@ export async function openSample(large = false): Promise<void> {
 export async function openBlankUnsaved(): Promise<void> {
   backend ??= await getBackend();
   if (!(await closeProject())) return;
-  openDoc(await freshProject('Sans titre'), 'unsaved', null);
+  openDoc(newProject('Sans titre'), 'unsaved', null);
 }
 
 /**

@@ -11,7 +11,7 @@ import { presetLabel, removePreset } from '../model/shotPresets';
 import { isComposing, focusGrid, useDialogFocus } from './focus';
 import { CamerasTab } from './CamerasTab';
 import { LensesTab } from './LensesTab';
-import { KitTab } from './KitTab';
+import { EquipmentTab } from './EquipmentTab';
 import { newProjectFromCurrent } from '../state/project';
 import { useTheme } from './theme';
 
@@ -61,7 +61,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
                 ['optiques', 'Optiques'],
                 ['termes', 'Listes de termes'],
                 ['complet', 'Saisie des plans'],
-                ['materiel', 'Mon matériel'],
+                ['materiel', 'Matériel'],
                 ['apparence', 'Apparence'],
               ] as const
             ).map(([k, l]) => (
@@ -140,7 +140,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
 
         {tab === 'cameras' && <CamerasTab />}
         {tab === 'optiques' && <LensesTab />}
-        {tab === 'materiel' && <KitTab />}
+        {tab === 'materiel' && <EquipmentTab />}
 
         {tab === 'termes' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, overflow: 'auto' }}>

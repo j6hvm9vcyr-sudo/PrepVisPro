@@ -38,6 +38,17 @@ describe('mise à niveau des fichiers', () => {
     expect(r.doc.settings.carryOver).toEqual({ size: true, axis: true, angle: true, focal: true, movement: true, grip: true });
     expect(Object.keys(r.doc.settings)).toEqual(Object.keys(cur.settings));
   });
+  it('format 16 → 17 : modèles d’export et icônes des figures dans le projet (aucun)', () => {
+    const cur = newProject('X');
+    const { exportPresets: _e, floorIcons: _f, ...old } = cur.settings;
+    const m = migrate(JSON.parse(JSON.stringify({ ...cur, schemaVersion: 16, settings: old })));
+    expect(m.ok).toBe(true);
+    if (!m.ok) return;
+    const r = validateProject(m.raw);
+    expect(r.ok && r.doc.settings.exportPresets).toEqual([]);
+    expect(r.ok && r.doc.settings.floorIcons).toEqual({ camera: null, actor: null, light: null });
+    expect(r.ok && Object.keys(r.doc.settings)).toEqual(Object.keys(cur.settings));
+  });
   it('format 9 → 10 : projecteurs sans gélatine, aucune matière de réflecteur', () => {
     const cur = newProject('X');
     const { reflectors: _r, ...settings9 } = cur.settings;

@@ -90,6 +90,8 @@ export function defaultSettings(): ProjectSettings {
     carryOver: { ...DEFAULT_CARRY },
     aliases: structuredClone(TERM_ALIASES),
     shotPresets: [],
+    exportPresets: [],
+    floorIcons: { camera: null, actor: null, light: null },
     timeZone: null,
   };
 }

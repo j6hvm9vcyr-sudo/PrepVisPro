@@ -1,11 +1,10 @@
-/** Modèles d'export : intégrés + modèles personnels (dans « Mon matériel », sur cet ordinateur). */
-import { updateKit } from '../platform/kit';
-import type { Kit } from '../model/kit';
+/** Modèles d'export : intégrés + modèles du projet. */
+import { useApp } from '../state/appStore';
+import { newId } from '../model/defaults';
 import { ALL_COLUMNS, BUILTIN_PRESETS, type ColumnId, type ExportOptions, type ExportPreset } from './model';
 
 const KEY = 'prepvispro.exportPresets';
 const LAST = 'prepvispro.exportLast';
-const MIGRATED = 'prepvispro.exportPresets.dansMonMateriel';
 
 function sanitize(o: Partial<ExportOptions> | undefined): ExportOptions | null {
   if (!o || !Array.isArray(o.columns)) return null;
@@ -28,9 +27,9 @@ function sanitize(o: Partial<ExportOptions> | undefined): ExportOptions | null {
   };
 }
 
-/** Modèles personnels gardés dans « Mon matériel » (options vérifiées une à une). */
-export function userPresetsOf(kit: Kit): ExportPreset[] {
-  return kit.exportPresets
+/** Modèles d'export du projet (options vérifiées une à une : un modèle abîmé est ignoré). */
+export function projectPresets(list: readonly { id: string; name: string; options: unknown }[]): ExportPreset[] {
+  return list
     .map((p) => {
       const options = sanitize(p.options as Partial<ExportOptions>);
       return options ? { id: p.id, name: p.name, options } : null;
@@ -38,38 +37,25 @@ export function userPresetsOf(kit: Kit): ExportPreset[] {
     .filter((p): p is ExportPreset => p !== null);
 }
 
-export async function saveUserPreset(name: string, options: ExportOptions): Promise<{ ok: true; preset: ExportPreset } | { ok: false; error: string }> {
-  const preset: ExportPreset = { id: `u-${Date.now().toString(36)}`, name: name.trim() || 'Mon modèle', options: { ...options, sequenceIds: [] } };
-  const r = await updateKit((k) => ({ ...k, exportPresets: [...k.exportPresets.filter((x) => x.name !== preset.name), preset] }));
-  return r.ok ? { ok: true, preset } : r;
+/** Enregistre un modèle dans le projet (un modèle du même nom est remplacé ; ⌘Z annule). */
+export function saveProjectPreset(name: string, options: ExportOptions): ExportPreset {
+  const preset: ExportPreset = { id: newId('xp'), name: name.trim() || 'Mon modèle', options: { ...options, sequenceIds: [] } };
+  useApp.getState().updateDoc((d) => void (d.settings.exportPresets = [...d.settings.exportPresets.filter((x) => x.name !== preset.name), preset]));
+  return preset;
 }
 
-export async function deleteUserPreset(id: string) {
-  return updateKit((k) => ({ ...k, exportPresets: k.exportPresets.filter((p) => p.id !== id) }));
+export function deleteProjectPreset(id: string) {
+  useApp.getState().updateDoc((d) => void (d.settings.exportPresets = d.settings.exportPresets.filter((p) => p.id !== id)));
 }
 
-/**
- * Les modèles d'avant la v0.8.2 étaient gardés à part (stockage du navigateur interne) :
- * ils passent une fois dans « Mon matériel », sans écraser un modèle du même nom.
- */
-export async function importOldPresets(): Promise<void> {
-  let raw: unknown;
+/** Modèles enregistrés avant la v0.8.3, hors du projet (navigateur interne, puis « Mon matériel »). */
+export function oldLocalPresets(): ExportPreset[] {
   try {
-    if (localStorage.getItem(MIGRATED)) return;
-    raw = JSON.parse(localStorage.getItem(KEY) ?? '[]');
+    const raw: unknown = JSON.parse(localStorage.getItem(KEY) ?? '[]');
+    return projectPresets(Array.isArray(raw) ? raw.filter((p) => p && typeof p.id === 'string' && typeof p.name === 'string') : []);
   } catch {
-    return;
+    return [];
   }
-  const old = (Array.isArray(raw) ? raw : [])
-    .map((p) => (p && typeof p.id === 'string' && typeof p.name === 'string' && sanitize(p.options) ? { id: p.id as string, name: p.name as string, options: sanitize(p.options) } : null))
-    .filter((p): p is { id: string; name: string; options: ExportOptions } => p !== null);
-  const r = old.length ? await updateKit((k) => ({ ...k, exportPresets: [...k.exportPresets, ...old.filter((o) => !k.exportPresets.some((x) => x.name === o.name))] })) : { ok: true };
-  if (r.ok)
-    try {
-      localStorage.setItem(MIGRATED, '1');
-    } catch {
-      /* on réessaiera : sans doublon, grâce au nom */
-    }
 }
 
 export function rememberLast(presetId: string, options: ExportOptions) {

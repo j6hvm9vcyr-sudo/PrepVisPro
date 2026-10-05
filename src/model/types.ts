@@ -137,6 +137,19 @@ interface CrewMember {
 export type RequiredField = 'action' | 'size' | 'axis' | 'angle' | 'focal' | 'movement' | 'grip';
 export const REQUIRED_FIELDS: readonly RequiredField[] = ['action', 'size', 'axis', 'angle', 'focal', 'movement', 'grip'];
 
+/** Figures du plan au sol qui peuvent prendre une icône importée. */
+export type FigureKind = 'camera' | 'actor' | 'light';
+
+/** Icône d'une figure : image copiée dans le projet, et sens dans lequel l'image « regarde ». */
+export interface FigureIcon {
+  /** Image dans le projet (« images/… »). */
+  file: string;
+  /** Nom de l'icône dans la bibliothèque, pour l'affichage. */
+  name: string;
+  /** Rotation à appliquer pour que l'image regarde vers le haut (sens 0° du plan). */
+  turn: 0 | 90 | 180 | 270;
+}
+
 /** Plan type : réglages d'une caméra, sans la caméra. Son nom est son résumé (« Poitrine · 3/4 · 50 mm »). */
 export interface ShotPreset {
   id: Id;
@@ -168,6 +181,10 @@ export interface ProjectSettings {
   aliases: Record<string, string[]>;
   /** Plans types : réglages caméra enregistrés, appliqués en un clic (Détails › Caméras). */
   shotPresets: ShotPreset[];
+  /** Modèles d'export du projet (options relues et vérifiées par export/presets.ts). */
+  exportPresets: { id: Id; name: string; options: unknown }[];
+  /** Icônes des figures du plan au sol (sinon les symboles standard), voir floorIcons.ts. */
+  floorIcons: Record<FigureKind, FigureIcon | null>;
   /** Fuseau horaire des heures du projet (nom IANA, ex. « Europe/Paris ») ; null = celui de cet ordinateur. */
   timeZone: string | null;
 }
@@ -233,7 +250,7 @@ interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 16 as const;
+export const SCHEMA_VERSION = 17 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;
