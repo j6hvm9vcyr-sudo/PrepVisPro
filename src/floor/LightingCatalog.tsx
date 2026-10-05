@@ -21,6 +21,7 @@ import { MaterialFields, materialGroups, PRESET } from './ReflectorPanel';
 import { materialForPreset } from '../model/reflectorPresets';
 import { Explain } from '../ui/Explain';
 import { Picker } from '../ui/Picker';
+import { IconChoice } from './IconChoice';
 
 import { FIXTURE_KINDS as KINDS, usesOf } from './LightPanels';
 
@@ -96,6 +97,12 @@ export function FixtureCatalog() {
                 Retirer
               </button>
             </div>
+            <IconChoice
+              label="Icône sur le plan"
+              value={f.icon}
+              fallback="Celle du projet (Figures)"
+              onChange={(v) => updF(f.id, (x) => void (x.icon = v), 'icon')}
+            />
             <table className="modes">
               <thead>
                 <tr>
@@ -155,7 +162,7 @@ export function FixtureCatalog() {
           type="button"
           className="btn"
           style={{ alignSelf: 'flex-start' }}
-          onClick={() => st().updateDoc((d) => void d.settings.fixtures.push({ id: newId('fx'), name: '', watts: null, kind: 'led', modes: [{ label: '', lux: null, distanceM: null, beamDeg: null }] }))}
+          onClick={() => st().updateDoc((d) => void d.settings.fixtures.push({ id: newId('fx'), name: '', watts: null, kind: 'led', modes: [{ label: '', lux: null, distanceM: null, beamDeg: null }], icon: null }))}
         >
           + Projecteur
         </button>

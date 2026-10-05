@@ -8,7 +8,7 @@ import { setup, fr } from './testkit';
 import type { Fixture, ProjectCamera } from './types';
 
 const venice: ProjectCamera = { id: 'c1', label: 'A', body: 'Sony Venice 2', mode: '6K 3:2', sensorWidthMm: 35.9, sensorHeightMm: 24, squeeze: 1 };
-const fresnel: Fixture = { id: 'f1', name: 'Fresnel 2K', watts: 2000, kind: 'tungsten', modes: [{ label: 'Spot', lux: 1000, distanceM: 5, beamDeg: 60 }] };
+const fresnel: Fixture = { id: 'f1', name: 'Fresnel 2K', watts: 2000, kind: 'tungsten', modes: [{ label: 'Spot', lux: 1000, distanceM: 5, beamDeg: 60 }], icon: null };
 
 describe('matériel du projet', () => {
   it('caméra reprise : remplit la caméra vierge d’un projet neuf (les plans la gardent), sinon nouvelle lettre ; jamais en double', () => {
@@ -49,8 +49,10 @@ describe('matériel du projet', () => {
   });
 
   it('ancien « Mon matériel » : lu tel quel, refusé en bloc s’il est abîmé', () => {
-    const r = parseOldKit({ version: 1, cameras: [venice], lenses: [], fixtures: [fresnel], reflectors: [], terms: null, exposure: null });
+    const { icon: _i, ...oldFresnel } = fresnel;
+    const r = parseOldKit({ version: 1, cameras: [venice], lenses: [], fixtures: [oldFresnel], reflectors: [], terms: null, exposure: null });
     expect(r.ok && r.source.cameras[0]!.body).toBe('Sony Venice 2');
+    expect(r.ok && r.source.fixtures[0]!.icon).toBeNull();
     expect(r.ok && r.source.exportPresets).toEqual([]);
     expect(parseOldKit({ version: 1, cameras: [{ ...venice, sensorWidthMm: -1 }], lenses: [], fixtures: [], reflectors: [] }).ok).toBe(false);
     expect(parseOldKit(null).ok).toBe(false);

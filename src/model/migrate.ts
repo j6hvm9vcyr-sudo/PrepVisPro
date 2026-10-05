@@ -33,6 +33,7 @@ export function migrate(raw: unknown): MigrateResult {
   if (v <= 14) doc = from14to15(doc);
   if (v <= 15) doc = from15to16(doc);
   if (v <= 16) doc = from16to17(doc);
+  if (v <= 17) doc = from17to18(doc);
   return { ok: true, raw: doc };
 }
 
@@ -218,4 +219,31 @@ function from16to17(doc: Record<string, unknown>): Record<string, unknown> {
   const settings = doc.settings && typeof doc.settings === 'object' ? (doc.settings as Record<string, unknown>) : {};
   const { timeZone, ...rest } = settings;
   return { ...doc, schemaVersion: 17, settings: { ...rest, exportPresets: [], floorIcons: { camera: null, actor: null, light: null }, timeZone } };
+}
+
+/**
+ * Format 17 → 18 : chaque figure (caméra, personnage, projecteur, réflecteur) et chaque modèle de
+ * projecteur peut avoir sa propre icône, avec son sens. Les icônes déjà posées regardaient vers le haut.
+ */
+function from17to18(doc: Record<string, unknown>): Record<string, unknown> {
+  const fig = (file: unknown) => (typeof file === 'string' && file ? { file, name: '', turn: 0 } : null);
+  const settings = doc.settings && typeof doc.settings === 'object' ? (doc.settings as Record<string, unknown>) : {};
+  const fixtures = Array.isArray(settings.fixtures) ? settings.fixtures.map((f) => (f && typeof f === 'object' ? { ...(f as object), icon: null } : f)) : settings.fixtures;
+  const floorPlans = Array.isArray(doc.floorPlans)
+    ? doc.floorPlans.map((fp) =>
+        fp && typeof fp === 'object' && Array.isArray((fp as { elements?: unknown }).elements)
+          ? {
+              ...(fp as object),
+              elements: (fp as { elements: unknown[] }).elements.map((e) => {
+                if (!e || typeof e !== 'object') return e;
+                const k = (e as { kind?: unknown }).kind;
+                if (k === 'camera') return { ...(e as object), icon: null };
+                if (k === 'actor' || k === 'light' || k === 'reflector') return { ...(e as object), icon: fig((e as { icon?: unknown }).icon) };
+                return e;
+              }),
+            }
+          : fp,
+      )
+    : doc.floorPlans;
+  return { ...doc, schemaVersion: 18, settings: { ...settings, fixtures }, floorPlans };
 }

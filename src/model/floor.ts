@@ -5,7 +5,7 @@
  * L'échelle (mètres par unité) est séparée : la calibrer ne déplace rien.
  * Rotation en degrés, 0 = vers le haut du plan, sens horaire.
  */
-import type { CameraSetup, Id, ProjectDoc } from './types';
+import type { CameraSetup, FigureIcon, Id, ProjectDoc } from './types';
 import { fieldOfView, parseAspectRatio } from './optics';
 
 export interface Point {
@@ -51,6 +51,8 @@ export interface FloorCamera extends Base {
   showFov: boolean;
   /** Positions suivantes (travelling…) ; la dernière est la position de fin d'un plan évolutif. */
   positions: Waypoint[];
+  /** Icône propre à cette caméra (sinon celle du projet, sinon le symbole standard). */
+  icon: FigureIcon | null;
 }
 
 export interface FloorActor extends Base {
@@ -59,8 +61,8 @@ export interface FloorActor extends Base {
   color: string;
   /** Positions suivantes du personnage (déplacement), chacune avec son orientation. */
   positions: Waypoint[];
-  /** Icône de la bibliothèque (sinon le rond de couleur). */
-  icon: string | null;
+  /** Icône propre à ce personnage (sinon celle du projet, sinon le rond de couleur). */
+  icon: FigureIcon | null;
   size: number;
 }
 
@@ -97,8 +99,8 @@ export interface FloorLight extends Base {
   /** Positions suivantes (projecteur qui se déplace pendant le plan). Calculs : position 1. */
   positions: Waypoint[];
   label: string;
-  /** Icône de la bibliothèque copiée dans le projet (sinon symbole standard). */
-  icon: string | null;
+  /** Icône propre à ce projecteur (sinon celle de son modèle, puis celle du projet, sinon le symbole standard). */
+  icon: FigureIcon | null;
   size: number;
 }
 
@@ -113,8 +115,8 @@ export interface FloorReflector extends Base {
   widthM: number;
   heightM: number;
   label: string;
-  /** Icône de la bibliothèque (sinon le trait du réflecteur). */
-  icon: string | null;
+  /** Icône propre à ce réflecteur (sinon le trait du réflecteur). */
+  icon: FigureIcon | null;
   size: number;
 }
 

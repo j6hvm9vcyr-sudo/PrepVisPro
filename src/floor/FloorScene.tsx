@@ -57,7 +57,7 @@ function IconImage({ url, size, turn }: { url: string; size: number; turn: numbe
 
 /** Symbole simplifié d'un élément, pour ses positions suivantes. */
 function Ghost({ doc, el, urlFor }: { doc: ProjectDoc; el: FloorElement; urlFor: (file: string) => string | null }) {
-  const fig = figureIcon(doc, el) ?? ('icon' in el && el.icon ? { file: el.icon, turn: 0 } : null);
+  const fig = figureIcon(doc, el) ?? (el.kind === 'icon' ? { file: el.icon, turn: 0 } : null);
   const url = fig ? urlFor(fig.file) : null;
   const size = 'size' in el ? el.size : CAMERA_ICON_SIZE;
   if (url && fig) return <IconImage url={url} size={size} turn={fig.turn} />;
@@ -346,11 +346,12 @@ export function FloorScene({ doc, fp, k, numbers, selection = [], urlFor }: Scen
       const face = project(el.at, el.rotation, 12 * k);
       const material = doc.settings.reflectors.find((m) => m.id === el.materialId);
       const mirror = material?.type === 'mirror';
-      const iconUrl = el.icon ? urlFor(el.icon) : null;
-      if (iconUrl)
+      const rfig = figureIcon(doc, el);
+      const iconUrl = rfig ? urlFor(rfig.file) : null;
+      if (iconUrl && rfig)
         bodies.push(
           <g key={`i-${el.id}`} transform={`translate(${el.at.x} ${el.at.y}) scale(${k}) rotate(${el.rotation})`} pointerEvents="none">
-            <image href={iconUrl} x={-el.size / 2} y={-el.size / 2} width={el.size} height={el.size} preserveAspectRatio="xMidYMid meet" />
+            <IconImage url={iconUrl} size={el.size} turn={rfig.turn} />
           </g>,
         );
       bodies.push(

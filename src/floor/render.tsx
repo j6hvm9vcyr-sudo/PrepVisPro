@@ -4,6 +4,7 @@
  * Le dessin est celui de l'éditeur (FloorScene) : ce qui est exporté est ce qui est affiché.
  * Le fond est peint directement sur le canevas ; les éléments sont rendus en SVG par-dessus.
  */
+import { floorPlanIconFiles } from '../model/floorIcons';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { ProjectDoc } from '../model/types';
 import { fovLengthUnits, project, type FloorPlan, type Point } from '../model/floor';
@@ -291,11 +292,10 @@ export async function renderFloorImage(doc: ProjectDoc, fp: FloorPlan, assets: F
 
   // Icônes intégrées en données : une image SVG ne peut pas charger de ressources externes.
   const icons = new Map<string, string>();
-  for (const el of fp.elements) {
-    if (el.kind !== 'icon' || icons.has(el.icon)) continue;
+  for (const file of floorPlanIconFiles(doc, fp)) {
     try {
-      const b = await assets.readBytes(el.icon);
-      icons.set(el.icon, `data:${mimeOf(b)};base64,${toBase64(b)}`);
+      const b = await assets.readBytes(file);
+      icons.set(file, `data:${mimeOf(b)};base64,${toBase64(b)}`);
     } catch {
       /* icône manquante : le reste du plan est exporté */
     }

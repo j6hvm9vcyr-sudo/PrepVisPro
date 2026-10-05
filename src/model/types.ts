@@ -221,6 +221,8 @@ export interface Fixture {
   watts: number | null;
   kind: 'led' | 'tungsten' | 'hmi' | 'other';
   modes: FixtureMode[];
+  /** Icône de ce modèle sur les plans au sol (pour tous ses projecteurs qui n'ont pas la leur). */
+  icon: FigureIcon | null;
 }
 
 export interface Exposure {
@@ -250,7 +252,7 @@ interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 17 as const;
+export const SCHEMA_VERSION = 18 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;

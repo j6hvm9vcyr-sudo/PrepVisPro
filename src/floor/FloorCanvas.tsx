@@ -99,7 +99,7 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
     let el: FloorElement | null = null;
     let pre: ReturnType<typeof docNow> | null = null;
     if (st.tool === 'camera' || st.placing) {
-      el = { id: newId('fe'), kind: 'camera', at: p, rotation: 0, planId: st.placing?.planId ?? null, setupId: st.placing?.setupId ?? null, showFov: true, positions: [] };
+      el = { id: newId('fe'), kind: 'camera', at: p, rotation: 0, planId: st.placing?.planId ?? null, setupId: st.placing?.setupId ?? null, showFov: true, positions: [], icon: null };
     } else if (st.tool === 'actor') {
       const n = fp.elements.filter((e) => e.kind === 'actor').length;
       el = { id: newId('fe'), kind: 'actor', at: p, rotation: 180, name: `Personnage ${n + 1}`, color: ACTOR_COLORS[n % ACTOR_COLORS.length]!, positions: [], icon: null, size: 40 };

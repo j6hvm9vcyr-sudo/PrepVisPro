@@ -46,7 +46,10 @@ const oldKitSchema = z.object({
 
 /** Lecture du fichier « Mon matériel » des versions 0.8.0 à 0.8.2 : refusé en bloc s'il n'est pas valide. */
 export function parseOldKit(raw: unknown): { ok: true; source: EquipmentSource } | { ok: false; error: string } {
-  const r = oldKitSchema.safeParse(raw);
+  // Écrit avant le format 18 : ses projecteurs n'ont pas d'icône.
+  const o = raw && typeof raw === 'object' ? (raw as { fixtures?: unknown }) : null;
+  const withIcons = o && Array.isArray(o.fixtures) ? { ...o, fixtures: o.fixtures.map((f) => (f && typeof f === 'object' && !('icon' in f) ? { ...f, icon: null } : f)) } : raw;
+  const r = oldKitSchema.safeParse(withIcons);
   if (!r.success) return { ok: false, error: r.error.issues[0] ? `${r.error.issues[0].path.join('.')} : ${r.error.issues[0].message}` : 'format inconnu' };
   const k = r.data;
   return { ok: true, source: { cameras: k.cameras as ProjectCamera[], lenses: k.lenses as LensSeries[], fixtures: k.fixtures as Fixture[], reflectors: k.reflectors as ReflectorMaterial[], shotPresets: [], exportPresets: k.exportPresets } };

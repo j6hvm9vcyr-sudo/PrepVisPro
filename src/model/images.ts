@@ -1,4 +1,5 @@
 import type { ImageAsset, Plan, ProjectDoc } from './types';
+import { projectIconFiles } from './floorIcons';
 
 /** Tous les fichiers du projet référencés par le document (images des plans, fonds et icônes des plans au sol). */
 export function referencedFiles(doc: ProjectDoc): Set<string> {
@@ -6,9 +7,9 @@ export function referencedFiles(doc: ProjectDoc): Set<string> {
   for (const s of doc.sequences) for (const p of s.plans) for (const i of p.images) out.add(i.file);
   for (const fp of doc.floorPlans) {
     if (fp.background) out.add(fp.background.file);
-    // Icônes posées, et icônes des projecteurs, réflecteurs et personnages.
-    for (const el of fp.elements) if ('icon' in el && el.icon) out.add(el.icon);
   }
+  // Icônes : posées, des figures, des modèles de projecteurs, choisies pour le projet.
+  for (const f of projectIconFiles(doc)) out.add(f);
   return out;
 }
 

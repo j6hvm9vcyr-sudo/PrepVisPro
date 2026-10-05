@@ -16,7 +16,7 @@ describe('ce plan ailleurs', () => {
     d = addFloorPlan(d, newFloorPlan('Quai', [seq.id]));
     const fp = d.floorPlans[0]!;
     d = addElements(d, fp.id, [
-      { id: 'cam', kind: 'camera', at: { x: 0, y: 0 }, rotation: 0, planId: plan.id, setupId: plan.cameras[0]!.id, showFov: true, positions: [] },
+      { id: 'cam', kind: 'camera', at: { x: 0, y: 0 }, rotation: 0, planId: plan.id, setupId: plan.cameras[0]!.id, showFov: true, positions: [], icon: null },
       { id: 'l', kind: 'light', at: { x: 0, y: 0 }, rotation: 0, fixtureId: null, mode: 0, dimmer: 1, gels: [], lossStops: 0, circuit: '', label: '', icon: null, size: 40, positions: [] },
     ]);
     d = produce(d, (x) => {

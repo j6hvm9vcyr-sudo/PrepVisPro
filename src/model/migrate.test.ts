@@ -49,6 +49,18 @@ describe('mise à niveau des fichiers', () => {
     expect(r.ok && r.doc.settings.floorIcons).toEqual({ camera: null, actor: null, light: null });
     expect(r.ok && Object.keys(r.doc.settings)).toEqual(Object.keys(cur.settings));
   });
+  it('format 17 → 18 : icônes des figures avec leur sens (les icônes déjà posées regardaient vers le haut)', () => {
+    const m = migrate({
+      schemaVersion: 17,
+      settings: { fixtures: [{ id: 'f', name: 'F' }] },
+      floorPlans: [{ id: 'p', elements: [{ id: 'c', kind: 'camera' }, { id: 'a', kind: 'actor', icon: 'images/a.png' }, { id: 'l', kind: 'light', icon: null }, { id: 'i', kind: 'icon', icon: 'images/i.png' }] }],
+    });
+    expect(m.ok).toBe(true);
+    if (!m.ok) return;
+    const d = m.raw as { settings: { fixtures: { icon: unknown }[] }; floorPlans: { elements: { icon: unknown }[] }[] };
+    expect(d.settings.fixtures[0]!.icon).toBeNull();
+    expect(d.floorPlans[0]!.elements.map((e) => e.icon)).toEqual([null, { file: 'images/a.png', name: '', turn: 0 }, null, 'images/i.png']);
+  });
   it('format 9 → 10 : projecteurs sans gélatine, aucune matière de réflecteur', () => {
     const cur = newProject('X');
     const { reflectors: _r, ...settings9 } = cur.settings;
@@ -142,6 +154,7 @@ describe('mise à niveau des fichiers', () => {
         watts: null,
         kind: 'led',
         modes: [{ label: '', lux: null, distanceM: null, beamDeg: null }],
+        icon: null,
       });
       x.settings.reflectors.push({
         id: 'r',
@@ -174,6 +187,7 @@ describe('mise à niveau des fichiers', () => {
         setupId: null,
         showFov: true,
         positions: [],
+        icon: null,
       },
       {
         id: 'i',

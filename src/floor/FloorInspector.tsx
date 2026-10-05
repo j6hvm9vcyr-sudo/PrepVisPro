@@ -19,6 +19,9 @@ import { LightingPanel } from './LightingPanel';
 import { Fold } from '../ui/Fold';
 import { Picker } from '../ui/Picker';
 import { FiguresPanel } from './FiguresPanel';
+import { IconChoice } from './IconChoice';
+import { figureIcon } from '../model/floorIcons';
+import type { FloorReflector } from '../model/floor';
 import { useIcons } from '../platform/iconLibrary';
 import { planSun, sunForCamera } from '../model/sunPlan';
 
@@ -209,6 +212,7 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
                 </div>
               </div>
             )}
+            {(el.kind === 'camera' || el.kind === 'actor' || el.kind === 'light' || el.kind === 'reflector') && <FigureIconField fp={fp} el={el} />}
             {el.kind !== 'text' && (
               <div className="field">
                 Orientation
@@ -411,5 +415,36 @@ function PositionsField({ fp, el }: { fp: FloorPlan; el: FloorCamera | FloorActo
       {adding && <span className="note">Cliquez sur le plan pour chaque nouvelle position ; ↩ pour terminer.</span>}
       {el.kind === 'light' && n > 0 && <span className="note">Éclairement et puissance calculés à la position 1.</span>}
     </div>
+  );
+}
+
+/** Icône propre à cette figure ; sans elle, celle de son modèle (projecteur), du projet, ou le symbole standard. */
+function FigureIconField({ fp, el }: { fp: FloorPlan; el: FloorCamera | FloorActor | FloorLight | FloorReflector }) {
+  const doc = useApp(selectDoc);
+  const inherited = figureIcon(doc, { ...el, icon: null });
+  const from = el.kind === 'light' && inherited && doc.settings.fixtures.find((f) => f.id === el.fixtureId)?.icon === inherited ? 'celle du modèle' : 'celle du projet';
+  const sizes = [['S', 40], ['M', 56], ['L', 84]] as const;
+  const shown = el.icon ?? inherited;
+  return (
+    <>
+      <IconChoice
+        label="Icône de cette figure"
+        value={el.icon}
+        fallback={inherited ? `Comme les autres (${from} : ${inherited.name || 'icône'})` : el.kind === 'reflector' ? 'Trait du réflecteur' : 'Symbole standard'}
+        onChange={(v) => useApp.getState().applyDoc(updateElement(selectDoc(useApp.getState()), fp.id, el.id, (x) => void ('icon' in x && x.kind !== 'icon' && (x.icon = v))))}
+      />
+      {shown && el.kind !== 'camera' && (
+        <div className="field">
+          Taille de l’icône
+          <div className="seg small" role="group" aria-label="Taille de l’icône de la figure">
+            {sizes.map(([l, v]) => (
+              <button key={v} type="button" aria-pressed={el.size === v} onClick={() => useApp.getState().applyDoc(updateElement(selectDoc(useApp.getState()), fp.id, el.id, (x) => void ('size' in x && (x.size = v))))}>
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
   );
 }

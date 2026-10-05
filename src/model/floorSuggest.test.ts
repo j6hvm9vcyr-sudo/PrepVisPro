@@ -42,7 +42,7 @@ describe('suggestion complète depuis le plan au sol', () => {
     // 100 unités = 1 m.
     const fp = { ...newFloorPlan('Salon', [d.sequences[0]!.id]), scale: computeScale({ x: 0, y: 0 }, { x: 100, y: 0 }, 1) };
     d = addFloorPlan(d, fp);
-    const cam: FloorCamera = { id: 'c', kind: 'camera', at: { x: 0, y: 0 }, rotation: 90, planId: p.id, setupId: p.cameras[0]!.id, showFov: true, positions: [] };
+    const cam: FloorCamera = { id: 'c', kind: 'camera', at: { x: 0, y: 0 }, rotation: 90, planId: p.id, setupId: p.cameras[0]!.id, showFov: true, positions: [], icon: null };
     const actor: FloorActor = { id: 'a', kind: 'actor', at: { x: distanceM * 100, y: 0 }, rotation: 270, name: 'Léa', color: '#E5484D', positions: [], icon: null, size: 40 };
     d = addElements(d, fp.id, [cam, actor]);
     return { d, fp: d.floorPlans[0]!, cam };
@@ -107,7 +107,7 @@ describe('écarts découpage / plan au sol', () => {
     const fp = { ...newFloorPlan('Salon', [d.sequences[0]!.id]), scale: computeScale({ x: 0, y: 0 }, { x: 100, y: 0 }, 1) };
     d = addFloorPlan(d, fp);
     d = addElements(d, fp.id, [
-      { id: 'c', kind: 'camera', at: { x: 0, y: 0 }, rotation: 90, planId: p.id, setupId: p.cameras[0]!.id, showFov: true, positions: [] },
+      { id: 'c', kind: 'camera', at: { x: 0, y: 0 }, rotation: 90, planId: p.id, setupId: p.cameras[0]!.id, showFov: true, positions: [], icon: null },
       { id: 'a', kind: 'actor', at: { x: 400, y: 0 }, rotation: 270, name: 'Léa', color: '#E5484D', positions: [], icon: null, size: 40 },
     ]);
     const m = floorMismatches(d).get(p.cameras[0]!.id)!;

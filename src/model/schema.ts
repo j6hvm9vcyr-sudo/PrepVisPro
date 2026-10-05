@@ -62,12 +62,14 @@ const sequence = z.object({
   shooting: z.object({ installations: z.array(z.object({ id, name: z.string(), planIds: z.array(id), note: z.string() })) }).nullable(),
 });
 
+const figureIcon = z.object({ file: z.string().min(1), name: z.string(), turn: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]) });
+
 const point = z.object({ x: z.number().finite(), y: z.number().finite() });
 const waypoints = z.array(z.object({ at: z.object({ x: z.number().finite(), y: z.number().finite() }), rotation: z.number().finite() })).max(100);
 const elemBase = { id, at: point, rotation: z.number().finite() };
 const floorElement = z.discriminatedUnion('kind', [
-  z.object({ ...elemBase, kind: z.literal('camera'), planId: id.nullable(), setupId: id.nullable(), showFov: z.boolean(), positions: waypoints }),
-  z.object({ ...elemBase, kind: z.literal('actor'), name: z.string(), color: z.string(), positions: waypoints, icon: z.string().min(1).nullable(), size: z.number().finite().positive() }),
+  z.object({ ...elemBase, kind: z.literal('camera'), planId: id.nullable(), setupId: id.nullable(), showFov: z.boolean(), positions: waypoints, icon: figureIcon.nullable() }),
+  z.object({ ...elemBase, kind: z.literal('actor'), name: z.string(), color: z.string(), positions: waypoints, icon: figureIcon.nullable(), size: z.number().finite().positive() }),
   z.object({ ...elemBase, kind: z.literal('icon'), icon: z.string().min(1), label: z.string(), size: z.number().finite().positive() }),
   z.object({ ...elemBase, kind: z.literal('text'), text: z.string(), size: z.number().finite().positive() }),
   z.object({
@@ -81,7 +83,7 @@ const floorElement = z.discriminatedUnion('kind', [
     circuit: z.string(),
     positions: waypoints,
     label: z.string(),
-    icon: z.string().min(1).nullable(),
+    icon: figureIcon.nullable(),
     size: z.number().finite().positive(),
   }),
   z.object({
@@ -91,7 +93,7 @@ const floorElement = z.discriminatedUnion('kind', [
     widthM: z.number().finite().positive().max(100),
     heightM: z.number().finite().positive().max(100),
     label: z.string(),
-    icon: z.string().min(1).nullable(),
+    icon: figureIcon.nullable(),
     size: z.number().finite().positive(),
   }),
 ]);
@@ -142,9 +144,8 @@ const fixture = z.object({
   watts: z.number().finite().min(0).max(100000).nullable(),
   kind: z.enum(['led', 'tungsten', 'hmi', 'other']),
   modes: z.array(z.object({ label: z.string(), lux: z.number().finite().positive().nullable(), distanceM: z.number().finite().positive().nullable(), beamDeg: z.number().finite().positive().max(180).nullable() })),
+  icon: figureIcon.nullable(),
 });
-
-const figureIcon = z.object({ file: z.string().min(1), name: z.string(), turn: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]) });
 
 const exposure = z.object({ iso: z.number().finite().positive(), fps: z.number().finite().positive(), shutterDeg: z.number().finite().positive().max(360) });
 

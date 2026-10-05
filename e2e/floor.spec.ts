@@ -226,7 +226,7 @@ test('bibliothèque d’icônes : import d’un dossier, recherche, pose sur le 
   await expect(page.locator('.floor-canvas image')).toHaveCount(2);
 });
 
-test('figures : caméras, personnages et projecteurs dessinés avec les icônes importées, dans le bon sens', async ({ page }) => {
+test('figures : icônes importées par défaut pour le projet, et une icône différente par figure (deux personnages, deux sources)', async ({ page }) => {
   await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
   await page.keyboard.press('ControlOrMeta+3');
@@ -236,28 +236,42 @@ test('figures : caméras, personnages et projecteurs dessinés avec les icônes 
   await (await chooser).setFiles(resolve('e2e/icones-test'));
   await expect(page.getByText(/4 icônes dans la bibliothèque/)).toBeVisible();
   const figures = page.getByRole('region', { name: 'Figures du plan' });
-  // Caméra : icône « Dolly », qui regarde vers la droite.
-  await pick(page, 'Icône des figures caméra', 'Dolly');
+  // Caméras du projet : icône « Dolly », qui regarde vers la droite.
+  await pick(page, 'Icône : caméras', 'Dolly');
   await figures.getByRole('radio', { name: '→' }).click();
-  // Personnage : icône de la bibliothèque aussi.
-  await pick(page, 'Icône des figures personnage', 'Accessoires');
+  // Personnages du projet : « Accessoires ».
+  await pick(page, 'Icône : personnages', 'Accessoires');
   const canvas = page.getByRole('application', { name: 'Plan au sol' });
   const box = (await page.locator('.floor-canvas svg').boundingBox())!;
+  const images = page.locator('.floor-canvas [data-el] image');
   await canvas.press('c');
   await page.mouse.click(box.x + 200, box.y + 200);
-  const camImg = page.locator('.floor-canvas [data-el] image[transform="rotate(270)"]');
-  await expect(camImg).toHaveCount(1);
-  await canvas.press('Escape');
+  await expect(page.locator('.floor-canvas [data-el] image[transform="rotate(270)"]')).toHaveCount(1);
+  // Deux personnages : le second reçoit sa propre icône.
   await canvas.press('p');
   await page.mouse.click(box.x + 400, box.y + 200);
-  await expect(page.locator('.floor-canvas [data-el] image')).toHaveCount(2);
+  await canvas.press('p');
+  await page.mouse.click(box.x + 500, box.y + 200);
+  await pick(page, 'Icône : icône de cette figure', 'Kino 4 tubes');
+  await expect(images).toHaveCount(3);
+  const hrefs = await images.evaluateAll((els) => els.map((e) => e.getAttribute('href')));
+  expect(new Set(hrefs).size).toBe(3);
+  // Projecteur : l'icône de son modèle (la source utilisée).
+  await canvas.press('l');
+  await page.mouse.click(box.x + 300, box.y + 350);
+  await pick(page, 'Modèle de projecteur', '+ Nouveau projecteur…');
+  await page.keyboard.type('Fresnel 650');
+  await page.getByRole('tab', { name: 'Lumière' }).click();
+  await canvas.press('Escape');
+  await canvas.press('Escape');
+  await page.getByRole('tab', { name: 'Lumière' }).click();
+  await pick(page, 'Icône : icône sur le plan', 'Fresnel 650');
+  await expect(images).toHaveCount(4);
   await page.screenshot({ path: 'test-results/18-figures.png' });
   // Retour au symbole standard pour les caméras : plus d'image pour elles.
-  await canvas.press('Escape');
-  await canvas.press('Escape');
-  await pick(page, 'Icône des figures caméra', 'Symbole standard');
-  await expect(camImg).toHaveCount(0);
-  await expect(page.locator('.floor-canvas [data-el] image')).toHaveCount(1);
+  await page.getByRole('tab', { name: 'Plan' }).click();
+  await pick(page, 'Icône : caméras', 'Symbole standard');
+  await expect(images).toHaveCount(3);
 });
 
 test('tournage : installations proposées d’après le plan au sol, réorganisées à la main', async ({ page }) => {

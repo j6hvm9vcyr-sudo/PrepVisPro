@@ -8,7 +8,7 @@ describe('légende des exports : projecteurs et réflecteurs', () => {
   it('gélatines LEE, puissance et réflecteurs', () => {
     let d = doc((c) => [seq('1', [plan(c)])]);
     d = produce(d, (x) => {
-      x.settings.fixtures.push({ id: 'f', name: 'Fresnel 2K', watts: 2000, kind: 'tungsten', modes: [{ label: 'Flood', lux: 1000, distanceM: 5, beamDeg: 60 }] });
+      x.settings.fixtures.push({ id: 'f', name: 'Fresnel 2K', watts: 2000, kind: 'tungsten', modes: [{ label: 'Flood', lux: 1000, distanceM: 5, beamDeg: 60 }], icon: null });
       x.settings.reflectors.push({ id: 'p', name: 'Poly', type: 'diffuse', reflectance: 0.8, presetId: null });
     });
     const fp = newFloorPlan('Salon', [d.sequences[0]!.id]);

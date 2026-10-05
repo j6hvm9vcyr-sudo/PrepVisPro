@@ -14,7 +14,7 @@ function project() {
       { id: 'z', name: 'Angénieux', kind: 'zoom', focals: [], min: 25, max: 250 },
     ];
     x.settings.cameras[0]!.body = 'Alexa 35';
-    x.settings.fixtures.push({ id: 'f2k', name: 'Fresnel 2K', watts: 2000, kind: 'tungsten', modes: [] }, { id: 'led', name: 'Panneau LED', watts: null, kind: 'led', modes: [] });
+    x.settings.fixtures.push({ id: 'f2k', name: 'Fresnel 2K', watts: 2000, kind: 'tungsten', modes: [], icon: null }, { id: 'led', name: 'Panneau LED', watts: null, kind: 'led', modes: [], icon: null });
     x.settings.reflectors.push({ id: 'poly', name: 'Poly', type: 'diffuse', reflectance: null, presetId: null });
     x.sequences[1]!.breakdown.grip = 'Rail 6 m';
   });
@@ -96,7 +96,7 @@ describe('matériel déduit', () => {
     d = addFloorPlan(addFloorPlan(d, fpA), fpB);
     const light = (id: string, fixtureId: string | null, gels: string[] = []) => ({ id, kind: 'light' as const, at: { x: 0, y: 0 }, rotation: 0, fixtureId, mode: 0, dimmer: 1, gels, lossStops: 0, circuit: '', label: '', icon: null, size: 40, positions: [] });
     d = addElements(d, fpA.id, [
-      { id: 'c1', kind: 'camera', at: { x: 0, y: 0 }, rotation: 0, planId: s1.plans[0]!.id, setupId: s1.plans[0]!.cameras[0]!.id, showFov: true, positions: [{ at: { x: 300, y: 0 }, rotation: 0 }, { at: { x: 300, y: 400 }, rotation: 0 }] },
+      { id: 'c1', kind: 'camera', at: { x: 0, y: 0 }, rotation: 0, planId: s1.plans[0]!.id, setupId: s1.plans[0]!.cameras[0]!.id, showFov: true, positions: [{ at: { x: 300, y: 0 }, rotation: 0 }, { at: { x: 300, y: 400 }, rotation: 0 }], icon: null },
       light('l1', 'f2k', ['lee-216', 'lee-201']),
       light('l2', 'f2k', ['lee-216']),
       light('l3', 'led'),

@@ -27,7 +27,7 @@ describe('éclairement sur le plan', () => {
   function build(rotation = 90) {
     let d = doc((c) => [seq('1', [plan(c)])]);
     d = produce(d, (x) => {
-      x.settings.fixtures.push({ id: 'f2k', name: 'Fresnel 2K', watts: 2000, kind: 'tungsten', modes: [{ label: 'Spot', lux: 9000, distanceM: 5, beamDeg: 16 }, { label: 'Flood', lux: 1000, distanceM: 5, beamDeg: 60 }] });
+      x.settings.fixtures.push({ id: 'f2k', name: 'Fresnel 2K', watts: 2000, kind: 'tungsten', modes: [{ label: 'Spot', lux: 9000, distanceM: 5, beamDeg: 16 }, { label: 'Flood', lux: 1000, distanceM: 5, beamDeg: 60 }], icon: null });
     });
     const fp = { ...newFloorPlan('Salon', [d.sequences[0]!.id]), scale: computeScale({ x: 0, y: 0 }, { x: 100, y: 0 }, 1) };
     d = addFloorPlan(d, fp);
@@ -98,7 +98,7 @@ describe('gélatines et réflecteurs sur le plan', () => {
   function build(extra: (d: ReturnType<typeof doc>) => void = () => {}) {
     let d = doc((c) => [seq('1', [plan(c)])]);
     d = produce(d, (x) => {
-      x.settings.fixtures.push({ id: 'f', name: 'Fresnel 2K', watts: 2000, kind: 'tungsten', modes: [{ label: 'Flood', lux: 1000, distanceM: 5, beamDeg: 60 }] });
+      x.settings.fixtures.push({ id: 'f', name: 'Fresnel 2K', watts: 2000, kind: 'tungsten', modes: [{ label: 'Flood', lux: 1000, distanceM: 5, beamDeg: 60 }], icon: null });
       x.settings.reflectors.push({ id: 'poly', name: 'Poly', type: 'diffuse', reflectance: 0.8, presetId: null }, { id: 'miroir', name: 'Miroir', type: 'mirror', reflectance: 0.9, presetId: null }, { id: 'toile', name: 'Toile', type: 'diffuse', reflectance: null, presetId: null });
       extra(x);
     });

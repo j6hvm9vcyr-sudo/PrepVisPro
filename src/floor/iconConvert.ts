@@ -31,7 +31,7 @@ export function convertIcon(fp: FloorPlan, el: FloorIcon, role: IconRole) {
     const f = x.floorPlans.find((p) => p.id === fp.id);
     const i = f?.elements.findIndex((e) => e.id === el.id) ?? -1;
     if (!f || i < 0) return;
-    const base = { id: el.id, at: el.at, rotation: el.rotation, icon: el.icon, size: el.size };
+    const base = { id: el.id, at: el.at, rotation: el.rotation, icon: { file: el.icon, name: el.label, turn: 0 as const }, size: el.size };
     let out: FloorElement;
     if (role === 'light') out = { ...base, kind: 'light', fixtureId: x.settings.fixtures[0]?.id ?? null, mode: 0, dimmer: 1, gels: [], lossStops: 0, circuit: '', label: el.label, positions: [] };
     else if (role === 'reflector') out = { ...base, kind: 'reflector', materialId, widthM: FRAME_SIZES[0]!.m, heightM: FRAME_SIZES[0]!.m, label: el.label };

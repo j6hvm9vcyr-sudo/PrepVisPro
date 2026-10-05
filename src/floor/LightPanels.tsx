@@ -112,7 +112,7 @@ export function LightInspector({ fp, el }: { fp: FloorPlan; el: FloorLight }) {
     apply(
       (d) =>
         produce(updateElement(d, fp.id, el.id, (x) => void (x.kind === 'light' && ((x.fixtureId = id), (x.mode = 0)))), (x) => {
-          x.settings.fixtures.push({ id, name: '', watts: null, kind: 'led', modes: [{ label: '', lux: null, distanceM: null, beamDeg: null }] });
+          x.settings.fixtures.push({ id, name: '', watts: null, kind: 'led', modes: [{ label: '', lux: null, distanceM: null, beamDeg: null }], icon: null });
         }),
       'Nouveau projecteur : saisissez ses données',
     );
