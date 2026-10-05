@@ -22,8 +22,28 @@ export async function install() {
     errors.push(a.map((x) => (x instanceof Error ? x.message : String(x))).join(' ').slice(0, 400));
     origError(...a);
   };
+  // Appels à Rust en cours (commande, depuis quand) : en cas de blocage, le test dit lequel.
+  const inflight = new Map<number, { cmd: string; t0: number }>();
+  let seq = 0;
+  const internals = (window as unknown as { __TAURI_INTERNALS__?: { invoke: (cmd: string, ...rest: unknown[]) => Promise<unknown> } }).__TAURI_INTERNALS__;
+  if (internals) {
+    const orig = internals.invoke.bind(internals);
+    const wrapped = (cmd: string, ...rest: unknown[]) => {
+      const id = ++seq;
+      inflight.set(id, { cmd, t0: performance.now() });
+      return Promise.resolve(orig(cmd, ...rest)).finally(() => inflight.delete(id));
+    };
+    // La propriété peut être protégée : sans suivi, le test marche quand même (il dit seulement moins de choses).
+    try {
+      Object.defineProperty(internals, 'invoke', { value: wrapped, configurable: true, writable: true });
+    } catch (e) {
+      console.warn('Suivi des appels à Rust indisponible', e);
+    }
+  }
   (window as unknown as Record<string, unknown>).__prepvis = {
     alerts,
+    /** Appels à Rust pas encore revenus, avec leur durée (ms). */
+    pending: () => [...inflight.values()].map((x) => `${x.cmd} (${Math.round(performance.now() - x.t0)} ms)`),
     errors,
     openSample,
     async exportTo(path: string, format: 'pdf' | 'xlsx' | 'csv') {
@@ -37,7 +57,6 @@ export async function install() {
       const { invoke } = await import('@tauri-apps/api/core');
       return new TextDecoder().decode(new Uint8Array(await invoke<ArrayBuffer>('script_read', { path })));
     },
-    /** Importe un dossier d'icônes sans boîte de dialogue ; renvoie la bibliothèque et l'URL de la 1re icône. */
     /** Mon matériel : enregistre une caméra, puis relit le fichier materiel.json écrit sur disque. */
     async kitRoundTrip() {
       const { updateKit } = await import('./platform/kit');
@@ -49,6 +68,18 @@ export async function install() {
       const r = raw ? parseKit(JSON.parse(raw)) : null;
       return { w, body: r && r.ok ? r.kit.cameras.find((c) => c.mode === '4K')?.body : null };
     },
+    /** Ajoute des séquences (décors accentués), pour les listes à recherche. */
+    async addSequences(names: string[]) {
+      const { insertSequenceAfter, updateSequence } = await import('./model/ops');
+      let d = selectDoc(useApp.getState());
+      for (const name of names) {
+        const r = insertSequenceAfter(d, d.sequences[d.sequences.length - 1]!.id, String(d.sequences.length + 1));
+        d = updateSequence(r.doc, r.seqId, (s) => void (s.location = name));
+      }
+      useApp.getState().applyDoc(d);
+      return selectDoc(useApp.getState()).sequences.length;
+    },
+    /** Importe un dossier d'icônes sans boîte de dialogue ; renvoie la bibliothèque et l'URL de la 1re icône. */
     async importIconsFrom(path: string) {
       const lib = await import('./platform/iconLibrary');
       const b = lib.iconBackend() as unknown as { scan(p: string): Promise<unknown> };

@@ -112,6 +112,21 @@ export function Picker({ label, groups, actions = [], onPick, children, variant 
     };
   }, [open]);
 
+  // Le focus va dans la liste (ou sa recherche). Sans cela, sous WebKit, le clavier irait ailleurs
+  // (Safari ne donne pas le focus au bouton cliqué).
+  useLayoutEffect(() => {
+    if (!open) return;
+    const take = () => {
+      const t = list.current?.querySelector<HTMLElement>(searchable ? '.pick-search' : '.pick-list');
+      if (t && document.activeElement !== t) t.focus({ preventScroll: true });
+    };
+    take();
+    // WebKit ne donne pas le focus à un élément qui vient d'apparaître : on réessaie juste après
+    // (requestAnimationFrame ne suffit pas toujours, il peut être suspendu).
+    const timers = [0, 30, 120].map((ms) => window.setTimeout(take, ms));
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, [open, searchable]);
+
   useLayoutEffect(() => {
     if (open) list.current?.querySelector('.pick-opt.on')?.scrollIntoView({ block: 'nearest' });
   }, [open, pick]);
@@ -189,7 +204,6 @@ export function Picker({ label, groups, actions = [], onPick, children, variant 
         <div ref={list} className="pick-pop" style={{ position: 'fixed', left: pos.left, top: pos.top, bottom: pos.bottom, width: pos.width, maxHeight: pos.maxHeight }} onKeyDown={onKeyDown}>
           {searchable && (
             <input
-              autoFocus
               className="pick-search"
               aria-label={`Rechercher : ${label}`}
               placeholder="Rechercher…"
@@ -203,7 +217,7 @@ export function Picker({ label, groups, actions = [], onPick, children, variant 
               }}
             />
           )}
-          <div className="pick-list" role="listbox" aria-label={label} tabIndex={searchable ? -1 : 0} ref={(el) => void (!searchable && el?.focus({ preventScroll: true }))}>
+          <div className="pick-list" role="listbox" aria-label={label} tabIndex={searchable ? -1 : 0}>
             {shown.map((g, gi) => (
               <div key={g.label ?? gi} role="group" aria-label={g.label}>
                 {g.label && <div className="pick-g">{g.label}</div>}

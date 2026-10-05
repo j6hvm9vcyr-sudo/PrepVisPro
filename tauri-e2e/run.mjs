@@ -61,6 +61,18 @@ try {
   // Machines d'intégration parfois lentes : délai généreux pour les scripts asynchrones.
   await wd('POST', `/session/${sid}/timeouts`, { script: 120000 }).catch(() => {});
   const exec = (script, args = []) => ((lastScript = script.replace(/\s+/g, ' ').slice(0, 160)), wd('POST', `/session/${sid}/execute/async`, { script: `const done = arguments[arguments.length - 1]; (async () => { ${script} })().then(done, (e) => done({ __error: String(e && e.message || e) }));`, args }));
+  /**
+   * Appel qui ne doit pas bloquer : au-delà de `ms`, on rend la main avec l'état de l'application
+   * (appels à Rust en cours, état du projet) au lieu d'attendre le délai du pilote (2 min).
+   */
+  const call = async (expr, label, ms = 20000) => {
+    const t0 = Date.now();
+    const r = await exec(`return await Promise.race([(async () => (${expr}))(), new Promise((r) => setTimeout(() => r({ __timeout: true, pending: window.__prepvis.pending(), project: window.__prepvis.project() }), ${ms}))]);`);
+    const dt = Date.now() - t0;
+    if (r && r.__timeout) ok(false, `${label} : bloqué plus de ${ms / 1000} s — appels en cours : ${JSON.stringify(r.pending)} ; projet : ${JSON.stringify(r.project).slice(0, 300)}`);
+    else if (CI && dt > 3000) console.log(`::notice title=Application réelle (lent)::${label} : ${dt} ms`);
+    return r;
+  };
   const keys = (text) => wd('POST', `/session/${sid}/actions`, { actions: [{ type: 'key', id: 'k', actions: [...text].flatMap((c) => [{ type: 'keyDown', value: c }, { type: 'keyUp', value: c }]) }] });
 
   // Attendre l'interface.
@@ -99,6 +111,50 @@ try {
     await keys('\uE007'); // Entrée
     const axis = await waitFor(async () => (await exec('return window.__prepvis.doc().sequences[0].plans[0].cameras[0].start.axis;')) === 'Profil', 3000);
     ok(axis, 'saisie validée par Entrée après un clic');
+  }
+
+  const click = async (using, value) => {
+    const found = await wd('POST', `/session/${sid}/element`, { using, value });
+    await wd('POST', `/session/${sid}/element/${Object.values(found)[0]}/click`, {});
+  };
+  // Élément qui a le focus : sa classe et son nom (une liste et son bouton portent le même nom).
+  const active = () => exec('const a = document.activeElement; return a ? `${a.tagName.toLowerCase()}.${a.className} ${a.getAttribute("aria-label") ?? ""}`.trim() : null;');
+
+  // Abréviation accentuée du projet, tapée au clavier dans la cellule Machinerie.
+  {
+    await exec('window.__prepvis.app().updateDoc((d) => void (d.settings.aliases["Dolly"] = ["grué"])); return true;');
+    await click('css selector', '.line [id$="-grip"]');
+    await click('css selector', '.line [id$="-grip"]');
+    await waitFor(async () => String(await active()).endsWith(' Saisie'), 3000);
+    await keys('grué');
+    await keys('\uE007');
+    const grip = await waitFor(async () => (await exec('return window.__prepvis.doc().sequences[0].plans[0].cameras[0].grip.join();')) === 'Dolly', 3000);
+    ok(grip, 'abréviation accentuée reconnue à la saisie (grué → Dolly)');
+  }
+
+  // Liste de choix (plan type) : ouverte au clic, pilotée au clavier, le focus revient au bouton.
+  {
+    await click('css selector', 'button[aria-label="Plan type"]');
+    const inList = await waitFor(async () => String(await active()).includes('pick-list'), 3000);
+    ok(inList, `liste ouverte au clic, focus dans la liste (${await active()})`);
+    await keys('\uE007');
+    ok(await waitFor(async () => (await exec('return window.__prepvis.doc().settings.shotPresets.length;')) === 1, 3000), 'plan type enregistré au clavier (Entrée)');
+    ok(String(await active()).startsWith('button.picker'), `le focus revient au bouton (${await active()})`);
+  }
+
+  // Liste à recherche : recherche tapée avec accent, sans tenir compte des accents du décor.
+  {
+    const n = await exec(`return await window.__prepvis.addSequences(['Quai', 'Wagon', 'Salon', 'Rue', 'Pont', 'Cave', 'Toit', 'Église Saint-Étienne']);`);
+    ok(n === 9, `séquences ajoutées (${n})`);
+    await exec('window.__prepvis.app().setView("days"); return true;');
+    await click('xpath', "//button[normalize-space()='+ Jour de tournage']");
+    await click('css selector', 'button[aria-label="Ajouter une séquence au jour"]');
+    ok(await waitFor(async () => String(await active()).startsWith('input.pick-search'), 3000), 'liste à recherche : le champ de recherche a le focus');
+    await keys('étienne');
+    await keys('\uE007');
+    const added = await waitFor(async () => (await exec('const d = window.__prepvis.doc(); const s = d.sequences.find((x) => x.location.startsWith("Église")); return !!s && d.shootingDays[0].sequenceIds.includes(s.id);')) === true, 3000);
+    ok(added, 'séquence trouvée par une recherche accentuée et ajoutée au jour');
+    await exec('window.__prepvis.app().setView("table"); return true;');
   }
 
   // Enregistrement automatique.
@@ -171,14 +227,13 @@ try {
 
   // Fichier corrompu : refusé, sans rien écraser.
   const bad = join(work, 'Casse.prepvis');
-  const t0 = Date.now();
-  const r1 = await exec(`return await Promise.race([window.__prepvis.newProjectAt(${JSON.stringify(bad)}), new Promise((r) => setTimeout(() => r('TIMEOUT ' + JSON.stringify(window.__prepvis.project())), 8000))]);`);
-  console.log('   newProjectAt(bad) →', r1, Date.now() - t0, 'ms');
-  const r2 = await exec(`return await Promise.race([window.__prepvis.openPath(${JSON.stringify(projectDir)}), new Promise((r) => setTimeout(() => r('TIMEOUT ' + JSON.stringify(window.__prepvis.project())), 8000))]);`);
-  console.log('   openPath(projet) →', r2);
+  const r1 = await call(`window.__prepvis.newProjectAt(${JSON.stringify(bad)})`, 'création du projet Casse');
+  ok(r1 === true, 'projet Casse créé');
+  const r2 = await call(`window.__prepvis.openPath(${JSON.stringify(projectDir)})`, 'retour au projet');
+  ok(r2 === true, 'retour au projet');
   const { writeFileSync } = await import('node:fs');
   writeFileSync(join(bad, 'project.json'), '{"schemaVersion":1,');
-  ok((await exec(`return await window.__prepvis.openPath(${JSON.stringify(bad)});`)) === false, 'fichier corrompu refusé');
+  ok((await call(`window.__prepvis.openPath(${JSON.stringify(bad)})`, 'ouverture du fichier corrompu')) === false, 'fichier corrompu refusé');
   ok(readFileSync(join(bad, 'project.json'), 'utf8') === '{"schemaVersion":1,', 'fichier corrompu laissé intact');
   const alerts = await exec('return window.__prepvis.alerts;');
   ok(alerts.length === 1 && /illisible/.test(alerts[0]), `message clair à l’utilisateur (${alerts[0]})`);

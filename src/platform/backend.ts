@@ -331,21 +331,23 @@ export class MemoryBackend implements Backend {
   async quitNow() {}
 }
 
-let current: Backend | null = null;
+let current: Promise<Backend> | null = null;
 
-export async function getBackend(): Promise<Backend> {
-  if (current) return current;
-  if (isTauri()) {
+/**
+ * Le même accès au système pour toute l'application. On garde la promesse (pas seulement le
+ * résultat) : deux appels simultanés au démarrage obtiennent la même instance, et non deux.
+ */
+export function getBackend(): Promise<Backend> {
+  current ??= (async () => {
+    if (!isTauri()) return new MemoryBackend();
     const b = new TauriBackend();
     await b.init();
-    current = b;
-  } else {
-    current = new MemoryBackend();
-  }
+    return b;
+  })();
   return current;
 }
 
 /** Pour les tests. */
 export function setBackend(b: Backend) {
-  current = b;
+  current = Promise.resolve(b);
 }
