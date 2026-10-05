@@ -10,7 +10,7 @@ Application Mac de préparation image pour chef opérateur. Le découpage techni
 - **Lumière** : projecteurs d'après les fiches des fabricants, gélatines LEE, réflecteurs à taux de réflexion publiés, éclairement et diaph sur les personnages, puissance par circuit ; soleil du décor (position GPS, date, heure).
 - **Tournage** : installations, ordre de tournage, jours de tournage et matériel déduit.
 - **Images** : bibliothèque du projet, chaque image importée une seule fois et réutilisable partout.
-- **Travailler vite** : Mon matériel (caméras, optiques, projecteurs, réflecteurs, vocabulaire gardés sur le Mac pour tous les projets), nouveau projet avec les réglages d’un autre, plans types, choix des réglages repris par le plan suivant, abréviations.
+- **Travailler vite** : matériel du projet repris d’un autre projet, nouveau projet avec les réglages d’un autre, plans types, choix des réglages repris par le plan suivant, abréviations ; figures du plan au sol dessinées avec vos propres icônes.
 - **Exports** : découpage technique PDF et Excel, plans au sol, ordre de tournage, jours et matériel.
 
 Aucune valeur n'est inventée : sans donnée fiable (fiche fabricant, capteur, échelle), l'application n'affiche pas de chiffre.
