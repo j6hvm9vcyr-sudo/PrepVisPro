@@ -226,6 +226,40 @@ test('bibliothèque d’icônes : import d’un dossier, recherche, pose sur le 
   await expect(page.locator('.floor-canvas image')).toHaveCount(2);
 });
 
+test('figures : caméras, personnages et projecteurs dessinés avec les icônes importées, dans le bon sens', async ({ page }) => {
+  await page.goto('/?exemple');
+  await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
+  await page.keyboard.press('ControlOrMeta+3');
+  await pick(page, 'Créer un plan au sol pour la séquence', '1 — Quai de gare');
+  const chooser = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Importer un dossier d’icônes…' }).click();
+  await (await chooser).setFiles(resolve('e2e/icones-test'));
+  await expect(page.getByText(/4 icônes dans la bibliothèque/)).toBeVisible();
+  const figures = page.getByRole('region', { name: 'Figures du plan' });
+  // Caméra : icône « Dolly », qui regarde vers la droite.
+  await pick(page, 'Icône des figures caméra', 'Dolly');
+  await figures.getByRole('radio', { name: '→' }).click();
+  // Personnage : icône de la bibliothèque aussi.
+  await pick(page, 'Icône des figures personnage', 'Accessoires');
+  const canvas = page.getByRole('application', { name: 'Plan au sol' });
+  const box = (await page.locator('.floor-canvas svg').boundingBox())!;
+  await canvas.press('c');
+  await page.mouse.click(box.x + 200, box.y + 200);
+  const camImg = page.locator('.floor-canvas [data-el] image[transform="rotate(270)"]');
+  await expect(camImg).toHaveCount(1);
+  await canvas.press('Escape');
+  await canvas.press('p');
+  await page.mouse.click(box.x + 400, box.y + 200);
+  await expect(page.locator('.floor-canvas [data-el] image')).toHaveCount(2);
+  await page.screenshot({ path: 'test-results/18-figures.png' });
+  // Retour au symbole standard pour les caméras : plus d'image pour elles.
+  await canvas.press('Escape');
+  await canvas.press('Escape');
+  await pick(page, 'Icône des figures caméra', 'Symbole standard');
+  await expect(camImg).toHaveCount(0);
+  await expect(page.locator('.floor-canvas [data-el] image')).toHaveCount(1);
+});
+
 test('tournage : installations proposées d’après le plan au sol, réorganisées à la main', async ({ page }) => {
   await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();

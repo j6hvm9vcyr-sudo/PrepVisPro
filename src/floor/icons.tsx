@@ -23,7 +23,7 @@ const ICON_SIZE = 56;
 /** Copies déjà faites dans le projet ouvert : une icône posée dix fois n'est copiée qu'une fois. */
 const copies = new Map<string, string>();
 
-async function copyIntoProject(item: IconItem): Promise<string> {
+export async function copyIntoProject(item: IconItem): Promise<string> {
   const key = `${imageStore.projectDir ?? 'memoire'}|${item.id}`;
   const known = copies.get(key);
   if (known && imageStore.url(known)) return known;

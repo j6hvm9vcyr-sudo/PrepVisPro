@@ -14,6 +14,7 @@ import { SUNRISE_ELEV } from '../model/sun';
 import type { Point } from '../model/floor';
 import type { computeNumbers } from '../model/numbering';
 import { ACTOR_COLORS } from './floorStore';
+import { CAMERA_ICON_SIZE, figureIcon } from '../model/floorIcons';
 
 const CAM_COLOR = '#2457C5';
 const CAM_END = '#7A5AF8';
@@ -49,11 +50,17 @@ export function FloorMarkers() {
 
 const SUN_COLOR = '#E0A100';
 
+/** Image d'une icône, centrée, tournée pour regarder vers le haut (sens 0° de l'élément). */
+function IconImage({ url, size, turn }: { url: string; size: number; turn: number }) {
+  return <image href={url} x={-size / 2} y={-size / 2} width={size} height={size} preserveAspectRatio="xMidYMid meet" transform={turn ? `rotate(${turn})` : undefined} />;
+}
+
 /** Symbole simplifié d'un élément, pour ses positions suivantes. */
-function Ghost({ el, urlFor }: { el: FloorElement; urlFor: (file: string) => string | null }) {
-  const url = 'icon' in el && el.icon ? urlFor(el.icon) : null;
-  const size = 'size' in el ? el.size : 40;
-  if (url) return <image href={url} x={-size / 2} y={-size / 2} width={size} height={size} preserveAspectRatio="xMidYMid meet" />;
+function Ghost({ doc, el, urlFor }: { doc: ProjectDoc; el: FloorElement; urlFor: (file: string) => string | null }) {
+  const fig = figureIcon(doc, el) ?? ('icon' in el && el.icon ? { file: el.icon, turn: 0 } : null);
+  const url = fig ? urlFor(fig.file) : null;
+  const size = 'size' in el ? el.size : CAMERA_ICON_SIZE;
+  if (url && fig) return <IconImage url={url} size={size} turn={fig.turn} />;
   if (el.kind === 'actor')
     return (
       <>
@@ -169,7 +176,7 @@ export function FloorScene({ doc, fp, k, numbers, selection = [], urlFor }: Scen
       el.positions.forEach((q, i) => {
         bodies.push(
           <g key={`g-${el.id}-${i}`} data-pos={`${el.id}:${i}`} transform={`translate(${q.at.x} ${q.at.y}) scale(${k}) rotate(${q.rotation})`} style={{ cursor: 'move' }} opacity={0.55}>
-            <Ghost el={el} urlFor={urlFor} />
+            <Ghost doc={doc} el={el} urlFor={urlFor} />
           </g>,
         );
         if (isSel && ui.selection.length === 1) {
@@ -207,20 +214,32 @@ export function FloorScene({ doc, fp, k, numbers, selection = [], urlFor }: Scen
         }
       }
       const lab = cameraLabel(doc, el.planId, el.setupId, numbers);
+      const fig = figureIcon(doc, el);
+      const camUrl = fig ? urlFor(fig.file) : null;
+      const half = camUrl ? CAMERA_ICON_SIZE / 2 : 14;
       bodies.push(
         <g key={el.id} data-el={el.id} transform={`translate(${el.at.x} ${el.at.y}) scale(${k}) rotate(${el.rotation})`} style={{ cursor: 'move' }}>
-          {isSel && <circle r={22} fill="none" stroke={CAM_COLOR} strokeWidth={2} strokeDasharray="4 3" />}
-          <rect x={-10} y={-4} width={20} height={16} rx={3} fill={lab.missing ? '#8B94A2' : CAM_COLOR} stroke="#fff" strokeWidth={1.5} />
-          <path d="M -6 -4 L -9 -14 L 9 -14 L 6 -4 Z" fill={lab.missing ? '#8B94A2' : CAM_COLOR} stroke="#fff" strokeWidth={1.5} strokeLinejoin="round" />
+          {isSel && <circle r={half + 8} fill="none" stroke={CAM_COLOR} strokeWidth={2} strokeDasharray="4 3" />}
+          {camUrl && fig ? (
+            <>
+              <IconImage url={camUrl} size={CAMERA_ICON_SIZE} turn={fig.turn} />
+              <rect x={-half - 4} y={-half - 4} width={CAMERA_ICON_SIZE + 8} height={CAMERA_ICON_SIZE + 8} fill="none" pointerEvents="all" />
+            </>
+          ) : (
+            <>
+              <rect x={-10} y={-4} width={20} height={16} rx={3} fill={lab.missing ? '#8B94A2' : CAM_COLOR} stroke="#fff" strokeWidth={1.5} />
+              <path d="M -6 -4 L -9 -14 L 9 -14 L 6 -4 Z" fill={lab.missing ? '#8B94A2' : CAM_COLOR} stroke="#fff" strokeWidth={1.5} strokeLinejoin="round" />
+            </>
+          )}
         </g>,
       );
       if (isSel && ui.selection.length === 1) {
-        const h = project(el.at, el.rotation, 40 * k);
+        const h = project(el.at, el.rotation, (half + 26) * k);
         bodies.push(<circle key={`h-${el.id}`} data-rotate={el.id} cx={h.x} cy={h.y} r={6 * k} fill="#fff" stroke={CAM_COLOR} strokeWidth={2 * k} style={{ cursor: 'grab' }} />);
       }
       labels.push(
         <g key={`l-${el.id}`} transform={`translate(${el.at.x} ${el.at.y}) scale(${k})`} pointerEvents="none">
-          <g transform="translate(16 12)">
+          <g transform={`translate(${half + 2} 12)`}>
             <rect x={0} y={0} width={Math.max(lab.code.length, lab.detail.length) * 7.4 + 12} height={33} rx={4} fill={lab.missing ? '#6A7383' : '#13161B'} opacity={0.9} />
             <text x={6} y={14} fontSize={12} fontWeight={700} fill="#fff" fontFamily="IBM Plex Mono, monospace">
               {lab.code}
@@ -232,14 +251,15 @@ export function FloorScene({ doc, fp, k, numbers, selection = [], urlFor }: Scen
         </g>,
       );
     } else if (el.kind === 'actor') {
-      const url = el.icon ? urlFor(el.icon) : null;
+      const fig = figureIcon(doc, el);
+      const url = fig ? urlFor(fig.file) : null;
       const r = url ? el.size / 2 : 12;
       bodies.push(
         <g key={el.id} data-el={el.id} transform={`translate(${el.at.x} ${el.at.y}) scale(${k}) rotate(${el.rotation})`} style={{ cursor: 'move' }}>
           {isSel && <circle r={r + 7} fill="none" stroke={el.color} strokeWidth={2} strokeDasharray="4 3" />}
           {url ? (
             <>
-              <image href={url} x={-r} y={-r} width={el.size} height={el.size} preserveAspectRatio="xMidYMid meet" />
+              <IconImage url={url} size={el.size} turn={fig?.turn ?? 0} />
               <rect x={-r - 4} y={-r - 4} width={el.size + 8} height={el.size + 8} fill="none" pointerEvents="all" />
             </>
           ) : (
@@ -255,7 +275,7 @@ export function FloorScene({ doc, fp, k, numbers, selection = [], urlFor }: Scen
         bodies.push(<circle key={`h-${el.id}`} data-rotate={el.id} cx={h.x} cy={h.y} r={6 * k} fill="#fff" stroke={el.color} strokeWidth={2 * k} style={{ cursor: 'grab' }} />);
       }
       labels.push(
-        <text key={`l-${el.id}`} x={el.at.x} y={el.at.y + ((el.icon ? el.size / 2 : 12) + 16) * k} fontSize={12 * k} fontWeight={600} textAnchor="middle" fill="#13161B" stroke="#fff" strokeWidth={3 * k} paintOrder="stroke" pointerEvents="none">
+        <text key={`l-${el.id}`} x={el.at.x} y={el.at.y + ((url ? el.size / 2 : 12) + 16) * k} fontSize={12 * k} fontWeight={600} textAnchor="middle" fill="#13161B" stroke="#fff" strokeWidth={3 * k} paintOrder="stroke" pointerEvents="none">
           {el.name}
         </text>,
       );
@@ -280,12 +300,13 @@ export function FloorScene({ doc, fp, k, numbers, selection = [], urlFor }: Scen
         const c = fovCone(el.at, el.rotation, mode.beamDeg, fovLen * LIGHT_BEAM_RATIO);
         if (c) cones.push(<polygon key={`b-${el.id}`} points={`${el.at.x},${el.at.y} ${c.left.x},${c.left.y} ${c.right.x},${c.right.y}`} fill={LIGHT_COLOR} fillOpacity={isSel ? 0.22 : 0.13} stroke={LIGHT_COLOR} strokeOpacity={0.6} strokeWidth={1 * k} strokeDasharray={`${3 * k} ${3 * k}`} />);
       }
-      const url = el.icon ? urlFor(el.icon) : null;
+      const lfig = figureIcon(doc, el);
+      const url = lfig ? urlFor(lfig.file) : null;
       bodies.push(
         <g key={el.id} data-el={el.id} transform={`translate(${el.at.x} ${el.at.y}) scale(${k}) rotate(${el.rotation})`} style={{ cursor: 'move' }}>
           {isSel && <circle r={el.size / 2 + 6} fill="none" stroke={LIGHT_COLOR} strokeWidth={2} strokeDasharray="4 3" />}
           {url ? (
-            <image href={url} x={-el.size / 2} y={-el.size / 2} width={el.size} height={el.size} preserveAspectRatio="xMidYMid meet" />
+            <IconImage url={url} size={el.size} turn={lfig?.turn ?? 0} />
           ) : (
             <>
               {/* Symbole standard : corps du projecteur et lentille vers l'avant. */}

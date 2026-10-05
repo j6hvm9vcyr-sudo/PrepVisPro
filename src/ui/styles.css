@@ -698,3 +698,9 @@ table.modes input:not(.decimal-field input) { border: 1px solid var(--border); b
 .kit .sub-h { font-size: 12px; font-weight: 700; color: var(--text2); margin: 6px 0 2px; }
 .kit-item.here { opacity: 0.6; }
 .kit-group { display: flex; flex-direction: column; }
+/* Figures du plan au sol */
+.figures { display: flex; flex-direction: column; gap: 10px; }
+.figure-row { display: flex; align-items: flex-end; gap: 8px; }
+.figure-preview { flex: none; width: 34px; height: 34px; border: 1px solid var(--border-soft); border-radius: 6px; display: flex; align-items: center; justify-content: center; background: var(--head); overflow: hidden; }
+.figure-preview img { width: 28px; height: 28px; object-fit: contain; }
+.figure-row .seg.small button { padding: 2px 7px; }

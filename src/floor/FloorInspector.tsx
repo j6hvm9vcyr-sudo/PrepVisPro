@@ -18,6 +18,7 @@ import { ReflectorInspector } from './ReflectorPanel';
 import { LightingPanel } from './LightingPanel';
 import { Fold } from '../ui/Fold';
 import { Picker } from '../ui/Picker';
+import { FiguresPanel } from './FiguresPanel';
 import { useIcons } from '../platform/iconLibrary';
 import { planSun, sunForCamera } from '../model/sunPlan';
 
@@ -317,6 +318,11 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
             </div>
           )}
           {ui.placing && <p className="note" style={{ margin: 0, color: 'var(--accent)', fontWeight: 600 }}>Cliquez sur le plan pour placer la caméra (esc pour annuler).</p>}
+        </Fold>
+        )}
+        {selected.length === 0 && (
+        <Fold id="figures" title="Figures" label="Figures du plan">
+          <FiguresPanel />
         </Fold>
         )}
         {selected.every((x) => x.kind === 'icon') && (
