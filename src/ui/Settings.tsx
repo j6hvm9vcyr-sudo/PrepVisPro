@@ -1,3 +1,4 @@
+import { Info } from './Info';
 import { systemTimeZone } from '../model/sun';
 import { useState } from 'react';
 import { useApp } from '../state/appStore';
@@ -42,6 +43,11 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
       <div className="dialog settings-dialog" onClick={(e) => e.stopPropagation()}>
         <div className="settings-head">
           <h3>Réglages du projet</h3>
+          <span className="scope-badge">Fichier</span>
+          <Info title="Réglages du projet">
+            <span>Gardés dans le fichier du projet : il s’ouvre à l’identique sur un autre Mac.</span>
+            <span>Ce qui vaut pour tous vos projets est dans les Préférences (⌘,).</span>
+          </Info>
           <span className="spacer" />
           <button type="button" className="btn primary" onClick={close}>
             Terminé
@@ -120,11 +126,11 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
             <div className="sec">
               <div className="sec-h">
                 <span>Projet suivant</span>
+                <Info title="Projet suivant">
+                  <span>Reprend caméras, optiques, projecteurs, réflecteurs, exposition, termes, champs obligatoires, production, ratio et équipe.</span>
+                  <span>Pas les séquences, plans au sol, jours ni images.</span>
+                </Info>
               </div>
-              <p className="note" style={{ margin: 0 }}>
-                Un nouveau projet qui reprend la préparation de celui-ci : caméras, optiques, projecteurs, réflecteurs, exposition, listes de termes, champs obligatoires,
-                production, ratio et équipe. Les séquences, plans au sol, jours et images ne sont pas repris.
-              </p>
               <button type="button" className="btn" style={{ alignSelf: 'flex-start' }} onClick={() => void newProjectFromCurrent().then((ok) => ok && onClose())}>
                 Nouveau projet avec ces réglages…
               </button>
@@ -138,13 +144,16 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
 
         {tab === 'termes' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, overflow: 'auto' }}>
+            <div className="sec-h">
+              <span>Listes de termes</span>
+              <Info title="Listes de termes">
+                <span>Retirer un terme ne change pas les plans qui l’utilisent : il y reste, souligné en pointillé.</span>
+                <span>À la saisie, les termes sont proposés du plus employé au moins employé.</span>
+              </Info>
+            </div>
             {TERM_CATEGORIES.map((cat) => (
               <TermEditor key={cat} cat={cat} />
             ))}
-            <p className="note" style={{ margin: 0, fontSize: 12 }}>
-              Retirer un terme ne modifie pas les plans qui l’utilisent déjà : il y reste, souligné en pointillé. À la saisie, les termes qui commencent pareil sont
-              proposés du plus employé au moins employé dans le projet.
-            </p>
             <PrefsLink what="Abréviations" />
           </div>
         )}
@@ -155,9 +164,13 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
             <div className="sec" aria-label="Plans types" role="group">
               <div className="sec-h">
                 <span>Plans types</span>
+                <Info title="Plans types">
+                  <span>Des réglages caméra gardés pour les appliquer en un clic.</span>
+                  <span>Dans les détails d’un plan : « Plan type… › Enregistrer ce réglage ».</span>
+                </Info>
               </div>
               {doc.settings.shotPresets.length === 0 ? (
-                <p className="note" style={{ margin: 0 }}>Aucun. Dans les Détails d’un plan, « Plan type… › Enregistrer ce réglage » garde ses réglages caméra pour les appliquer ensuite en un clic.</p>
+                <p className="note" style={{ margin: 0 }}>Aucun plan type</p>
               ) : (
                 doc.settings.shotPresets.map((p) => (
                   <div className="row" key={p.id} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
@@ -172,8 +185,11 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
             <div className="sec" aria-label="Plan complet" role="group">
               <div className="sec-h">
                 <span>Plan complet</span>
+                <Info title="Plan complet">
+                  <span>Un plan est complet (pastille verte) quand ces champs sont renseignés, pour chaque caméra.</span>
+                  <span>Sinon il apparaît dans « À vérifier ».</span>
+                </Info>
               </div>
-              <p style={{ margin: 0, color: 'var(--text2)' }}>Un plan est « complet » quand ces champs sont renseignés (pour chaque caméra) :</p>
               {REQUIRED_FIELDS.map((f) => (
                 <label className="check" key={f}>
                   <input type="checkbox" checked={doc.settings.required[f]} onChange={(e) => st().updateDoc((d) => void (d.settings.required[f] = e.target.checked))} />

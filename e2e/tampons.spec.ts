@@ -21,7 +21,7 @@ test('tampons : TITRE entre deux séquences, GÉNÉRIQUE DE FIN, déplacement, s
   await expect(bands).toHaveText(['SÉQ. 1', 'TITRE', 'SÉQ. 2', 'SÉQ. 3', 'SÉQ. 4']);
   await expect(page.getByRole('row', { name: 'Tampon TITRE' })).toContainText('sur noir, 10 s');
   // La numérotation des plans ne bouge pas.
-  await expect(page.locator('.line.first .n').first()).toHaveText('1');
+  await expect(page.locator('.line.first .c.code b').first()).toHaveText('1/1');
 
   // Barre latérale : générique de fin après la dernière séquence (le curseur est sur la 1 : on va à la 4).
   await page.getByRole('navigation', { name: 'Le film' }).getByRole('button', { name: /^4 · / }).click();
@@ -30,7 +30,7 @@ test('tampons : TITRE entre deux séquences, GÉNÉRIQUE DE FIN, déplacement, s
   await expect(dlg).toContainText('Placé en fin de film');
   await dlg.getByLabel('Texte').press('Enter');
   await expect(bands).toHaveText(['SÉQ. 1', 'TITRE', 'SÉQ. 2', 'SÉQ. 3', 'SÉQ. 4', 'Générique de fin']);
-  await expect(page.getByRole('navigation', { name: 'Le film' }).locator('.index-stamp')).toHaveText(['TITRE', 'Générique de fin']);
+  await expect(page.getByRole('navigation', { name: 'Le film' }).locator('.tree-stamp')).toHaveText(['TITRE', 'Générique de fin']);
   await page.screenshot({ path: 'test-results/30-tampons.png' });
 
   // Déplacer le TITRE d'un cran vers la fin : il passe après la séquence 2.

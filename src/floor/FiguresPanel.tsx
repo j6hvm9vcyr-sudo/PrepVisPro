@@ -18,7 +18,7 @@ export function FiguresPanel() {
   const st = useApp.getState;
   return (
     <div className="figures">
-      {!items.length && <p className="note" style={{ margin: 0 }}>Importez d’abord votre dossier d’icônes (section Icônes, plus bas) : elles pourront dessiner caméras, personnages et projecteurs.</p>}
+      {!items.length && <p className="note" style={{ margin: 0 }}>Aucune icône importée (section Icônes)</p>}
       {KINDS.map((kind) => (
         <IconChoice
           key={kind}
@@ -28,10 +28,6 @@ export function FiguresPanel() {
           onChange={(v) => st().updateDoc((d) => void (d.settings.floorIcons[kind] = v), `${FIGURE_LABEL[kind]}s : ${v ? v.name : 'symbole standard'}`)}
         />
       ))}
-      <p className="note" style={{ margin: 0 }}>
-        Par défaut pour tout le projet. Une figure peut avoir sa propre icône (sélectionnez-la), un projecteur celle de son modèle (onglet Lumière). Le sens : celui vers lequel
-        regarde l’image (objectif, visage, faisceau).
-      </p>
     </div>
   );
 }

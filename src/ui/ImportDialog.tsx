@@ -33,7 +33,7 @@ export function ImportDialog() {
   const run = () => {
     const r = applyImport(doc, plan, { include: selected, updateHeadings: headings });
     const parts = [r.added ? `${r.added} séquence${r.added > 1 ? 's' : ''} ajoutée${r.added > 1 ? 's' : ''}` : '', r.updated ? `${r.updated} mise${r.updated > 1 ? 's' : ''} à jour` : ''].filter(Boolean);
-    useApp.getState().replaceDoc(r.doc, `Scénario importé : ${parts.join(', ') || 'rien à changer'} · ⌘Z pour annuler`);
+    useApp.getState().replaceDoc(r.doc, `Scénario importé : ${parts.join(', ') || 'rien à changer'}`);
     close();
   };
 

@@ -1,4 +1,4 @@
-/** Panneau de droite du plan au sol : onglets Plan (ou Sélection) et Lumière. */
+/** Panneau de droite du plan au sol : la sélection ; sans sélection, ce que montre l'onglet (Plan au sol, Lumière, Soleil). */
 import { useMemo, useRef, useState } from 'react';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
@@ -16,6 +16,7 @@ import { ActorLight, LightInspector } from './LightPanels';
 import { convertIcon } from './iconConvert';
 import { ReflectorInspector } from './ReflectorPanel';
 import { LightingPanel } from './LightingPanel';
+import { SunSection } from './SunPanel';
 import { Fold } from '../ui/Fold';
 import { Picker } from '../ui/Picker';
 import { FiguresPanel } from './FiguresPanel';
@@ -24,6 +25,9 @@ import { figureIcon } from '../model/floorIcons';
 import type { FloorReflector } from '../model/floor';
 import { useIcons } from '../platform/iconLibrary';
 import { planSun, sunForCamera } from '../model/sunPlan';
+import { Info } from '../ui/Info';
+import { displayText } from '../model/entry';
+import { fieldOfView, formatDeg, parseAspectRatio } from '../model/optics';
 
 /** Import du fond (plan d'architecte PDF ou image, vue satellite). */
 function BackgroundButton({ fp }: { fp: FloorPlan }) {
@@ -109,25 +113,26 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
     .flatMap((s) => s.plans.flatMap((p) => p.cameras.map((c) => ({ planId: p.id, setupId: c.id, label: cameraLabel(doc, p.id, c.id, numbers) }))));
   const linked = el?.kind === 'camera' ? setupOptions.find((o) => o.planId === el.planId && o.setupId === el.setupId) : undefined;
 
-  const tab = selected.length === 0 && ui.panel === 'light' ? 'light' : 'plan';
+  const tab = selected.length === 0 ? ui.panel : 'plan';
+  const title = el ? { camera: 'Caméra', actor: 'Personnage', icon: 'Icône', text: 'Texte', light: 'Projecteur', reflector: 'Réflecteur' }[el.kind] : selected.length > 1 ? `${selected.length} éléments` : tab === 'light' ? 'Lumière' : tab === 'sun' ? 'Soleil' : fp.name || 'Plan au sol';
   return (
-    <aside className="inspector" aria-label="Détails du plan au sol">
-      <div className="insp-tabs seg" role="tablist" aria-label="Panneau">
-        <button type="button" role="tab" aria-selected={tab === 'plan'} aria-pressed={tab === 'plan'} onClick={() => useFloor.getState().set({ panel: 'plan' })}>
-          {selected.length ? 'Sélection' : 'Plan'}
-        </button>
-        <button type="button" role="tab" aria-selected={tab === 'light'} aria-pressed={tab === 'light'} onClick={() => useFloor.getState().set({ panel: 'light', selection: [] })} title="Soleil, projecteurs, réflecteurs, exposition">
-          Lumière
-        </button>
+    <aside className="side-panel inspector floor-insp" aria-label="Détails du plan au sol">
+      <div className="side-head">
+        <strong>{title}</strong>
+        {el?.kind === 'camera' && linked && <span className="mono accent">{linked.label.code}</span>}
       </div>
-      <div className="insp-body">
+      <div className="side-body floor-body">
         {tab === 'light' ? (
           <LightingPanel fp={fp} />
+        ) : tab === 'sun' ? (
+          <section className="sec" aria-label="Soleil">
+            <SunSection fp={fp} />
+          </section>
         ) : el ? (
           <section className="sec">
-            <div className="sec-h">{{ camera: 'Caméra', actor: 'Personnage', icon: 'Icône', text: 'Texte', light: 'Projecteur', reflector: 'Réflecteur' }[el.kind]}</div>
             {el.kind === 'camera' && (
               <>
+                {el.planId && <FramingCard planId={el.planId} setupId={el.setupId} />}
                 <div className="field">
                   Plan du découpage
                   <Picker
@@ -220,14 +225,12 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
               </div>
             )}
             {(el.kind === 'camera' || el.kind === 'actor' || el.kind === 'light') && <PositionsField fp={fp} el={el} />}
-            <button type="button" className="linkbtn danger" style={{ alignSelf: 'flex-start' }} title="⌫ sur le plan" onClick={() => (apply((d) => deleteElements(d, fp.id, [el.id]), 'Élément supprimé · ⌘Z pour annuler'), useFloor.getState().set({ selection: [] }))}>
+            <button type="button" className="linkbtn danger" style={{ alignSelf: 'flex-start' }} title="⌫ sur le plan" onClick={() => (apply((d) => deleteElements(d, fp.id, [el.id]), 'Élément supprimé'), useFloor.getState().set({ selection: [] }))}>
               Supprimer
             </button>
           </section>
         ) : selected.length > 1 ? (
           <section className="sec">
-            <div className="sec-h">{selected.length} éléments</div>
-            <p className="note" style={{ margin: 0 }}>Glissez pour les déplacer ensemble · ⌫ pour les supprimer. Les réglages ci-dessous s’appliquent à toute la sélection.</p>
             {selected.some((x) => x.kind === 'icon') && (
               <div className="field">
                 Taille des icônes
@@ -293,7 +296,7 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
                 <FloorExportButtons fp={fp} />
               </div>
             </div>
-            <button type="button" className="linkbtn danger" style={{ alignSelf: 'flex-start' }} onClick={() => (apply((d) => deleteFloorPlan(d, fp.id), 'Plan au sol supprimé · ⌘Z pour annuler'), useFloor.getState().set({ currentId: null }))}>
+            <button type="button" className="linkbtn danger" style={{ alignSelf: 'flex-start' }} onClick={() => (apply((d) => deleteFloorPlan(d, fp.id), 'Plan au sol supprimé'), useFloor.getState().set({ currentId: null }))}>
               Supprimer ce plan au sol
             </button>
           </Fold>
@@ -325,7 +328,17 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
         </Fold>
         )}
         {selected.length === 0 && (
-        <Fold id="figures" title="Figures" label="Figures du plan">
+        <Fold
+          id="figures"
+          title="Figures"
+          info={
+            <Info title="Figures">
+              <span>Icônes par défaut pour tout le projet. Une figure peut avoir la sienne (sélectionnez-la), un projecteur celle de son modèle (onglet Lumière).</span>
+              <span>Le sens : celui vers lequel regarde l’image (objectif, visage, faisceau).</span>
+            </Info>
+          }
+          label="Figures du plan"
+        >
           <FiguresPanel />
         </Fold>
         )}
@@ -446,5 +459,52 @@ function FigureIconField({ fp, el }: { fp: FloorPlan; el: FloorCamera | FloorAct
         </div>
       )}
     </>
+  );
+}
+
+/** Cadre de la caméra, lu dans le découpage (rien n'est recopié) ; « Modifier » y mène. */
+function FramingCard({ planId, setupId }: { planId: string; setupId: string | null }) {
+  const doc = useApp(selectDoc);
+  const plan = doc.sequences.flatMap((s) => s.plans).find((p) => p.id === planId);
+  const setup = plan?.cameras.find((c) => c.id === setupId) ?? plan?.cameras[0];
+  if (!plan || !setup) return null;
+  const cam = doc.settings.cameras.find((k) => k.id === setup.cameraId);
+  const fov = cam?.sensorWidthMm && setup.start.focalMm !== null ? formatDeg(fieldOfView(cam, setup.start.focalMm, parseAspectRatio(doc.meta.aspectRatio)).horizontal) : '—';
+  const rows: [string, string][] = [
+    ['Valeur', displayText('size', setup) || '—'],
+    ['Axe', displayText('axis', setup) || '—'],
+    ['Focale', displayText('focal', setup) || '—'],
+    ['Champ', fov],
+  ];
+  return (
+    <section className="icard" aria-label="Cadre">
+      <div className="icard-h">
+        <span>Cadre</span>
+        <Info title="Cadre">
+          <span>Lu dans le découpage : le changer ici le change partout.</span>
+          <span>Champ : horizontal, d’après le capteur et le ratio du projet.</span>
+        </Info>
+        <span className="spacer" />
+        <button
+          type="button"
+          className="linkbtn"
+          onClick={() => {
+            const st = useApp.getState();
+            st.setView('table');
+            st.goToPlan(planId);
+          }}
+        >
+          Modifier
+        </button>
+      </div>
+      <dl className="kv">
+        {rows.map(([k, v]) => (
+          <div key={k}>
+            <dt>{k}</dt>
+            <dd className={k === 'Focale' || k === 'Champ' ? 'mono' : ''}>{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }

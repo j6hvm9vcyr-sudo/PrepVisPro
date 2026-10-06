@@ -1,10 +1,8 @@
-import { useMemo, type ReactNode } from 'react';
-import { create } from 'zustand';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useApp } from '../state/appStore';
 import { rangeOf, selectCursor, selectDoc } from '../state/store';
 import { computeNumbers } from '../model/numbering';
 import { locatePlan } from '../model/ops';
-import { FIELD_LABEL } from '../model/entry';
 import { itemLabel, verify, type PlanState, type VerifyItem } from '../model/verify';
 import { planLinks } from '../model/links';
 import type { Id } from '../model/types';
@@ -13,15 +11,17 @@ import { focusGrid } from './focus';
 import { flushSave, saveAsDialog, useProject } from '../state/project';
 import { filmFlow } from '../model/stamps';
 import { useFloor } from '../floor/floorStore';
-import { IconChevron, IconClose, IconGear, IconSidebar, IconWarn } from './Icons';
+import { IconClose, IconGear, IconSidebar, IconWarn } from './Icons';
 import { openSpace, SPACE_OF, SPACES, useVerifyPanel, type Space } from './spaces';
 import { Info } from './Info';
 
 /** Relevé « À vérifier », recalculé à chaque modification du projet. */
-function useVerification() {
+export function useVerification() {
   const doc = useApp(selectDoc);
   return useMemo(() => verify(doc), [doc]);
 }
+
+const KEY_OF: Record<Space, string> = { decoupage: '⌘1', sol: '⌘3', tournage: '⌘5' };
 
 export function Toolbar() {
   const doc = useApp(selectDoc);
@@ -30,7 +30,6 @@ export function Toolbar() {
   const n = useVerification().items.length;
   const verifyOpen = useVerifyPanel((s) => s.open);
   const st = useApp.getState;
-  const keyOf: Record<Space, string> = { decoupage: '⌘1', sol: '⌘3', tournage: '⌘5' };
 
   return (
     <header className="toolbar">
@@ -40,46 +39,76 @@ export function Toolbar() {
       </div>
       <nav className="spaces" aria-label="Espaces">
         {SPACES.map((sp) => (
-          <button key={sp.id} type="button" aria-pressed={space === sp.id} onClick={() => openSpace(sp.id)} title={`${sp.label} (${keyOf[sp.id]})`}>
+          <button key={sp.id} type="button" aria-pressed={space === sp.id} onClick={() => openSpace(sp.id)} title={`${sp.label} (${KEY_OF[sp.id]})`}>
             {sp.label}
           </button>
         ))}
       </nav>
       <span className="spacer" />
-      <div className="tool-icons">
-        <button
-          type="button"
-          className={`btn icon verify-btn ${verifyOpen ? 'on' : ''}`}
-          aria-pressed={verifyOpen}
-          aria-label={`À vérifier${n ? ` : ${n}` : ''}`}
-          title={n ? `À vérifier : ${n}` : 'Rien à vérifier'}
-          onClick={() => useVerifyPanel.getState().set(!verifyOpen)}
-        >
-          <IconWarn />
-          {n > 0 && <span className="badge">{n > 99 ? '99+' : n}</span>}
-        </button>
-        <button type="button" className="btn icon" aria-label="Réglages" onClick={() => st().setShowSettings(true)} title="Réglages du projet (⇧⌘,)">
-          <IconGear />
-        </button>
-      </div>
-      <button type="button" className="btn primary" onClick={() => st().setShowExport(true)} title="PDF, Excel, CSV (⌘E)">
+      <button
+        type="button"
+        className={`ibtn verify-btn ${verifyOpen ? 'on' : ''}`}
+        aria-pressed={verifyOpen}
+        aria-label={`À vérifier${n ? ` : ${n}` : ''}`}
+        title={n ? `À vérifier : ${n}` : 'Rien à vérifier'}
+        onClick={() => useVerifyPanel.getState().set(!verifyOpen)}
+      >
+        <IconWarn />
+        {n > 0 && <span className="badge">{n > 99 ? '99+' : n}</span>}
+      </button>
+      <button type="button" className="ibtn" aria-label="Réglages" onClick={() => st().setShowSettings(true)} title="Réglages du projet (⇧⌘,)">
+        <IconGear />
+      </button>
+      <button type="button" className="btn primary export-btn" onClick={() => st().setShowExport(true)} title="PDF, Excel, CSV (⌘E)">
         Exporter…
       </button>
     </header>
   );
 }
 
-/** Vues de l'espace en cours (Tableau · Fiches · Images ; Jours · Installations). */
-export function SpaceBar({ children }: { children?: ReactNode }) {
+/** Petit menu déroulant de la barre des vues (« Filtrer ▾ »). */
+export function BarMenu({ label, active, children }: { label: string; active?: boolean; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: Event) => {
+      if (e instanceof KeyboardEvent && e.key !== 'Escape') return;
+      if (e instanceof MouseEvent && ref.current?.contains(e.target as Node)) return;
+      setOpen(false);
+    };
+    window.addEventListener('mousedown', close);
+    window.addEventListener('keydown', close);
+    return () => {
+      window.removeEventListener('mousedown', close);
+      window.removeEventListener('keydown', close);
+    };
+  }, [open]);
+  return (
+    <div className="bar-menu" ref={ref}>
+      <button type="button" className={`tool-b ${active ? 'on' : ''}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
+        {label} <span aria-hidden>▾</span>
+      </button>
+      {open && (
+        <div className="bar-pop" role="menu" onClick={() => setOpen(false)}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Vues de l'espace en cours (Tableau · Fiches · Images ; Jours · Installations), et ses réglages à droite. */
+export function SpaceBar({ left, children, views = true }: { left?: ReactNode; children?: ReactNode; views?: boolean }) {
   const view = useApp((s) => s.view);
   const inspector = useApp((s) => s.inspector);
+  const onlyIncomplete = useApp((s) => s.onlyIncomplete);
   const sp = SPACES.find((x) => x.id === SPACE_OF[view])!;
   const st = useApp.getState;
-  const showDetails = (view === 'table' || view === 'cards') && !inspector;
-  if (sp.views.length < 2 && !children && !showDetails) return null;
+  const decoupage = view === 'table' || view === 'cards';
   return (
     <div className="space-bar">
-      {sp.views.length > 1 && (
+      {views && sp.views.length > 1 && (
         <div className="seg" role="group" aria-label={`Vues de l’espace ${sp.label}`}>
           {sp.views.map((v) => (
             <button key={v.view} type="button" aria-pressed={view === v.view} onClick={() => st().setView(v.view)} title={`${v.title} (${v.key})`}>
@@ -88,22 +117,35 @@ export function SpaceBar({ children }: { children?: ReactNode }) {
           ))}
         </div>
       )}
+      {left}
       <span className="spacer" />
       {children}
-      {showDetails && (
-        <button type="button" className="btn icon ghost-icon" aria-label="Détails" title="Afficher les détails du plan (⌘I)" onClick={() => st().toggleInspector()}>
+      {decoupage && (
+        <BarMenu label="Filtrer" active={onlyIncomplete}>
+          <button
+            type="button"
+            role="menuitemcheckbox"
+            aria-checked={onlyIncomplete}
+            onClick={() => {
+              st().toggleOnlyIncomplete();
+              focusGrid();
+            }}
+          >
+            <span className="check" aria-hidden>
+              {onlyIncomplete ? '✓' : ''}
+            </span>
+            Plans à compléter
+          </button>
+        </BarMenu>
+      )}
+      {decoupage && !inspector && (
+        <button type="button" className="ibtn" aria-label="Détails" title="Afficher les détails du plan (⌘I)" onClick={() => st().toggleInspector()}>
           <IconSidebar />
         </button>
       )}
     </div>
   );
 }
-
-/** Séquences dépliées dans l'arbre du film (la séquence du plan sélectionné l'est d'office). */
-const useTree = create<{ open: Record<Id, boolean>; toggle(id: Id, now: boolean): void }>()((set) => ({
-  open: {},
-  toggle: (id, now) => set((s) => ({ open: { ...s.open, [id]: !now } })),
-}));
 
 const STATE_LABEL: Record<PlanState, string> = { ok: 'Complet', warn: 'À vérifier', none: 'Pas encore commencé' };
 
@@ -112,79 +154,70 @@ export function StateDot({ state }: { state: PlanState | undefined }) {
   return <span className={`st st-${s}`} title={STATE_LABEL[s]} aria-hidden />;
 }
 
-/** Gauche : la structure du film, séquence par séquence, plan par plan. */
-export function FilmTree() {
+/**
+ * Gauche : la structure du film. Toutes les séquences ; les plans de la séquence en cours.
+ * `onPlan` : ce que fait un clic sur un plan (par défaut, le sélectionner dans le découpage).
+ */
+export function FilmTree({ onPlan, head }: { onPlan?: (planId: Id) => void; head?: ReactNode }) {
   const doc = useApp(selectDoc);
   const cursor = useApp(selectCursor);
-  const open = useTree((s) => s.open);
   const { states } = useVerification();
   const numbers = computeNumbers(doc);
   const st = useApp.getState;
   const hereSeq = cursor ? locatePlan(doc, cursor.planId)?.seq.id : null;
-  const nPlans = doc.sequences.reduce((a, s) => a + s.plans.length, 0);
+  const choose = onPlan ?? ((id: Id) => {
+    st().goToPlan(id);
+    focusGrid();
+  });
   return (
-    <nav className="index tree" aria-label="Le film">
+    <nav className="tree" aria-label="Le film">
+      {head}
       <div className="tree-head">
         <h2>Le film</h2>
-        <span className="mono">{nPlans} plans</span>
       </div>
       {filmFlow(doc).map((it) => {
         if (it.kind === 'stamp')
           return (
-            <button key={it.stamp.id} type="button" className="index-stamp" title={`Tampon${it.stamp.note.trim() ? ` · ${it.stamp.note.trim()}` : ''} — cliquer pour modifier`} onClick={() => st().setEditingStamp(it.stamp.id)}>
-              <span>{it.stamp.text.trim() || 'Tampon'}</span>
+            <button key={it.stamp.id} type="button" className="tree-stamp" title={`Tampon${it.stamp.note.trim() ? ` · ${it.stamp.note.trim()}` : ''} — cliquer pour modifier`} onClick={() => st().setEditingStamp(it.stamp.id)}>
+              {it.stamp.text.trim() || 'Tampon'}
             </button>
           );
         const s = it.seq;
         const c = stripColors(s);
-        const isOpen = open[s.id] ?? s.id === hereSeq;
+        const open = s.id === hereSeq;
         return (
           <div key={s.id} className="tree-seq">
-            <div className={`tree-seq-row ${s.id === hereSeq ? 'here' : ''}`}>
-              <button type="button" className="tree-fold" aria-expanded={isOpen} aria-label={`${isOpen ? 'Replier' : 'Déplier'} les plans de la séquence ${s.number || '?'}`} onClick={() => useTree.getState().toggle(s.id, isOpen)}>
-                <IconChevron open={isOpen} />
-              </button>
-              <button
-                type="button"
-                className="index-item"
-                onClick={() => {
-                  st().expandAndGo(s.id);
-                  if (st().view === 'table') requestAnimationFrame(() => document.getElementById(`seq-${s.id}`)?.scrollIntoView({ block: 'start' }));
-                  focusGrid();
-                }}
-              >
-                <span className="strip" style={{ background: c.fill, borderColor: c.edge }} />
-                <span className="loc">
-                  <b className="mono">{s.number || '?'}</b> · {s.location || 'Décor à préciser'}
-                </span>
-                <span className="mono count">{s.plans.length}</span>
-              </button>
-            </div>
-            {isOpen &&
+            <button
+              type="button"
+              className={`tree-seq-row ${open ? 'open' : ''}`}
+              aria-expanded={open}
+              title={`Séquence ${s.number || '?'} · ${s.plans.length} plan${s.plans.length > 1 ? 's' : ''}`}
+              onClick={() => {
+                const first = s.plans[0];
+                if (first) choose(first.id);
+                if (st().view === 'table') requestAnimationFrame(() => document.getElementById(`seq-${s.id}`)?.scrollIntoView({ block: 'start' }));
+              }}
+            >
+              <span className="strip" style={{ background: c.fill, borderColor: c.edge }} />
+              <span className="lbl">
+                {s.number || '?'} · {s.location || 'Décor à préciser'}
+              </span>
+            </button>
+            {open &&
               s.plans.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className={`tree-plan ${cursor?.planId === p.id ? 'here' : ''}`}
-                  title={`${numbers.get(p.id)?.code ?? '?'} · ${STATE_LABEL[states.get(p.id) ?? 'none']}`}
-                  onClick={() => {
-                    st().goToPlan(p.id);
-                    focusGrid();
-                  }}
-                >
-                  <StateDot state={states.get(p.id)} />
+                <button key={p.id} type="button" className={`tree-plan ${cursor?.planId === p.id ? 'here' : ''}`} aria-label={`Plan ${numbers.get(p.id)?.code ?? '?'}`} title={`${numbers.get(p.id)?.code ?? '?'} · ${STATE_LABEL[states.get(p.id) ?? 'none']}`} onClick={() => choose(p.id)}>
                   <span className="mono">{numbers.get(p.id)?.code ?? '?'}</span>
-                  <span className="act">{p.action.trim()}</span>
+                  <StateDot state={states.get(p.id)} />
                 </button>
               ))}
           </div>
         );
       })}
-      <div className="index-actions">
-        <button type="button" className="btn ghost" title="Nouvelle séquence après la séquence en cours" onClick={() => st().addSequence(hereSeq ?? null)}>
+      <div className="tree-actions">
+        <button type="button" className="linkbtn" title="Nouvelle séquence après la séquence en cours" onClick={() => st().addSequence(hereSeq ?? null)}>
           + Séquence
         </button>
-        <button type="button" className="btn ghost" title="TITRE, GÉNÉRIQUE DE FIN… après la séquence en cours" onClick={() => st().addStamp('', hereSeq ? { after: hereSeq } : null)}>
+        <button type="button" className="linkbtn" title="TITRE, GÉNÉRIQUE DE FIN… après la séquence en cours" onClick={() => st().addStamp('', hereSeq ? { after: hereSeq } : null)}>
           + Tampon
         </button>
       </div>
@@ -218,26 +251,24 @@ function goTo(it: VerifyItem) {
 /** Droite, à la demande : un seul « À vérifier » pour tout le projet. */
 export function VerifyPanel() {
   const { items, notStarted } = useVerification();
-  const onlyIncomplete = useApp((s) => s.onlyIncomplete);
-  const view = useApp((s) => s.view);
   const st = useApp.getState;
   const close = () => useVerifyPanel.getState().set(false);
   return (
-    <aside className="verify" aria-label="À vérifier">
-      <div className="verify-head">
+    <aside className="side-panel verify" aria-label="À vérifier">
+      <div className="side-head">
         <strong>À vérifier</strong>
-        <span className="mono">{items.length}</span>
+        <span className="count">{items.length}</span>
         <Info title="À vérifier">
           <span>Cases du découpage vides, caméras absentes du plan au sol de leur séquence, séquences sans jour.</span>
           <span>Le plan au sol et les jours ne sont vérifiés qu’une fois commencés.</span>
         </Info>
         <span className="spacer" />
-        <button type="button" className="btn icon ghost-icon" aria-label="Fermer À vérifier" onClick={close}>
+        <button type="button" className="ibtn small" aria-label="Fermer À vérifier" onClick={close}>
           <IconClose />
         </button>
       </div>
-      <div className="verify-body">
-        {items.length === 0 && <div className="verify-empty">Rien à vérifier</div>}
+      <div className="side-body">
+        {items.length === 0 && <div className="empty-line">Rien à vérifier</div>}
         {items.map((it) => (
           <button key={`${it.kind}-${it.kind === 'day' ? it.seqId : it.planId}`} type="button" className="verify-item" onClick={() => goTo(it)}>
             <span className="st st-warn" aria-hidden />
@@ -249,7 +280,7 @@ export function VerifyPanel() {
         ))}
         {notStarted.length > 0 && (
           <>
-            <div className="verify-sub">Pas encore commencés</div>
+            <div className="side-sub">Pas encore commencés</div>
             <div className="verify-codes">
               {notStarted.map((p) => (
                 <button
@@ -270,57 +301,31 @@ export function VerifyPanel() {
           </>
         )}
       </div>
-      {(view === 'table' || view === 'cards') && (items.some((i) => i.kind === 'fields') || notStarted.length > 0 || onlyIncomplete) && (
-        <div className="verify-foot">
-          <button
-            type="button"
-            className={`btn small ${onlyIncomplete ? 'on' : ''}`}
-            aria-pressed={onlyIncomplete}
-            onClick={() => {
-              st().toggleOnlyIncomplete();
-              focusGrid();
-            }}
-          >
-            {onlyIncomplete ? 'Tout afficher' : 'N’afficher que les plans à compléter'}
-          </button>
-        </div>
-      )}
     </aside>
   );
 }
 
+/** Messages : une bulle discrète en bas de la fenêtre, et l'aide « ? » en bas à droite. */
 export function StatusBar() {
   const message = useApp((s) => s.message);
   const anchor = useApp((s) => s.anchor);
-  const doc = useApp(selectDoc);
   const cursor = useApp(selectCursor);
   const view = useApp((s) => s.view);
   let hint = '';
-  if (cursor && view === 'table') {
-    const loc = locatePlan(doc, cursor.planId);
-    if (loc) {
-      const code = computeNumbers(doc).get(cursor.planId)?.code ?? '';
-      const i = loc.plan.cameras.findIndex((c) => c.id === cursor.setupId);
-      const label = doc.settings.cameras.find((k) => k.id === loc.plan.cameras[i]?.cameraId)?.label;
-      const col = cursor.col === 'image' ? 'Image' : FIELD_LABEL[cursor.col];
-      hint = `${code}${loc.plan.cameras.length > 1 ? ` · Cam ${label}` : ''} · ${col}`;
-    }
-  }
   if (anchor && cursor && view === 'table') {
     const r = rangeOf(useApp.getState());
-    if (r && (r.r1 > r.r0 || r.c1 > r.c0)) {
-      const n = (r.r1 - r.r0 + 1) * (r.c1 - r.c0 + 1);
-      hint = `${n} cellules sélectionnées`;
-    }
+    if (r && (r.r1 > r.r0 || r.c1 > r.c0)) hint = `${(r.r1 - r.r0 + 1) * (r.c1 - r.c0 + 1)} cellules sélectionnées`;
   }
+  const text = message ? message.text : hint;
   return (
-    <footer className="status" role="status">
-      <span className={`msg ${message ? message.kind : ''}`}>{message ? message.text : hint}</span>
-      <span className="spacer" />
-      <button type="button" className="help-btn" onClick={() => useApp.getState().setShowShortcuts(true)} aria-label="Raccourcis clavier" title="Aide et raccourcis (⌘/)">
+    <>
+      <div className={`status ${text ? 'shown' : ''}`} role="status">
+        <span className={`msg ${message ? message.kind : ''}`}>{text}</span>
+      </div>
+      <button type="button" className="help-float" onClick={() => useApp.getState().setShowShortcuts(true)} aria-label="Raccourcis clavier" title="Aide et raccourcis (⌘/)">
         ?
       </button>
-    </footer>
+    </>
   );
 }
 
@@ -355,7 +360,7 @@ function SaveIndicator() {
   const label = p.status === 'saving' ? 'Enregistrement…' : p.status === 'pending' ? 'Modifié' : `Enregistré ${timeLabel(p.savedAt)}`;
   return (
     <span className="save-state" title={`${label}${p.dir ? `\n${p.dir}` : ''}`} aria-label={label}>
-      <span className="dot" style={{ width: 7, height: 7, background: p.status === 'saved' ? 'var(--ok)' : 'var(--text3)' }} />
+      <span className="dot" style={{ width: 8, height: 8, background: p.status === 'saved' ? 'var(--ok)' : 'var(--text3)' }} />
     </span>
   );
 }

@@ -272,8 +272,8 @@ export function DecoupageTable() {
       >
         <div className="grid-cols grid-head" role="row">
           <span role="columnheader">N°</span>
-          <span role="columnheader">Plan</span>
-          <span role="columnheader">Image</span>
+          <span role="columnheader">Img</span>
+          <span role="columnheader">Cam</span>
           <span role="columnheader">Action</span>
           {TECH.map((t) => (
             <span key={t.col} role="columnheader">
@@ -508,8 +508,7 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
             }}
             className={`grid-cols line ${first ? 'first' : 'cont'} ${lineActive ? 'sel' : ''} ${i < plan.cameras.length - 1 ? 'joined' : ''}`}
           >
-            <span className="c n mono">{first ? global : ''}</span>
-            <span className="c code">
+            <span className="c code" title={first ? `Plan n° ${global}` : undefined}>
               {first && (
                 <span
                   className={`st st-${state}`}
@@ -517,7 +516,6 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
                 />
               )}
               {first && <b className="mono">{code}</b>}
-              {multi && <span className="camtag mono">{label}</span>}
               {first && isReprise && <span className="rep sr-only">reprise</span>}
             </span>
             <div
@@ -540,6 +538,11 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
                 </div>
               )}
             </div>
+            <span className="c cam">
+              <span className={`camchip mono ${multi ? 'camtag' : ''}`} title={`Caméra ${label}`}>
+                {label}
+              </span>
+            </span>
             <div
               id={cellId(setup.id, 'action')}
               role="gridcell"

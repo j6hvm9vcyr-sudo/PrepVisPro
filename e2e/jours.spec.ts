@@ -17,14 +17,14 @@ test('jours de tournage : séquences du jour, ordre, soleil à la date du jour, 
   await dlg.getByRole('button', { name: 'Terminé' }).click();
 
   await page.keyboard.press('ControlOrMeta+5');
-  const list = page.getByRole('complementary', { name: 'Jours de tournage' });
-  await expect(list).toBeVisible();
-  // Sans jour : le matériel de tout le tournage est déjà là.
+  // Aucun jour : une ligne, un bouton. Le matériel de tout le tournage est à un clic.
+  await expect(page.getByText('Aucun jour de tournage')).toBeVisible();
+  await page.getByRole('button', { name: 'Matériel du tournage' }).click();
   const mat = page.getByRole('region', { name: 'Matériel' });
   await expect(mat).toContainText('Caméra A');
   await expect(mat).toContainText('Steadicam');
 
-  await list.getByRole('button', { name: '+ Jour de tournage' }).click();
+  await page.getByRole('button', { name: '+ Jour', exact: true }).click();
   await page.getByLabel('Date du jour de tournage').fill('2026-06-21');
   await pick(page, 'Ajouter une séquence au jour', '1 — EXT. QUAI DE GARE — JOUR');
   await pick(page, 'Ajouter une séquence au jour', '2 — INT. WAGON — JOUR');
@@ -42,18 +42,23 @@ test('jours de tournage : séquences du jour, ordre, soleil à la date du jour, 
   await expect(seqs.locator('.day-seq-h b')).toHaveText([/SÉQ\. 2/, /SÉQ\. 1/]);
   await seqs.locator('.drag-handle').nth(0).dragTo(seqs.locator('.day-seq').nth(1), { targetPosition: { x: 40, y: 30 } });
   await expect(seqs.locator('.day-seq-h b')).toHaveText([/SÉQ\. 1/, /SÉQ\. 2/]);
-  await expect(seqs.getByRole('button', { name: 'Ordre de tournage à établir (vue Tournage)' }).first()).toBeVisible();
+  await expect(seqs.getByRole('button', { name: 'Ordre de tournage à établir (Installations)' }).first()).toBeVisible();
   // Soleil à la date du jour (référence NREL SPA : lever 05:46:56, coucher 21:57:51).
   const sun = page.getByRole('region', { name: 'Soleil du jour' });
   await expect(sun).toContainText(/Quai de gare.*05:47.*21:58/);
   // Matériel du jour : focales des séquences 1 et 2.
   await expect(mat).toContainText(/300 mm/);
   await expect(mat).toContainText(/25 mm/);
-  await expect(list.locator('.days-loose')).toHaveText(/Sans jour :\s*séq\. 3\s*séq\. 4/);
+  // Séquences sans jour : dans « À vérifier ».
+  await page.locator('.verify-btn').click();
+  const verif = page.getByRole('complementary', { name: 'À vérifier' });
+  await expect(verif).toContainText('Séq. 3 · Appartement de Léa · aucun jour');
+  await expect(verif).toContainText('Séq. 4 · Rue · aucun jour');
+  await verif.getByRole('button', { name: 'Fermer À vérifier' }).click();
   await page.screenshot({ path: 'test-results/24-jour.png' });
 
   // J2 : la séquence 2 continue → signalée sur les deux jours.
-  await list.getByRole('button', { name: '+ Jour de tournage' }).click();
+  await page.getByRole('button', { name: '+ Jour', exact: true }).click();
   await pick(page, 'Ajouter une séquence au jour', /^2 — INT\. WAGON — JOURdéjà au J1/);
   await expect(seqs).toContainText('aussi au J1');
   // Le tableau montre les jours de chaque séquence.

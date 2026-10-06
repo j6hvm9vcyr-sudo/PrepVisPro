@@ -29,7 +29,7 @@ export function FramingSuggestion({ fp, cam }: { fp: FloorPlan; cam: FloorCamera
     const next = structuredClone(setup);
     fn(next);
     const st = useApp.getState();
-    st.applyDoc(replaceCameraSetup(selectDoc(st), loc.plan.id, next), `${what} reporté${what.endsWith('s') ? 's' : ''} au découpage · ⌘Z pour annuler`);
+    st.applyDoc(replaceCameraSetup(selectDoc(st), loc.plan.id, next), `${what} reporté${what.endsWith('s') ? 's' : ''} au découpage`);
   };
 
   const rows: { label: string; field: 'size' | 'axis'; start: string | null; end: string | null; current: string; currentEnd: string }[] = [

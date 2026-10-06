@@ -34,6 +34,7 @@ test('importer un scénario dans le projet : aperçu, ajout dans l’ordre, text
   await expect(page.locator('.band .num')).toHaveText(['SÉQ. 1', 'SÉQ. 1A', 'SÉQ. 2', 'SÉQ. 3', 'SÉQ. 4']);
   await expect(page.locator('.status .msg')).toContainText('1 séquence ajoutée');
   // Le texte de la scène est consultable dans Détails.
+  await page.getByRole('region', { name: 'Scénario' }).getByRole('button', { name: 'Voir' }).click();
   await expect(page.getByLabel('Texte de la scène 1')).toHaveValue(/Le train arrive/);
   await page.keyboard.press('ControlOrMeta+z');
   await expect(page.locator('.band .num')).toHaveCount(4);

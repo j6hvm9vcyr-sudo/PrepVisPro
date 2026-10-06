@@ -466,7 +466,7 @@ export function createAppStore(doc: ProjectDoc) {
               return false;
             }
             next = res.doc;
-            msg = `${batch.length + 1} cellules remplies · ⌘Z pour annuler${msg ? ` · ${msg}` : ''}`;
+            msg = `${batch.length + 1} cellules remplies${msg ? ` · ${msg}` : ''}`;
           }
           set({ editing: null, anchor: null });
           if (JSON.stringify(next) !== JSON.stringify(doc)) commit(next, c, msg);
@@ -531,7 +531,7 @@ export function createAppStore(doc: ProjectDoc) {
         }
         if (res.doc === docNow()) return true;
         const keep = s.anchor;
-        commit(res.doc, c, `${res.count} cellule${res.count > 1 ? 's' : ''} collée${res.count > 1 ? 's' : ''} · ⌘Z pour annuler`);
+        commit(res.doc, c, `${res.count} cellule${res.count > 1 ? 's' : ''} collée${res.count > 1 ? 's' : ''}`);
         set({ anchor: keep });
         return true;
       },
@@ -566,7 +566,7 @@ export function createAppStore(doc: ProjectDoc) {
         }
         if (res.doc !== doc) {
           const keep = s.anchor;
-          commit(res.doc, c, `Recopié vers le bas (${res.count} cellule${res.count > 1 ? 's' : ''}) · ⌘Z pour annuler`);
+          commit(res.doc, c, `Recopié vers le bas (${res.count} cellule${res.count > 1 ? 's' : ''})`);
           set({ anchor: keep });
         }
       },
@@ -587,7 +587,7 @@ export function createAppStore(doc: ProjectDoc) {
         const res = writeCells(docNow(), targets, r.r0);
         if (!res.ok || res.doc === docNow()) return;
         const one = targets.length === 1;
-        commit(res.doc, c, one ? `${FIELD_LABEL[targets[0]!.col as EditableField]} effacé · ⌘Z pour annuler` : `${targets.length} cellules effacées · ⌘Z pour annuler`);
+        commit(res.doc, c, one ? `${FIELD_LABEL[targets[0]!.col as EditableField]} effacé` : `${targets.length} cellules effacées`);
       },
 
       newPlan(reprise) {
@@ -626,7 +626,7 @@ export function createAppStore(doc: ProjectDoc) {
           return;
         }
         const p = ops.locatePlan(r.doc, r.focusPlanId)!.plan;
-        commit(r.doc, c, `Plan ${code} supprimé · ⌘Z pour annuler`, null, { planId: p.id, setupId: p.cameras[0]!.id, col: c.col });
+        commit(r.doc, c, `Plan ${code} supprimé`, null, { planId: p.id, setupId: p.cameras[0]!.id, col: c.col });
       },
 
       movePlan(delta) {
@@ -712,7 +712,7 @@ export function createAppStore(doc: ProjectDoc) {
           warn(r.error);
           return;
         }
-        commit(r.doc, cur(), 'Image retirée de la bibliothèque · ⌘Z pour annuler');
+        commit(r.doc, cur(), 'Image retirée de la bibliothèque');
       },
 
       setLibraryCaption(id, caption) {
@@ -724,7 +724,7 @@ export function createAppStore(doc: ProjectDoc) {
       },
 
       removeImage(planId, imageId) {
-        commit(ops.removeImage(docNow(), planId, imageId), cur(), 'Image retirée · ⌘Z pour annuler');
+        commit(ops.removeImage(docNow(), planId, imageId), cur(), 'Image retirée');
       },
 
       setImageKind(planId, imageId, kind) {
@@ -758,7 +758,7 @@ export function createAppStore(doc: ProjectDoc) {
         const first = allLines(next)[0]!;
         const c = cur();
         const keep = c && ops.locatePlan(next, c.planId);
-        commit(next, keep ? c : { planId: first.planId, setupId: first.setupId, col: 'size' }, `Séquence ${seq?.number ?? ''} supprimée · ⌘Z pour annuler`);
+        commit(next, keep ? c : { planId: first.planId, setupId: first.setupId, col: 'size' }, `Séquence ${seq?.number ?? ''} supprimée`);
         set({ editingSequenceId: null });
       },
 
@@ -780,7 +780,7 @@ export function createAppStore(doc: ProjectDoc) {
 
       removeStamp(id) {
         const t = docNow().stamps.find((x) => x.id === id);
-        commit(stamps.removeStamp(docNow(), id), cur(), `Tampon ${t?.text ? `« ${t.text} » ` : ''}supprimé · ⌘Z pour annuler`);
+        commit(stamps.removeStamp(docNow(), id), cur(), `Tampon ${t?.text ? `« ${t.text} » ` : ''}supprimé`);
         set({ editingStampId: null });
       },
 

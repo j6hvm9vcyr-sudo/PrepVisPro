@@ -547,5 +547,5 @@ export async function readVersion(file: string): Promise<ProjectDoc> {
 export async function restoreVersion(v: ProjectVersion): Promise<void> {
   const doc = await readVersion(v.file);
   await createVersion(`Avant le retour à « ${v.name} »`, 'Créée automatiquement');
-  useApp.getState().replaceDoc(doc, `Projet revenu à la version « ${v.name} » · l’état d’avant est gardé dans les versions · ⌘Z pour annuler`);
+  useApp.getState().replaceDoc(doc, `Projet revenu à la version « ${v.name} » · l’état d’avant est gardé dans les versions`);
 }

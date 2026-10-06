@@ -14,7 +14,7 @@ test('plan au sol : fond, mise à l’échelle, caméra du découpage avec son c
   await page.getByRole('button', { name: 'Terminé' }).click();
 
   await page.keyboard.press('ControlOrMeta+3');
-  await expect(page.getByText('Aucun plan au sol pour l’instant.')).toBeVisible();
+  await expect(page.getByText('Aucun plan au sol', { exact: true })).toBeVisible();
   await pick(page, 'Créer un plan au sol pour la séquence', '1 — Quai de gare');
   await expect(page.getByRole('application', { name: 'Plan au sol' })).toBeVisible();
 
@@ -217,7 +217,7 @@ test('bibliothèque d’icônes : import d’un dossier, recherche, pose sur le 
   const posed = page.locator('.floor-canvas [data-el]').filter({ has: page.locator('image') }).first();
   await posed.click();
   await page.getByRole('group', { name: 'Utiliser l’icône comme' }).getByRole('button', { name: 'Personnage' }).click();
-  await expect(page.locator('.insp-body .sec-h').first()).toHaveText('Personnage');
+  await expect(page.locator('.floor-insp .side-head strong')).toHaveText('Personnage');
   await expect(page.getByRole('region', { name: 'Lumière reçue' }).or(page.getByLabel('Nom'))).toBeVisible();
   await page.keyboard.press('ControlOrMeta+z');
   await posed.click();
@@ -475,7 +475,7 @@ test('soleil : position GPS du décor, nord du plan, heure simulée, rapport ave
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Importer un fond…' }).click();
   await (await chooser).setFiles(resolve('e2e/plan-decor.png'));
-  await page.getByRole('tab', { name: 'Lumière' }).click();
+  await page.getByRole('tab', { name: 'Soleil' }).click();
   const sun = page.getByRole('region', { name: 'Soleil' });
   await expect(sun).toBeVisible();
   // La position du décor se lit (et se corrige) ici aussi.
@@ -507,7 +507,7 @@ test('soleil : position GPS du décor, nord du plan, heure simulée, rapport ave
   await page.screenshot({ path: 'test-results/23-soleil.png' });
   // À 19 h (azimut 277°, ouest) : la caméra regarde au sud, l'ouest est à sa droite → latéral, à droite.
   await page.getByRole('application', { name: 'Plan au sol' }).press('Escape');
-  await page.getByRole('tab', { name: 'Lumière' }).click();
+  await page.getByRole('tab', { name: 'Soleil' }).click();
   await sun.getByLabel('Heure simulée').fill('19:00');
   await expect(sun.getByLabel('Soleil et caméras')).toContainText(/2\/1\s*latéral, à droite/);
 });

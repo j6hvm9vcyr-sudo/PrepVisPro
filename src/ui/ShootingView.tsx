@@ -4,7 +4,6 @@
  */
 import { reorderKeys } from './reorder';
 import { DragRow } from './DragRow';
-import { plural } from '../model/text';
 import { useState, type DragEvent } from 'react';
 import { create } from 'zustand';
 import { useApp } from '../state/appStore';
@@ -14,7 +13,7 @@ import { displayText } from '../model/entry';
 import type { Id, Plan, ProjectDoc, Sequence } from '../model/types';
 import { addInstallation, effectiveShooting, moveInstallation, moveInstallationTo, movePlanToInstallation, proposeShooting, removeInstallation, setShooting, updateInstallation } from '../model/shooting';
 import { getBackend } from '../platform/backend';
-import { sequenceTitle, stripColors } from './strip';
+import { sequenceTitle } from './strip';
 
 export const useShootingUi = create<{ seqId: Id | null; set(id: Id): void }>()((set) => ({ seqId: null, set: (seqId) => set({ seqId }) }));
 
@@ -35,22 +34,6 @@ export function ShootingView() {
   if (!seq) return null;
   return (
     <div className="shooting">
-      <aside className="shooting-list" aria-label="Séquences">
-        <h2 className="panel-title">Séquences</h2>
-        {doc.sequences.map((s) => {
-          const c = stripColors(s);
-          const e = effectiveShooting(s);
-          return (
-            <button key={s.id} type="button" className={`index-item ${s.id === seq.id ? 'here' : ''}`} onClick={() => useShootingUi.getState().set(s.id)}>
-              <span className="strip" style={{ background: c.fill, borderColor: c.edge }} />
-              <span className="meta">
-                <span className="num">{s.number || '?'}</span>
-                <span className="loc">{e ? `${plural(e.installations.length, 'installation')}${e.loose.length ? ` · ${e.loose.length} à ranger` : ''}` : 'ordre à établir'}</span>
-              </span>
-            </button>
-          );
-        })}
-      </aside>
       <main className="shooting-main">
         <SequenceShooting key={seq.id} doc={doc} seq={seq} numbers={numbers} />
       </main>
@@ -67,7 +50,7 @@ function SequenceShooting({ doc, seq, numbers }: { doc: ProjectDoc; seq: Sequenc
       const b = await getBackend();
       if (!(await b.confirm('Refaire la proposition ?', 'L’ordre actuel de cette séquence sera remplacé par une nouvelle proposition (⌘Z pour revenir).', 'Proposer', 'Annuler'))) return;
     }
-    apply((d) => setShooting(d, seq.id, proposeShooting(d, seq)), `Ordre de tournage proposé pour la séquence ${seq.number} · ⌘Z pour annuler`);
+    apply((d) => setShooting(d, seq.id, proposeShooting(d, seq)), `Ordre de tournage proposé pour la séquence ${seq.number}`);
   };
 
   let order = 0;
@@ -123,7 +106,7 @@ function SequenceShooting({ doc, seq, numbers }: { doc: ProjectDoc; seq: Sequenc
                 <button type="button" className="icon-btn mv" aria-label="Descendre l’installation" disabled={i === e.installations.length - 1} onClick={() => apply((d) => moveInstallation(d, seq.id, ins.id, 1))}>
                   ↓
                 </button>
-                <button type="button" className="icon-btn danger mv" aria-label={`Supprimer l’installation ${ins.name}`} title="Ses plans passent dans « À ranger »" onClick={() => apply((d) => removeInstallation(d, seq.id, ins.id), 'Installation supprimée · ses plans sont à ranger · ⌘Z pour annuler')}>
+                <button type="button" className="icon-btn danger mv" aria-label={`Supprimer l’installation ${ins.name}`} title="Ses plans passent dans « À ranger »" onClick={() => apply((d) => removeInstallation(d, seq.id, ins.id), 'Installation supprimée · ses plans sont à ranger')}>
                   ×
                 </button>
               </div>

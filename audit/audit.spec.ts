@@ -101,9 +101,14 @@ test('audit', async ({ page }) => {
   // Jours
   await page.keyboard.press('ControlOrMeta+5');
   await shot(page, '21-jours-vide');
-  await page.getByRole('button', { name: '+ Jour de tournage' }).click();
+  await page.getByRole('button', { name: '+ Jour', exact: true }).first().click();
   await pick(page, 'Ajouter une séquence au jour', 0);
   await shot(page, '22-jour');
+  await page.getByRole('button', { name: '← Tous les jours' }).click();
+  await page.getByRole('button', { name: '+ Jour', exact: true }).click();
+  await pick(page, 'Ajouter une séquence au jour', 1);
+  await page.getByRole('button', { name: '← Tous les jours' }).click();
+  await shot(page, '22a-jours-tableau');
   // Images, tampons
   await page.keyboard.press('ControlOrMeta+6');
   await shot(page, '22b-images');

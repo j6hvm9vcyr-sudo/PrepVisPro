@@ -53,9 +53,6 @@ export function CamerasTab() {
         >
           + Caméra
         </button>
-        <p className="note" style={{ fontSize: 11.5, lineHeight: '16px', marginTop: 'auto' }}>
-          Une deuxième caméra n’est utile que pour les plans tournés à plusieurs caméras (⇧⌘C sur un plan).
-        </p>
       </aside>
 
       <div className="camtab-detail" key={cam.id}>

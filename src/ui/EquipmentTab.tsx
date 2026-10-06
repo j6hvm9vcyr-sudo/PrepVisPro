@@ -1,3 +1,4 @@
+import { Info } from './Info';
 /**
  * Réglages › Matériel : le matériel appartient au projet. On peut le reprendre d'un autre projet
  * (ou de l'ancien « Mon matériel » de ce Mac), élément par élément : chaque élément est copié.
@@ -33,10 +34,13 @@ export function EquipmentTab() {
 
   return (
     <div className="kit">
-      <p className="note" style={{ margin: 0 }}>
-        Le matériel est propre à ce projet. Pour réutiliser celui d’un autre film, reprenez-le ici : chaque élément choisi est copié dans ce projet (le modifier ensuite ne
-        change pas l’autre projet).
-      </p>
+      <div className="sec-h">
+        <span>Matériel du projet</span>
+        <Info title="Matériel du projet">
+          <span>Propre à ce projet. Ce que vous reprenez d’un autre film est copié ici.</span>
+          <span>Le modifier ensuite ne change pas l’autre projet.</span>
+        </Info>
+      </div>
       <div className="row" style={{ gap: 8 }}>
         <button
           type="button"
@@ -127,7 +131,7 @@ function ImportList({ loaded, onDone }: { loaded: Loaded; onDone: () => void }) 
           disabled={!picks.length}
           onClick={() => {
             const r = addEquipmentMany(selectDoc(st()), picks);
-            st().applyDoc(r.doc, `${plural(r.added, 'élément repris', 'éléments repris')} · ⌘Z pour annuler`);
+            st().applyDoc(r.doc, `${plural(r.added, 'élément repris', 'éléments repris')}`);
             onDone();
           }}
         >

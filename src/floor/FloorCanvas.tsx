@@ -380,7 +380,7 @@ export function FloorCanvas({ fp }: { fp: FloorPlan }) {
     }
     if ((e.key === 'Backspace' || e.key === 'Delete') && sel.length) {
       e.preventDefault();
-      apply(deleteElements(docNow(), fp.id, sel), `${sel.length} élément${sel.length > 1 ? 's' : ''} supprimé${sel.length > 1 ? 's' : ''} · ⌘Z pour annuler`);
+      apply(deleteElements(docNow(), fp.id, sel), `${sel.length} élément${sel.length > 1 ? 's' : ''} supprimé${sel.length > 1 ? 's' : ''}`);
       st.set({ selection: [] });
       return;
     }

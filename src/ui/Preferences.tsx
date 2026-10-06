@@ -1,3 +1,4 @@
+import { Info } from './Info';
 /**
  * Préférences de PrepVisPro (⌘,) : ce qui suit l'utilisateur d'un projet à l'autre, gardé sur ce
  * Mac. Les réglages propres au film sont dans « Réglages du projet » (⇧⌘,).
@@ -44,7 +45,11 @@ export function PrefsDialog({ onClose }: { onClose: () => void }) {
       <div className="dialog settings-dialog" onClick={(e) => e.stopPropagation()}>
         <div className="settings-head">
           <h3>Préférences</h3>
-          <span className="note">sur ce Mac, pour tous les projets</span>
+          <span className="scope-badge">Ce Mac</span>
+          <Info title="Préférences de l’app">
+            <span>Valables pour tous vos projets, gardées sur ce Mac.</span>
+            <span>Jamais dans un fichier projet.</span>
+          </Info>
           <span className="spacer" />
           <button type="button" className="btn primary" onClick={close}>
             Terminé
@@ -79,18 +84,18 @@ export function PrefsDialog({ onClose }: { onClose: () => void }) {
               <>
                 <div className="sec" aria-label="Plan suivant" role="group">
                   <div className="sec-h">
-                    <span>Plan suivant (⌘↩, ↩ en fin de ligne)</span>
+                    <span>Plan suivant</span>
+                    <Info title="Plan suivant">
+                      <span>Ce que le nouveau plan (⌘↩, ou ↩ en fin de ligne) reprend du précédent, pour chaque caméra. Le reste part vide.</span>
+                      <span>Une reprise (⇧⌘↩, 4/2B) reprend toujours tout.</span>
+                    </Info>
                   </div>
-                  <p style={{ margin: 0, color: 'var(--text2)' }}>Le nouveau plan reprend du plan précédent, pour chaque caméra :</p>
                   {CARRY_FIELDS.map((f) => (
                     <label className="check" key={f}>
                       <input type="checkbox" disabled={locked} checked={prefs.carryOver[f]} onChange={(e) => updatePrefs((p) => void (p.carryOver[f] = e.target.checked))} />
                       {CARRY_LABEL[f]}
                     </label>
                   ))}
-                  <p className="note" style={{ margin: 0 }}>
-                    Le reste part vide. Une reprise (⇧⌘↩, 4/2B) reprend toujours tout.
-                  </p>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }} aria-label="Abréviations" role="group">
                   <div className="sec-h">

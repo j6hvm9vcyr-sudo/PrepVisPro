@@ -1,3 +1,4 @@
+import { Info } from './Info';
 /** Réglages › Optiques : les séries d'optiques avec lesquelles on tourne ce projet. */
 import { useState } from 'react';
 import { useApp } from '../state/appStore';
@@ -23,11 +24,14 @@ export function LensesTab() {
 
   return (
     <div className="lenses">
-      <p className="note" style={{ margin: 0 }}>
-        Déclarez les optiques du projet : elles sont proposées à la saisie des focales (↑↓), une focale absente est soulignée dans le tableau, et le plan au sol propose
-        l’optique la plus proche de la focale idéale.
-      </p>
-      {lenses.length === 0 && <p className="note" style={{ margin: 0, fontStyle: 'italic' }}>Aucune optique déclarée : toutes les focales sont acceptées sans remarque.</p>}
+      <div className="sec-h">
+        <span>Optiques du projet</span>
+        <Info title="Optiques du projet">
+          <span>Proposées à la saisie des focales ; une focale absente est soulignée dans le tableau ; le plan au sol propose la plus proche.</span>
+          <span>Sans optique déclarée, toutes les focales sont acceptées.</span>
+        </Info>
+      </div>
+      {lenses.length === 0 && <p className="note" style={{ margin: 0 }}>Aucune optique</p>}
       {lenses.map((l) => (
         <div key={l.id} className="lens-row">
           <span className="lens-kind">{l.kind === 'primes' ? 'Fixes' : 'Zoom'}</span>

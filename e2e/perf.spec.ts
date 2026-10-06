@@ -6,7 +6,7 @@ test('grand projet (360 plans) : la navigation et la saisie restent instantanée
   await expect(page.locator('.line.first')).toHaveCount(360);
   const t0 = Date.now();
   for (let i = 0; i < 40; i++) await page.keyboard.press('ArrowDown');
-  await expect(page.locator('.status .msg')).toContainText('4/5');
+  await expect(page.locator('.line.sel .c.code b')).toHaveText('4/5');
   const nav = (Date.now() - t0) / 40;
   const t1 = Date.now();
   await page.keyboard.type('gp');

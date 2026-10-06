@@ -1,4 +1,4 @@
-import { DaysView } from './DaysView';
+import { DaysBar, DaysView } from './DaysView';
 import { useEffect } from 'react';
 import { useApp } from '../state/appStore';
 import { anyOverlay, selectCursor } from '../state/store';
@@ -21,7 +21,7 @@ import { focusGrid, installFocusRescue, isTypingTarget } from './focus';
 import { isMenuShortcut, isTauri } from '../platform/menu';
 import { ErrorBoundary } from './ErrorBoundary';
 import { VersionsDialog } from './VersionsDialog';
-import { ShootingView } from './ShootingView';
+import { ShootingView, useShootingUi } from './ShootingView';
 import { LibraryPicker, LibraryView } from './Library';
 
 /** Raccourcis valables partout dans la fenêtre (hors saisie de texte). */
@@ -232,6 +232,14 @@ function useWindowTitle() {
   }, [title, mode]);
 }
 
+/** Tournage : un plan choisi dans l'arbre ouvre aussi sa séquence dans Installations. */
+function chooseInTournage(planId: string) {
+  const st = useApp.getState();
+  st.goToPlan(planId);
+  const seq = st.hist.present.doc.sequences.find((s) => s.plans.some((p) => p.id === planId));
+  if (seq) useShootingUi.getState().set(seq.id);
+}
+
 const VIEW_LABEL = { floor: 'plans au sol', days: 'jours de tournage', library: 'bibliothèque d’images', shooting: 'installations', table: 'tableau', cards: 'fiches' } as const;
 
 function Workspace() {
@@ -279,7 +287,6 @@ function Workspace() {
               <ErrorBoundary label={view === 'table' ? 'tableau' : 'fiches'} key={view}>
                 {view === 'table' ? <DecoupageTable /> : <CardsView />}
               </ErrorBoundary>
-              <StatusBar />
             </main>
             {inspector && !verifying && (
               <ErrorBoundary label="détails">
@@ -287,13 +294,26 @@ function Workspace() {
               </ErrorBoundary>
             )}
           </>
-        ) : (
+        ) : view === 'floor' ? (
+          <ErrorBoundary label="plans au sol" key="floor">
+            <FloorView />
+          </ErrorBoundary>
+        ) : view === 'library' ? (
           <div className="center">
             <SpaceBar />
             <ErrorBoundary label={VIEW_LABEL[view]} key={view}>
-              {view === 'floor' ? <FloorView /> : view === 'days' ? <DaysView /> : view === 'library' ? <LibraryView /> : <ShootingView />}
+              <LibraryView />
             </ErrorBoundary>
-            <StatusBar />
+          </div>
+        ) : (
+          <div className="space-body">
+            <FilmTree onPlan={chooseInTournage} />
+            <div className="center">
+              <SpaceBar>{view === 'days' && <DaysBar />}</SpaceBar>
+              <ErrorBoundary label={VIEW_LABEL[view]} key={view}>
+                <div className="space-main">{view === 'days' ? <DaysView /> : <ShootingView />}</div>
+              </ErrorBoundary>
+            </div>
           </div>
         )}
         {verifying && (
@@ -302,6 +322,7 @@ function Workspace() {
           </ErrorBoundary>
         )}
       </div>
+      <StatusBar />
       <Preview />
       <Shortcuts />
       <DropChoice />

@@ -1,5 +1,5 @@
 import { useRef, useState, type DragEvent } from 'react';
-import { Explain } from './Explain';
+import { Info } from './Info';
 import { useApp } from '../state/appStore';
 import { selectCursor, selectDoc } from '../state/store';
 import { locatePlan } from '../model/ops';
@@ -14,7 +14,6 @@ import { imageStore } from '../platform/images';
 import type { CameraSetup, ImageKind, Plan } from '../model/types';
 import { PlanLinksSection } from './PlanLinks';
 import { verify } from '../model/verify';
-import { StateDot } from './Chrome';
 import { IconClose } from './Icons';
 import { Picker } from './Picker';
 import { applyPreset, emptySetup, matchingPreset, presetLabel, savePreset } from '../model/shotPresets';
@@ -23,61 +22,92 @@ export function Inspector() {
   const doc = useApp(selectDoc);
   const cursor = useApp(selectCursor);
   const loc = cursor ? locatePlan(doc, cursor.planId) : null;
-  if (!loc) return <aside className="inspector" aria-label="Détails du plan" />;
+  if (!loc) return <aside className="side-panel inspector" aria-label="Détails du plan" />;
   const plan = loc.plan;
   const n = computeNumbers(doc).get(plan.id)!;
   const parent = plan.repriseOf ? computeNumbers(doc).get(plan.repriseOf) : null;
   const missing = missingFields(plan, doc.settings);
   const state = verify(doc).states.get(plan.id) ?? 'none';
+  const stateText = state === 'none' ? 'Pas encore commencé' : missing.length ? `À compléter : ${missing.join(', ')}` : state === 'warn' ? 'À vérifier : voir « Lié à »' : 'Complet';
+  const st = useApp.getState;
 
   return (
-    <aside className="inspector" aria-label="Détails du plan">
-      <div className="insp-head">
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span className="big mono">{n.code}</span>
-          <span className="sub" style={{ flex: 1 }}>
-            plan n° {n.global}
-            {parent && n.repriseLetter ? ` · reprise de ${parent.code}` : ''}
-          </span>
-          <button type="button" className="btn icon ghost-icon insp-close" aria-label="Fermer les détails" title="Fermer (⌘I)" onClick={() => useApp.getState().toggleInspector()}>
-            <IconClose />
-          </button>
-        </div>
-        <div className={`state state-${state}`}>
-          <StateDot state={state} />
-          {state === 'none' ? 'Pas encore commencé' : missing.length ? `À compléter : ${missing.join(', ')}` : state === 'warn' ? 'À vérifier : voir « Ce plan ailleurs »' : 'Complet'}
-        </div>
+    <aside className="side-panel inspector" aria-label="Détails du plan">
+      <div className="side-head insp-head">
+        <span className="big mono">{n.code}</span>
+        <span className={`st st-${state}`} title={stateText} aria-label={stateText} role="img" />
+        <span className="sub">
+          n° {n.global}
+          {parent && n.repriseLetter ? ` · reprise de ${parent.code}` : ''}
+        </span>
+        <span className="spacer" />
+        <button type="button" className="ibtn small" aria-label="Fermer les détails" title="Fermer (⌘I)" onClick={() => st().toggleInspector()}>
+          <IconClose />
+        </button>
       </div>
-      <div className="insp-body">
-        <label className="sec">
-          <span className="sec-h">Action / intention</span>
-          <textarea className="area" rows={2} value={plan.action} onChange={(e) => useApp.getState().setPlanText(plan.id, 'action', e.target.value)} />
+      <div className="side-body">
+        <label className="icard">
+          <span className="icard-h">Action</span>
+          <textarea className="area" rows={2} value={plan.action} onChange={(e) => st().setPlanText(plan.id, 'action', e.target.value)} />
         </label>
 
-        <ImageSection plan={plan} />
-
-        {loc.seq.scriptText && <SceneText planId={plan.id} text={loc.seq.scriptText} number={loc.seq.number} />}
-
-        <label className="sec">
-          <span className="sec-h">Extrait du scénario</span>
-          <textarea
-            className="area script"
-            rows={3}
-            value={plan.scriptExcerpt}
-            onChange={(e) => useApp.getState().setPlanText(plan.id, 'scriptExcerpt', e.target.value)}
-          />
-        </label>
+        <ScriptCard planId={plan.id} excerpt={plan.scriptExcerpt} scene={loc.seq.scriptText} number={loc.seq.number} />
 
         <CameraList plan={plan} />
 
-        <PlanLinksSection planId={plan.id} />
+        <ImageSection plan={plan} />
 
-        <label className="sec">
-          <span className="sec-h">Divers</span>
-          <textarea className="area" rows={2} value={plan.notes} onChange={(e) => useApp.getState().setPlanText(plan.id, 'notes', e.target.value)} />
+        <label className="icard">
+          <span className="icard-h">Notes</span>
+          <textarea className="area" rows={2} value={plan.notes} placeholder="—" onChange={(e) => st().setPlanText(plan.id, 'notes', e.target.value)} />
         </label>
+
+        <PlanLinksSection planId={plan.id} />
       </div>
     </aside>
+  );
+}
+
+/** Scénario : l'extrait du plan ; « Voir » ouvre le texte de la scène pour y choisir l'extrait. */
+function ScriptCard({ planId, excerpt, scene, number }: { planId: string; excerpt: string; scene: string; number: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const use = () => {
+    const el = ref.current;
+    if (!el) return;
+    const sel = el.value.slice(el.selectionStart, el.selectionEnd).trim();
+    if (!sel) {
+      useApp.getState().setMessage('Sélectionnez d’abord un passage dans le texte de la scène.', 'warn');
+      return;
+    }
+    useApp.getState().setPlanText(planId, 'scriptExcerpt', sel);
+    useApp.getState().setMessage('Extrait du plan mis à jour');
+  };
+  return (
+    <section className="icard" aria-label="Scénario">
+      <div className="icard-h">
+        <span>Scénario</span>
+        <Info title="Scénario">
+          <span>Le passage du scénario que couvre ce plan.</span>
+          <span>« Voir » affiche la scène importée : sélectionnez un passage pour en faire l’extrait.</span>
+        </Info>
+        <span className="spacer" />
+        {scene && (
+          <button type="button" className="linkbtn" aria-expanded={open} onClick={() => setOpen(!open)}>
+            {open ? 'Masquer' : 'Voir'}
+          </button>
+        )}
+      </div>
+      <textarea className="area script quote" rows={2} aria-label="Extrait du scénario" placeholder="—" value={excerpt} onChange={(e) => useApp.getState().setPlanText(planId, 'scriptExcerpt', e.target.value)} />
+      {open && scene && (
+        <>
+          <textarea ref={ref} className="scene-text" readOnly rows={8} value={scene} aria-label={`Texte de la scène ${number}`} />
+          <button type="button" className="linkbtn" style={{ alignSelf: 'flex-start', padding: 0 }} onClick={use}>
+            Sélection → extrait
+          </button>
+        </>
+      )}
+    </section>
   );
 }
 
@@ -99,7 +129,7 @@ function ImageSection({ plan }: { plan: Plan }) {
   };
   return (
     <section
-      className={`sec ${over ? 'over' : ''}`}
+      className={`icard ${over ? 'over' : ''}`}
       onDragOver={(e) => {
         e.preventDefault();
         setOver(true);
@@ -108,11 +138,12 @@ function ImageSection({ plan }: { plan: Plan }) {
       onDrop={onDrop}
       aria-label="Images"
     >
-      <div className="sec-h">
+      <div className="icard-h">
         <span>
           Images
-          <span className="count">{items.length}</span>
+          {items.length > 0 && <span className="count">{items.length}</span>}
         </span>
+        <span className="spacer" />
         <span className="sec-acts">
           <button type="button" className="linkbtn" onClick={() => st().setLibraryPick({ mode: 'plan', planId: plan.id, kind })} title="Réutiliser une image déjà importée dans le projet">
             Bibliothèque…
@@ -178,7 +209,7 @@ function ImageSection({ plan }: { plan: Plan }) {
           })}
         </div>
       ) : (
-        <div className="dropzone">Glissez ici repérages, films, storyboard, photos</div>
+        <div className="empty-line small">Aucune image</div>
       )}
     </section>
   );
@@ -189,52 +220,50 @@ function CameraList({ plan }: { plan: Plan }) {
   const st = useApp.getState;
   const diffs = doc.floorPlans.length ? floorMismatches(doc) : new Map<string, FloorMismatch[]>();
   return (
-    <section className="sec" aria-label="Caméras">
-      <div className="sec-h">
-        <span>Caméras</span>
-        <button type="button" className="linkbtn" onClick={() => st().addCamera(plan.id)}>
-          + Caméra
-        </button>
-      </div>
+    <>
       {plan.cameras.map((c) => {
         const cam = doc.settings.cameras.find((k) => k.id === c.cameraId);
         const w = cam?.sensorWidthMm ?? null;
         const ratio = parseAspectRatio(doc.meta.aspectRatio);
         const a = fieldOfView(cam, c.start.focalMm, ratio).horizontal;
         const b = c.end && c.end.focalMm !== c.start.focalMm ? fieldOfView(cam, c.end.focalMm, ratio).horizontal : null;
-        const summary = [displayText('size', c), displayText('axis', c), displayText('focal', c)].filter(Boolean).join(' · ') || '—';
+        const summary = [displayText('size', c), displayText('axis', c), displayText('angle', c), displayText('focal', c)].filter(Boolean).join(' · ') || '—';
+        const fov = w === null ? 'capteur ?' : c.start.focalMm === null ? null : b !== null ? `${formatDeg(a)} → ${formatDeg(b)}` : formatDeg(a);
+        const second = [fov, displayText('movement', c), displayText('grip', c)].filter(Boolean).join(' · ');
         return (
-          <div className="camrow" key={c.id}>
-            <div className="top">
+          <section className="icard camrow" key={c.id} aria-label={`Caméra ${cam?.label ?? '?'}`}>
+            <div className="icard-h">
               {doc.settings.cameras.length > 1 ? (
-                <select
-                  className="cam-select mono"
-                  aria-label="Caméra du projet"
-                  value={c.cameraId}
-                  onChange={(e) => st().setSetupCamera(plan.id, c.id, e.target.value)}
-                >
-                  {doc.settings.cameras.map((k) => (
-                    <option key={k.id} value={k.id} disabled={plan.cameras.some((x) => x.id !== c.id && x.cameraId === k.id)}>
-                      {k.label}
-                    </option>
-                  ))}
-                </select>
+                <span className="cam-pick">
+                  Caméra{' '}
+                  <select className="cam-select mono" aria-label="Caméra du projet" value={c.cameraId} onChange={(e) => st().setSetupCamera(plan.id, c.id, e.target.value)}>
+                    {doc.settings.cameras.map((k) => (
+                      <option key={k.id} value={k.id} disabled={plan.cameras.some((x) => x.id !== c.id && x.cameraId === k.id)}>
+                        {k.label}
+                      </option>
+                    ))}
+                  </select>
+                </span>
               ) : (
-                <span className="lbl mono">{cam?.label ?? '?'}</span>
+                <span>Caméra {cam?.label ?? '?'}</span>
               )}
-              <span className="sum">{summary}</span>
+              <Info title="Champ">
+                <span>Angle de champ horizontal : 2 × arctan(largeur ÷ (2 × focale)), d’après le capteur et le ratio du projet, mise au point à l’infini.</span>
+                <span>{cam?.body ? `${cam.body}${cam.mode ? ` · ${cam.mode}` : ''}` : 'Boîtier non renseigné (Réglages › Caméras).'}</span>
+              </Info>
+              <span className="spacer" />
               {plan.cameras.length > 1 && (
                 <button type="button" className="linkbtn danger" onClick={() => st().removeCamera(plan.id, c.id)}>
                   Retirer
                 </button>
               )}
             </div>
-            <div className="fov">
-              <span>{cam?.body ? `${cam.body}${cam.mode ? ` · ${cam.mode}` : ''}` : 'Boîtier non renseigné'}</span>
-              <span className="mono" title="Champ horizontal, mise au point à l’infini">
-                {w === null ? 'capteur ?' : c.start.focalMm === null ? '—' : b !== null ? `${formatDeg(a)} → ${formatDeg(b)}` : formatDeg(a)}
+            <span className="sum">{summary}</span>
+            {second && (
+              <span className="fov mono" title="Champ horizontal · mouvement · machinerie">
+                {second}
               </span>
-            </div>
+            )}
             {(diffs.get(c.id) ?? []).map((d) => (
               <div key={d.field} className="floor-note">
                 <span>
@@ -246,13 +275,13 @@ function CameraList({ plan }: { plan: Plan }) {
               </div>
             ))}
             <PresetPicker planId={plan.id} setup={c} />
-          </div>
+          </section>
         );
       })}
-      <Explain id="fov">
-        Angle de champ horizontal de l’image cadrée : 2 × arctan(largeur ÷ (2 × focale)), d’après le capteur et le ratio du projet (Réglages › Caméras), mise au point à l’infini.
-      </Explain>
-    </section>
+      <button type="button" className="linkbtn add-cam" onClick={() => st().addCamera(plan.id)}>
+        + Caméra
+      </button>
+    </>
   );
 }
 
@@ -283,44 +312,12 @@ function PresetPicker({ planId, setup }: { planId: string; setup: CameraSetup })
             return;
           }
           const p = d.settings.shotPresets.find((x) => x.id === id);
-          if (p) st().applyDoc(replaceCameraSetup(d, planId, applyPreset(setup, p)), `Plan type appliqué : ${presetLabel(p)} · ⌘Z pour annuler`);
+          if (p) st().applyDoc(replaceCameraSetup(d, planId, applyPreset(setup, p)), `Plan type appliqué : ${presetLabel(p)}`);
         }}
       >
         {current ? `Plan type : ${presetLabel(current)}` : 'Plan type…'}
       </Picker>
     </div>
-  );
-}
-
-/** Texte de la scène importée : on y sélectionne l'extrait qui correspond au plan. */
-function SceneText({ planId, text, number }: { planId: string; text: string; number: string }) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-  const [open, setOpen] = useState(true);
-  const use = () => {
-    const el = ref.current;
-    if (!el) return;
-    const sel = el.value.slice(el.selectionStart, el.selectionEnd).trim();
-    if (!sel) {
-      useApp.getState().setMessage('Sélectionnez d’abord un passage dans le texte de la scène.', 'warn');
-      return;
-    }
-    useApp.getState().setPlanText(planId, 'scriptExcerpt', sel);
-    useApp.getState().setMessage('Extrait du plan mis à jour · ⌘Z pour annuler');
-  };
-  return (
-    <section className="sec" aria-label="Scène du scénario">
-      <div className="sec-h">
-        <button type="button" className="linkbtn" style={{ padding: 0, color: 'var(--text)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: 11 }} onClick={() => setOpen(!open)} aria-expanded={open}>
-          {open ? '▾' : '▸'} Scène {number} (scénario)
-        </button>
-        {open && (
-          <button type="button" className="linkbtn" onClick={use}>
-            Sélection → extrait
-          </button>
-        )}
-      </div>
-      {open && <textarea ref={ref} className="scene-text" readOnly rows={7} value={text} aria-label={`Texte de la scène ${number}`} />}
-    </section>
   );
 }
 
@@ -337,5 +334,5 @@ function reportFloor(planId: string, setupId: string, d: FloorMismatch) {
     next.end ??= structuredClone(next.start);
     next.end[d.field] = end;
   } else if (next.end) next.end[d.field] = start!;
-  st.applyDoc(replaceCameraSetup(doc, planId, next), `${d.field === 'size' ? 'Valeur' : 'Axe'} reporté${d.field === 'size' ? 'e' : ''} depuis le plan au sol · ⌘Z pour annuler`);
+  st.applyDoc(replaceCameraSetup(doc, planId, next), `${d.field === 'size' ? 'Valeur' : 'Axe'} reporté${d.field === 'size' ? 'e' : ''} depuis le plan au sol`);
 }

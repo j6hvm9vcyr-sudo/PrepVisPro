@@ -7,10 +7,12 @@ import { IconChevron } from './Icons';
 
 const state = new Map<string, boolean>();
 
-export function Fold({ id, title, label, count, defaultOpen = true, children }: { id: string; title: ReactNode; label?: string; count?: number; defaultOpen?: boolean; children: ReactNode }) {
+/** `info` : un ⓘ à droite du titre (hors du bouton qui replie). */
+export function Fold({ id, title, label, count, info, defaultOpen = true, children }: { id: string; title: ReactNode; label?: string; count?: number; info?: ReactNode; defaultOpen?: boolean; children: ReactNode }) {
   const [open, setOpen] = useState(state.get(id) ?? defaultOpen);
   return (
     <section className={`sec fold ${open ? 'open' : ''}`} aria-label={label}>
+      <div className="fold-row">
       <button
         type="button"
         className="sec-h fold-h"
@@ -26,6 +28,8 @@ export function Fold({ id, title, label, count, defaultOpen = true, children }: 
           {count !== undefined && <span className="count">{count}</span>}
         </span>
       </button>
+      {info}
+      </div>
       {open && children}
     </section>
   );

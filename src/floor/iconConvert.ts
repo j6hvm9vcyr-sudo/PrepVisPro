@@ -13,9 +13,9 @@ import { ACTOR_COLORS } from './floorStore';
 export type IconRole = 'light' | 'reflector' | 'actor';
 
 const MESSAGE: Record<IconRole, string> = {
-  light: 'Icône transformée en projecteur · ⌘Z pour annuler',
-  reflector: 'Icône transformée en réflecteur (poly 4×4, modifiable) · ⌘Z pour annuler',
-  actor: 'Icône transformée en personnage · ⌘Z pour annuler',
+  light: 'Icône transformée en projecteur',
+  reflector: 'Icône transformée en réflecteur (poly 4×4, modifiable)',
+  actor: 'Icône transformée en personnage',
 };
 
 export function convertIcon(fp: FloorPlan, el: FloorIcon, role: IconRole) {

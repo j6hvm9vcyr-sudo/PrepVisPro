@@ -106,7 +106,7 @@ test('plans types : enregistrés depuis un plan, appliqués en un clic à un aut
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
   // Plan 1/2 : Poitrine · 3/4 · 75 mm · Fixe · Branches.
   await page.locator('.line [id$="-action"]').nth(1).click();
-  const cams = page.getByRole('region', { name: 'Caméras' });
+  const cams = page.getByRole('region', { name: 'Caméra A' });
   await pick(page, 'Plan type', '+ Enregistrer ce réglage comme plan type');
   await expect(cams.getByRole('button', { name: 'Plan type' })).toHaveText(/Plan type : Poitrine · 3\/4 · À niveau · 75 mm · Fixe · Branches/);
   // Plan 4/1, vide : appliqué en un clic.

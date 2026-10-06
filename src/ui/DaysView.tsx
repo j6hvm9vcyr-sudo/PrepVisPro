@@ -9,7 +9,7 @@ import { create } from 'zustand';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
 import type { Id, ProjectDoc, ShootingDay } from '../model/types';
-import { addDay, compactPlans, duplicateDay, longDate, dayLabels, daysOfSequence, daySun, equipmentFor, moveDay, removeDay, sortDaysByDate, unscheduled, updateDay, type Equipment } from '../model/days';
+import { addDay, compactPlans, duplicateDay, longDate, dayLabels, daysOfSequence, daySun, equipmentFor, moveDay, removeDay, sortDaysByDate, updateDay, type Equipment } from '../model/days';
 import { effectiveShooting } from '../model/shooting';
 import { computeNumbers } from '../model/numbering';
 import { formatNumber } from '../model/text';
@@ -31,69 +31,138 @@ export function DaysView() {
   const doc = useApp(selectDoc);
   const chosen = useDaysUi((s) => s.dayId);
   const labels = dayLabels(doc);
-  const day = doc.shootingDays.find((d) => d.id === chosen) ?? (chosen === ALL ? null : doc.shootingDays[0]) ?? null;
-  const loose = unscheduled(doc);
-  const showAll = chosen === ALL || !day;
+  if (chosen === ALL) return <WholeShoot doc={doc} />;
+  const day = doc.shootingDays.find((d) => d.id === chosen);
+  if (day) return <DayPage key={day.id} doc={doc} day={day} label={labels.get(day.id)!} labels={labels} />;
+  return <DaysBoard doc={doc} labels={labels} />;
+}
+
+/** Ajoute un jour de tournage et l'ouvre. */
+export function addShootingDay() {
+  const doc = selectDoc(useApp.getState());
+  const r = addDay(doc);
+  apply(() => r.doc, `Jour ${doc.shootingDays.length + 1} ajouté`);
+  useDaysUi.getState().set(r.id);
+}
+
+/** Barre de l'onglet Jours : retour au tableau des jours, matériel de tout le tournage, nouveau jour. */
+export function DaysBar() {
+  const doc = useApp(selectDoc);
+  const chosen = useDaysUi((s) => s.dayId);
+  const open = chosen !== null && (chosen === ALL || doc.shootingDays.some((d) => d.id === chosen));
   return (
-    <div className="shooting">
-      <aside className="shooting-list" aria-label="Jours de tournage">
-        <h2 className="panel-title">Jours de tournage</h2>
-        {doc.shootingDays.map((d) => (
-          <button key={d.id} type="button" className={`index-item ${!showAll && d.id === day?.id ? 'here' : ''}`} onClick={() => useDaysUi.getState().set(d.id)}>
-            <span className="day-badge">{labels.get(d.id)}</span>
-            <span className="meta">
-              <span className="num">{d.date ? shortDate(d.date) : 'date à fixer'}</span>
-              <span className="loc">{d.sequenceIds.length ? `Séq. ${d.sequenceIds.map((id) => doc.sequences.find((s) => s.id === id)?.number || '?').join(', ')}` : 'aucune séquence'}</span>
-            </span>
-          </button>
-        ))}
-        <button
-          type="button"
-          className="btn"
-          style={{ marginTop: 6 }}
-          onClick={() => {
-            const r = addDay(selectDoc(useApp.getState()));
-            apply(() => r.doc, `Jour ${doc.shootingDays.length + 1} ajouté`);
-            useDaysUi.getState().set(r.id);
-          }}
-        >
-          + Jour de tournage
+    <>
+      {open && (
+        <button type="button" className="tool-b" onClick={() => useDaysUi.getState().set(null)}>
+          ← Tous les jours
         </button>
-        {doc.shootingDays.some((d) => d.date) && (
-          <button type="button" className="linkbtn" style={{ alignSelf: 'flex-start' }} onClick={() => apply(sortDaysByDate, 'Jours triés par date · ⌘Z pour annuler')}>
-            Trier par date
-          </button>
-        )}
-        <button type="button" className={`index-item ${showAll ? 'here' : ''}`} style={{ marginTop: 10 }} onClick={() => useDaysUi.getState().set(ALL)}>
-          <span className="meta">
-            <span className="num">Tout le tournage</span>
-            <span className="loc">matériel complet</span>
-          </span>
+      )}
+      {doc.shootingDays.some((d) => d.date) && (
+        <button type="button" className="tool-b" onClick={() => apply(sortDaysByDate, 'Jours triés par date')}>
+          Trier par date
         </button>
-        {loose.length > 0 && doc.shootingDays.length > 0 && (
-          <div className="days-loose" role="group" aria-label="Séquences sans jour">
-            <span className="note" style={{ color: 'var(--warn-text)' }}>Sans jour :</span>
-            {loose.map((s) =>
-              !showAll && day ? (
-                <button
-                  key={s.id}
-                  type="button"
-                  className="linkbtn"
-                  title={`Ajouter la séquence ${s.number || '?'} au ${labels.get(day.id)}`}
-                  onClick={() => apply((d) => updateDay(d, day.id, (x) => void x.sequenceIds.push(s.id)), `Séquence ${s.number || '?'} ajoutée au ${labels.get(day.id)}`)}
-                >
-                  séq. {s.number || '?'}
-                </button>
-              ) : (
-                <span key={s.id} className="note">
-                  séq. {s.number || '?'}
-                </span>
-              ),
-            )}
-          </div>
-        )}
-      </aside>
-      <main className="shooting-main">{showAll ? <WholeShoot doc={doc} /> : <DayPage key={day.id} doc={doc} day={day} label={labels.get(day.id)!} labels={labels} />}</main>
+      )}
+      <button type="button" className={`tool-b ${chosen === ALL ? 'on' : ''}`} aria-pressed={chosen === ALL} onClick={() => useDaysUi.getState().set(chosen === ALL ? null : ALL)}>
+        Matériel du tournage
+      </button>
+      <button type="button" className="tool-b" onClick={addShootingDay}>
+        + Jour
+      </button>
+    </>
+  );
+}
+
+/** Tous les jours côte à côte : séquences, installations et plans de chaque jour. */
+function DaysBoard({ doc, labels }: { doc: ProjectDoc; labels: Map<Id, string> }) {
+  const numbers = computeNumbers(doc);
+  const cursorPlan = useApp((s) => s.cursor?.planId ?? null);
+  const tz = projectTimeZone(doc);
+  const t = (ms: number | null) => (ms === null ? '—' : utcToLocal(Math.round(ms / 60000) * 60000, tz).time);
+  if (!doc.shootingDays.length)
+    return (
+      <div className="empty-state">
+        <span>Aucun jour de tournage</span>
+        <button type="button" className="btn primary" onClick={addShootingDay}>
+          + Jour
+        </button>
+      </div>
+    );
+  const row = (p: { id: Id }, detail: string) => (
+    <button key={p.id} type="button" className={`board-row ${p.id === cursorPlan ? 'here' : ''}`} onClick={() => useApp.getState().goToPlan(p.id)}>
+      <span className="mono">{numbers.get(p.id)?.code ?? '?'}</span>
+      <span className="detail">{detail}</span>
+    </button>
+  );
+  const detailOf = (plan: ProjectDoc['sequences'][number]['plans'][number]) => {
+    const c = plan.cameras[0]!;
+    return [c.start.size, c.start.focalMm !== null ? formatNumber(c.start.focalMm) : ''].filter(Boolean).join(' · ');
+  };
+  return (
+    <div className="days-board" aria-label="Jours de tournage">
+      {doc.shootingDays.map((d) => {
+        const label = labels.get(d.id)!;
+        const seqs = d.sequenceIds.map((id) => doc.sequences.find((s) => s.id === id)).filter((s): s is NonNullable<typeof s> => !!s);
+        const plans = seqs.reduce((n, s) => n + s.plans.length, 0);
+        const installs = seqs.reduce((n, s) => n + (effectiveShooting(s)?.installations.filter((i) => i.plans.length).length ?? 0), 0);
+        const sun = d.date ? daySun(doc, d)[0] : undefined;
+        return (
+          <section key={d.id} className="day-col" aria-label={label}>
+            <button type="button" className="day-col-h" aria-label={`Ouvrir ${label}`} onClick={() => useDaysUi.getState().set(d.id)}>
+              <strong>
+                {label} · {d.date ? shortDate(d.date) : 'date à fixer'}
+              </strong>
+              <span className="sub mono">
+                {plans} plan{plans > 1 ? 's' : ''} · {installs ? `${installs} inst.` : '— inst.'}
+                {sun && !sun.sun.polar && (
+                  <>
+                    {' · '}
+                    {t(sun.sun.sunrise)} – {t(sun.sun.sunset)}
+                  </>
+                )}
+              </span>
+            </button>
+            {seqs.length === 0 && <div className="empty-line small">Aucune séquence</div>}
+            {seqs.map((s) => {
+              const e = effectiveShooting(s);
+              const c = stripColors(s);
+              if (!e)
+                return (
+                  <div key={s.id} className="board-group">
+                    <div className="board-group-h">
+                      <span className="strip" style={{ background: c.fill, borderColor: c.edge }} />
+                      Séq. {s.number || '?'}
+                    </div>
+                    {s.plans.map((p) => row(p, detailOf(p)))}
+                  </div>
+                );
+              return (
+                <div key={s.id} className="board-seq">
+                  {e.installations
+                    .filter((i) => i.plans.length)
+                    .map((ins, k) => (
+                      <div key={ins.id} className="board-group">
+                        <div className="board-group-h">
+                          <span className="strip" style={{ background: c.fill, borderColor: c.edge }} />
+                          {ins.name || `Installation ${k + 1}`}
+                        </div>
+                        {ins.plans.map((p) => row(p, p.repriseOf ? 'Reprise' : detailOf(p)))}
+                      </div>
+                    ))}
+                  {e.loose.length > 0 && (
+                    <div className="board-group">
+                      <div className="board-group-h">
+                        <span className="strip" style={{ background: c.fill, borderColor: c.edge }} />
+                        Séq. {s.number || '?'} · à ranger
+                      </div>
+                      {e.loose.map((p) => row(p, detailOf(p)))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -119,14 +188,6 @@ function WholeShoot({ doc }: { doc: ProjectDoc }) {
         </div>
         <span className="spacer" />
       </div>
-      {doc.shootingDays.length === 0 && (
-        <div className="shooting-empty">
-          <p>
-            Créez les jours de tournage d’après le plan de travail (<b>+ Jour de tournage</b>) et rangez-y les séquences : pour chaque jour, l’app rassemble l’ordre de
-            tournage, les plans au sol, les horaires du soleil et le matériel, sans rien ressaisir.
-          </p>
-        </div>
-      )}
       <EquipmentPanel eq={eq} />
     </div>
   );
@@ -183,7 +244,7 @@ function DayPage({ doc, day, label, labels }: { doc: ProjectDoc; day: ShootingDa
           type="button"
           className="linkbtn danger"
           onClick={() => {
-            apply((d) => removeDay(d, day.id), `${label} supprimé · ⌘Z pour annuler`);
+            apply((d) => removeDay(d, day.id), `${label} supprimé`);
             useDaysUi.getState().set(null);
           }}
         >
@@ -272,7 +333,7 @@ function DayPage({ doc, day, label, labels }: { doc: ProjectDoc; day: ShootingDa
                     useApp.getState().setView('shooting');
                   }}
                 >
-                  Ordre de tournage à établir (vue Tournage)
+                  Ordre de tournage à établir (Installations)
                 </button>
               )}
               </>

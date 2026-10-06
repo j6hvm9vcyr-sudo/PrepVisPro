@@ -86,11 +86,13 @@ test('À vérifier : filtre des plans à compléter, accès direct, et repli de 
   await expect(panel.getByRole('button', { name: /^3\/1 · / })).toBeVisible();
   await expect(panel.getByRole('button', { name: '4/1' })).toBeVisible();
   await panel.getByRole('button', { name: /^3\/1 · / }).click();
-  await expect(page.locator('.status .msg')).toContainText('3/1');
-  await panel.getByRole('button', { name: /à compléter/ }).click();
+  await expect(page.locator('.line.sel .c.code b')).toHaveText('3/1');
+  await page.getByRole('button', { name: /^Filtrer/ }).click();
+  await page.getByRole('menuitemcheckbox', { name: 'Plans à compléter' }).click();
   await expect(page.locator('.line.first')).toHaveCount(2);
   await page.screenshot({ path: 'test-results/04-filtre.png' });
-  await panel.getByRole('button', { name: 'Tout afficher' }).click();
+  await page.getByRole('button', { name: /^Filtrer/ }).click();
+  await page.getByRole('menuitemcheckbox', { name: 'Plans à compléter' }).click();
   await page.getByRole('button', { name: 'Replier la séquence 1' }).click();
   await expect(page.locator('.line.first')).toHaveCount(4);
 });
@@ -160,7 +162,7 @@ test('réglages : largeur capteur donne un angle de champ', async ({ page }) => 
   await page.screenshot({ path: 'test-results/16-cameras.png' });
   await page.getByRole('button', { name: 'Terminé' }).click();
   // 1/1 : 32 mm sur 36 mm de large → 2·atan(36/64) = 58,7°
-  await expect(page.locator('.camrow .fov .mono').first()).toHaveText('58,7°');
+  await expect(page.locator('.camrow .fov').first()).toContainText('58,7°');
 });
 
 test('enchaîner les plans sans quitter le clavier : action, ⌘↩, action…', async ({ page }) => {
@@ -410,14 +412,14 @@ test('0.9 : trois espaces, arbre du film, détails refermables, aide ⌘/', asyn
   await page.keyboard.press('ControlOrMeta+1');
   // Arbre : déplier la séquence 2, choisir 2/2 : le tableau et les détails suivent.
   const tree = page.getByRole('navigation', { name: 'Le film' });
-  await tree.getByRole('button', { name: 'Déplier les plans de la séquence 2' }).click();
-  await tree.getByRole('button', { name: /^2\/2/ }).click();
-  await expect(page.locator('.status .msg')).toContainText('2/2');
+  await tree.getByRole('button', { name: '2 · Wagon' }).click();
+  await tree.getByRole('button', { name: 'Plan 2/2' }).click();
+  await expect(page.locator('.line.sel .c.code b')).toHaveText('2/2');
   await expect(page.getByRole('complementary', { name: 'Détails du plan' }).locator('.big')).toHaveText('2/2');
   // Une séquence repliée dans le tableau se déplie quand on y va depuis l'arbre.
   await page.getByRole('button', { name: 'Replier la séquence 1' }).click();
-  await tree.getByRole('button', { name: 'Déplier les plans de la séquence 1' }).click();
-  await tree.getByRole('button', { name: /^1\/3/ }).click();
+  await tree.getByRole('button', { name: '1 · Quai de gare' }).click();
+  await tree.getByRole('button', { name: 'Plan 1/3' }).click();
   await expect(page.locator('.line.sel [id$="-size"]')).toHaveText('Général → Poitrine');
   // Détails : × ferme, le bouton de la barre des vues rouvre.
   await page.getByRole('button', { name: 'Fermer les détails' }).click();

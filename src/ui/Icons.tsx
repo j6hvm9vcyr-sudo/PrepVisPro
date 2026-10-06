@@ -74,3 +74,50 @@ export const IconClose = () => (
     <path d="M6 6l12 12M18 6L6 18" />
   </Svg>
 );
+/** Outils du plan au sol. */
+export const ToolIcons = {
+  select: () => (
+    <Svg>
+      <path d="M5 3l14 8-6 1.5L10 19z" />
+    </Svg>
+  ),
+  camera: () => (
+    <Svg>
+      <rect x="3" y="7" width="12" height="10" rx="2" />
+      <path d="M15 10.5l6-3v9l-6-3" />
+    </Svg>
+  ),
+  actor: () => (
+    <Svg>
+      <circle cx="12" cy="7" r="3.2" />
+      <path d="M5.5 20a6.5 6.5 0 0113 0" />
+    </Svg>
+  ),
+  light: () => (
+    <Svg>
+      <path d="M9 18h6M10 21h4" />
+      <path d="M12 3a6 6 0 00-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0012 3z" />
+    </Svg>
+  ),
+  reflector: () => (
+    <Svg>
+      <rect x="5" y="5" width="14" height="14" rx="1.5" />
+    </Svg>
+  ),
+  text: () => (
+    <Svg>
+      <path d="M5 5h14M12 5v15" />
+    </Svg>
+  ),
+  measure: () => (
+    <Svg>
+      <path d="M4 16L16 4l4 4L8 20z" />
+      <path d="M8 12l1.5 1.5M11 9l1.5 1.5M14 6l1.5 1.5" />
+    </Svg>
+  ),
+  scale: () => (
+    <Svg>
+      <path d="M3 12h18M3 8v8M21 8v8" />
+    </Svg>
+  ),
+};
