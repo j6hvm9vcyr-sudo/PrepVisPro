@@ -6,6 +6,7 @@ import { useApp } from '../state/appStore';
 import { anyOverlay, selectCursor } from '../state/store';
 import { isTypingTarget } from '../ui/focus';
 import { startScriptImport } from '../import/flow';
+import { useVerifyPanel } from '../ui/spaces';
 
 export { isTauri } from './env';
 import { isTauri } from './env';
@@ -83,6 +84,9 @@ function runMenuCommand(id: string) {
       return;
     case 'view_inspector':
       st.toggleInspector();
+      return;
+    case 'view_verify':
+      useVerifyPanel.getState().set(!useVerifyPanel.getState().open);
       return;
     case 'file_import_script':
       void startScriptImport();

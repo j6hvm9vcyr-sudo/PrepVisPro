@@ -8,6 +8,7 @@ import { computeNumbers } from '../model/numbering';
 import { displayText, isEvolving, type EditableField } from '../model/entry';
 import { DEFAULT_TERMS } from '../model/defaults';
 import { missingFields } from '../model/completeness';
+import { verify, type PlanState } from '../model/verify';
 import { coverImage } from '../model/images';
 import { imageStore } from '../platform/images';
 import { norm } from '../model/text';
@@ -48,6 +49,7 @@ export function DecoupageTable() {
   const collapsed = useApp((s) => s.collapsed);
   const onlyIncomplete = useApp((s) => s.onlyIncomplete);
   const numbers = useMemo(() => computeNumbers(doc), [doc]);
+  const states = useMemo(() => verify(doc).states, [doc]);
   // Écarts avec les plans au sol (valeur, axe) : signalés dans les cases concernées.
   const floorDiffs = useMemo(() => (doc.floorPlans.length ? floorMismatches(doc) : EMPTY_DIFFS), [doc]);
   const anchor = useApp((s) => s.anchor);
@@ -290,6 +292,7 @@ export function DecoupageTable() {
               collapsed={!!collapsed[it.seq.id]}
               onlyIncomplete={onlyIncomplete}
               numbers={numbers}
+              states={states}
               floorDiffs={floorDiffs}
               cursorPlanId={cursor?.planId ?? null}
               cursorSetupId={cursor?.setupId ?? null}
@@ -315,6 +318,7 @@ interface BlockProps {
   collapsed: boolean;
   onlyIncomplete: boolean;
   numbers: ReturnType<typeof computeNumbers>;
+  states: Map<string, PlanState>;
   floorDiffs: Map<string, FloorMismatch[]>;
   cursorPlanId: string | null;
   cursorSetupId: string | null;
@@ -372,6 +376,7 @@ function SequenceBlock(p: BlockProps) {
               code={n.code}
               global={n.global}
               isReprise={n.repriseLetter !== ''}
+              state={p.states.get(plan.id) ?? 'none'}
               activeSetupId={here ? p.cursorSetupId : null}
               activeCol={here ? p.cursorCol : null}
               editing={here && p.editing}
@@ -396,6 +401,7 @@ interface RowsProps {
   code: string;
   global: number;
   isReprise: boolean;
+  state: PlanState;
   activeSetupId: string | null;
   activeCol: Column | null;
   editing: boolean;
@@ -416,7 +422,7 @@ function floorNoteOf(plan: Plan, diffs: Map<string, FloorMismatch[]>): string {
   return Object.keys(rec).length ? JSON.stringify(rec) : '';
 }
 
-const PlanRows = memo(function PlanRows({ plan, settings, code, global, isReprise, activeSetupId, activeCol, editing, sel, floorNote }: RowsProps) {
+const PlanRows = memo(function PlanRows({ plan, settings, code, global, isReprise, state, activeSetupId, activeCol, editing, sel, floorNote }: RowsProps) {
   const floor = floorNote ? (JSON.parse(floorNote) as Record<string, FloorMismatch[]>) : null;
   const missing = missingFields(plan, settings);
   const multi = plan.cameras.length > 1;
@@ -506,9 +512,8 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
             <span className="c code">
               {first && (
                 <span
-                  className="dot"
-                  title={missing.length ? `À compléter : ${missing.join(', ')}` : 'Complet'}
-                  style={{ background: missing.length ? 'var(--warn)' : 'var(--ok)', width: 7, height: 7 }}
+                  className={`st st-${state}`}
+                  title={state === 'none' ? 'Pas encore commencé' : missing.length ? `À compléter : ${missing.join(', ')}` : state === 'warn' ? 'À vérifier : caméra pas sur le plan au sol' : 'Complet'}
                 />
               )}
               {first && <b className="mono">{code}</b>}

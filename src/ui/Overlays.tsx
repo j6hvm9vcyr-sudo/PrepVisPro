@@ -49,9 +49,9 @@ const SHORTCUTS: { title: string; items: [string, string][] }[] = [
       ['Premier / dernier plan', '⌘↑ / ⌘↓'],
       ['Début / fin de ligne', '⌘← / ⌘→'],
       ['Sélectionner plusieurs cellules', '⇧ + flèches, ⇧ + clic'],
-      ['Tableau / Fiches / Plans au sol', '⌘1 / ⌘2 / ⌘3'],
-      ['Tournage / Jours de tournage', '⌘4 / ⌘5'],
-      ['Bibliothèque d’images', '⌘6'],
+      ['Écrire : Tableau / Fiches / Images', '⌘1 / ⌘2 / ⌘6'],
+      ['Mettre en place : Plans au sol', '⌘3'],
+      ['Organiser : Jours / Installations', '⌘5 / ⌘4'],
       ['Afficher / masquer Détails', '⌘I'],
     ],
   },
@@ -67,6 +67,8 @@ const SHORTCUTS: { title: string; items: [string, string][] }[] = [
       ['Effacer la cellule', '⌫'],
       ['Copier / couper / coller', '⌘C / ⌘X / ⌘V'],
       ['Recopier vers le bas', '⌘D'],
+      ['Plusieurs cellules : remplir toutes', 'taper, ou ↩'],
+      ['Plusieurs cellules : coller partout', '⌘V'],
     ],
   },
   {
@@ -84,7 +86,7 @@ const SHORTCUTS: { title: string; items: [string, string][] }[] = [
     items: [
       ['Aperçu de l’image', 'espace'],
       ['Annuler / rétablir', '⌘Z / ⇧⌘Z'],
-      ['Cette aide', '?'],
+      ['Cette aide', '⌘/ ou ?'],
     ],
   },
   {

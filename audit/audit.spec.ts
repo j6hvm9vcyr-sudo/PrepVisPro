@@ -108,15 +108,24 @@ test('audit', async ({ page }) => {
   await page.keyboard.press('ControlOrMeta+6');
   await shot(page, '22b-images');
   await page.keyboard.press('ControlOrMeta+1');
-  await page.getByRole('navigation', { name: 'Séquences' }).getByRole('button', { name: '+ Tampon' }).click();
+  await page.getByRole('navigation', { name: 'Le film' }).getByRole('button', { name: '+ Tampon' }).click();
   await shot(page, '22c-tampon');
   await page.getByRole('dialog', { name: 'Tampon' }).getByRole('button', { name: 'TITRE', exact: true }).click();
   await page.keyboard.press('Escape');
+  // À vérifier (0.9) : un seul relevé, à droite
+  await page.locator('.verify-btn').click();
+  await shot(page, '22d-a-verifier');
+  await page.getByRole('button', { name: 'À propos : À vérifier' }).click();
+  await shot(page, '22e-a-verifier-info');
+  await page.getByRole('button', { name: 'Fermer À vérifier' }).click();
+  await page.getByRole('button', { name: 'Fermer les détails' }).click();
+  await shot(page, '22f-tableau-sans-details');
+  await page.getByRole('button', { name: 'Détails' }).click();
   // Dialogues
   await page.getByRole('button', { name: 'Exporter…' }).last().click();
   await shot(page, '23-export');
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Versions' }).click();
+  await page.keyboard.press('ControlOrMeta+Shift+S');
   await shot(page, '24-versions');
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Raccourcis clavier' }).click();

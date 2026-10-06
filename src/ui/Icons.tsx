@@ -61,3 +61,16 @@ export const IconChevron = ({ open }: { open: boolean }) => (
     <path d={open ? 'M6 9l6 6 6-6' : 'M9 6l6 6-6 6'} />
   </Svg>
 );
+/** À vérifier. */
+export const IconWarn = () => (
+  <Svg>
+    <path d="M12 3.5l9 16H3z" />
+    <path d="M12 10v4.5M12 17.4v.1" />
+  </Svg>
+);
+/** Fermer un panneau. */
+export const IconClose = () => (
+  <Svg size={14}>
+    <path d="M6 6l12 12M18 6L6 18" />
+  </Svg>
+);

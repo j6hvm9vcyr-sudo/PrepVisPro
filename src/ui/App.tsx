@@ -5,7 +5,8 @@ import { anyOverlay, selectCursor } from '../state/store';
 import { DecoupageTable } from './Table';
 import { CardsView } from './Cards';
 import { Inspector } from './Inspector';
-import { SequenceIndex, StatusBar, Toolbar } from './Chrome';
+import { FilmTree, SpaceBar, StatusBar, Toolbar, VerifyPanel } from './Chrome';
+import { useVerifyPanel } from './spaces';
 import { DropChoice, Preview, SequenceDialog, Shortcuts, StampDialog } from './Overlays';
 import { SettingsDialog } from './Settings';
 import { PrefsDialog } from './Preferences';
@@ -73,6 +74,12 @@ function useGlobalShortcuts(settingsOpen: boolean) {
       if (st.editing) return;
       // Dans l'application Mac, ces raccourcis appartiennent au menu natif : ne pas les traiter deux fois.
       if (isTauri() && meta && isMenuShortcut(e)) return;
+      // ⌘/ : aide et raccourcis, même pendant une saisie.
+      if (meta && (e.key === '/' || e.code === 'Slash') && !e.altKey) {
+        e.preventDefault();
+        st.setShowShortcuts(true);
+        return;
+      }
       const typing = isTypingTarget(e.target);
 
       if (meta && e.key.toLowerCase() === 'z' && !typing) {
@@ -225,10 +232,13 @@ function useWindowTitle() {
   }, [title, mode]);
 }
 
+const VIEW_LABEL = { floor: 'plans au sol', days: 'jours de tournage', library: 'bibliothèque d’images', shooting: 'installations', table: 'tableau', cards: 'fiches' } as const;
+
 function Workspace() {
   useWindowTitle();
   const view = useApp((s) => s.view);
   const inspector = useApp((s) => s.inspector);
+  const verifying = useVerifyPanel((s) => s.open);
   const settings = useApp((s) => s.showSettings);
   const prefs = useApp((s) => s.showPrefs);
   const exporting = useApp((s) => s.showExport);
@@ -261,49 +271,35 @@ function Workspace() {
     <div className="app">
       <Toolbar />
       <div className="app-body">
-        {view === 'floor' ? (
-          <div className="center">
-            <ErrorBoundary label="plans au sol" key="floor">
-              <FloorView />
-            </ErrorBoundary>
-            <StatusBar />
-          </div>
-        ) : view === 'days' ? (
-          <div className="center">
-            <ErrorBoundary label="jours de tournage" key="days">
-              <DaysView />
-            </ErrorBoundary>
-            <StatusBar />
-          </div>
-        ) : view === 'library' ? (
-          <div className="center">
-            <ErrorBoundary label="bibliothèque d’images" key="library">
-              <LibraryView />
-            </ErrorBoundary>
-            <StatusBar />
-          </div>
-        ) : view === 'shooting' ? (
-          <div className="center">
-            <ErrorBoundary label="tournage" key="shooting">
-              <ShootingView />
-            </ErrorBoundary>
-            <StatusBar />
-          </div>
-        ) : (
+        {view === 'table' || view === 'cards' ? (
           <>
-            <SequenceIndex />
+            <FilmTree />
             <main className="center">
+              <SpaceBar />
               <ErrorBoundary label={view === 'table' ? 'tableau' : 'fiches'} key={view}>
                 {view === 'table' ? <DecoupageTable /> : <CardsView />}
               </ErrorBoundary>
               <StatusBar />
             </main>
-            {inspector && (
+            {inspector && !verifying && (
               <ErrorBoundary label="détails">
                 <Inspector />
               </ErrorBoundary>
             )}
           </>
+        ) : (
+          <div className="center">
+            <SpaceBar />
+            <ErrorBoundary label={VIEW_LABEL[view]} key={view}>
+              {view === 'floor' ? <FloorView /> : view === 'days' ? <DaysView /> : view === 'library' ? <LibraryView /> : <ShootingView />}
+            </ErrorBoundary>
+            <StatusBar />
+          </div>
+        )}
+        {verifying && (
+          <ErrorBoundary label="à vérifier">
+            <VerifyPanel />
+          </ErrorBoundary>
         )}
       </div>
       <Preview />

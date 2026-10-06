@@ -3,6 +3,8 @@ import { useApp } from '../state/appStore';
 import { selectCursor, selectDoc } from '../state/store';
 import { computeNumbers } from '../model/numbering';
 import { missingFields } from '../model/completeness';
+import { verify } from '../model/verify';
+import { StateDot } from './Chrome';
 import { coverImage } from '../model/images';
 import { displayText } from '../model/entry';
 import { imageStore } from '../platform/images';
@@ -15,6 +17,7 @@ export function CardsView() {
   const cursor = useApp(selectCursor);
   const onlyIncomplete = useApp((s) => s.onlyIncomplete);
   const numbers = useMemo(() => computeNumbers(doc), [doc]);
+  const states = useMemo(() => verify(doc).states, [doc]);
   const st = useApp.getState;
   return (
     <div className="cards">
@@ -35,7 +38,6 @@ export function CardsView() {
               {plans.map((p) => {
                 const cov = coverImage(p);
                 const url = cov ? imageStore.url(cov.file) : null;
-                const miss = missingFields(p, doc.settings).length > 0;
                 return (
                   <button
                     key={p.id}
@@ -47,7 +49,7 @@ export function CardsView() {
                     <span className="pic">{url ? <img src={url} alt="" draggable={false} /> : 'Pas encore d’image'}</span>
                     <span className="body">
                       <span className="h">
-                        <span className="dot" style={{ background: miss ? 'var(--warn)' : 'var(--ok)', width: 7, height: 7 }} />
+                        <StateDot state={states.get(p.id)} />
                         <b className="mono">{numbers.get(p.id)!.code}</b>
                         <span className="mono" style={{ fontSize: 11, color: 'var(--text3)' }}>
                           n° {numbers.get(p.id)!.global}

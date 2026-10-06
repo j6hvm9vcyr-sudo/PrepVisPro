@@ -24,13 +24,13 @@ test('tampons : TITRE entre deux séquences, GÉNÉRIQUE DE FIN, déplacement, s
   await expect(page.locator('.line.first .n').first()).toHaveText('1');
 
   // Barre latérale : générique de fin après la dernière séquence (le curseur est sur la 1 : on va à la 4).
-  await page.getByRole('navigation', { name: 'Séquences' }).getByRole('button', { name: /^4/ }).click();
-  await page.getByRole('navigation', { name: 'Séquences' }).getByRole('button', { name: '+ Tampon' }).click();
+  await page.getByRole('navigation', { name: 'Le film' }).getByRole('button', { name: /^4 · / }).click();
+  await page.getByRole('navigation', { name: 'Le film' }).getByRole('button', { name: '+ Tampon' }).click();
   await dlg.getByLabel('Texte').fill('Générique de fin');
   await expect(dlg).toContainText('Placé en fin de film');
   await dlg.getByLabel('Texte').press('Enter');
   await expect(bands).toHaveText(['SÉQ. 1', 'TITRE', 'SÉQ. 2', 'SÉQ. 3', 'SÉQ. 4', 'Générique de fin']);
-  await expect(page.getByRole('navigation', { name: 'Séquences' }).locator('.index-stamp')).toHaveText(['TITRE', 'Générique de fin']);
+  await expect(page.getByRole('navigation', { name: 'Le film' }).locator('.index-stamp')).toHaveText(['TITRE', 'Générique de fin']);
   await page.screenshot({ path: 'test-results/30-tampons.png' });
 
   // Déplacer le TITRE d'un cran vers la fin : il passe après la séquence 2.
@@ -44,8 +44,8 @@ test('tampons : TITRE entre deux séquences, GÉNÉRIQUE DE FIN, déplacement, s
   await expect(bands).toHaveText(['SÉQ. 1', 'SÉQ. 2', 'TITRE', 'SÉQ. 3', 'SÉQ. 4', 'Générique de fin']);
 
   // Une séquence ajoutée à la fin se place avant le générique.
-  await page.getByRole('navigation', { name: 'Séquences' }).getByRole('button', { name: /^4/ }).click();
-  await page.getByRole('navigation', { name: 'Séquences' }).getByRole('button', { name: '+ Séquence' }).click();
+  await page.getByRole('navigation', { name: 'Le film' }).getByRole('button', { name: /^4 · / }).click();
+  await page.getByRole('navigation', { name: 'Le film' }).getByRole('button', { name: '+ Séquence' }).click();
   await page.getByRole('dialog', { name: /Séquence/ }).getByRole('button', { name: 'Terminé' }).click();
   await expect(bands).toHaveText(['SÉQ. 1', 'SÉQ. 2', 'TITRE', 'SÉQ. 3', 'SÉQ. 4', 'SÉQ. 5', 'Générique de fin']);
 });

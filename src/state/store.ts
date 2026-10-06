@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Id, ImageKind, ProjectDoc, Sequence } from '../model/types';
 import { computeNumbers } from '../model/numbering';
+import { missingFields } from '../model/completeness';
 import { kitFocals } from '../model/lenses';
 import { formatNumber, norm } from '../model/text';
 import { applyValue, categoryOf, completeWithPick, focalWithPick, editText as fieldEditText, FIELD_LABEL, parseEntry, termCtx, type EditableField, type TermField } from '../model/entry';
@@ -273,6 +274,8 @@ interface Actions {
   redo(): void;
   toggleCollapsed(seqId: Id): void;
   expandAndGo(seqId: Id): void;
+  /** Sélectionne un plan (arbre du film, À vérifier) : déplie sa séquence et lève le filtre s'il le cache. */
+  goToPlan(planId: Id): void;
   toggleOnlyIncomplete(): void;
   setView(v: 'table' | 'cards' | 'floor' | 'shooting' | 'days' | 'library'): void;
   /** Enregistre une nouvelle version du document (plan au sol…), annulable. */
@@ -821,6 +824,22 @@ export function createAppStore(doc: ProjectDoc) {
         const p = seq.plans[0]!;
         setCursorOnly({ planId: p.id, setupId: p.cameras[0]!.id, col: cur()?.col ?? 'size' });
         ensureCursorVisible();
+      },
+
+      goToPlan(planId) {
+        if (get().editing) return;
+        const doc = docNow();
+        const loc = ops.locatePlan(doc, planId);
+        if (!loc) return;
+        const s = get();
+        const keep = s.cursor && s.cursor.planId === planId ? loc.plan.cameras.find((c) => c.id === s.cursor!.setupId) : null;
+        const setupId = (keep ?? loc.plan.cameras[0]!).id;
+        set({
+          collapsed: s.collapsed[loc.seq.id] ? { ...s.collapsed, [loc.seq.id]: false } : s.collapsed,
+          onlyIncomplete: s.onlyIncomplete && missingFields(loc.plan, doc.settings).length > 0,
+          anchor: null,
+        });
+        setCursorOnly({ planId, setupId, col: s.cursor?.col ?? 'size' });
       },
 
       toggleOnlyIncomplete() {

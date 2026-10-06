@@ -349,14 +349,15 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
         .build()?;
 
     let view_menu = SubmenuBuilder::new(app, "Présentation")
-        .item(&item("view_table", "Tableau", "CmdOrCtrl+1")?)
-        .item(&item("view_cards", "Fiches", "CmdOrCtrl+2")?)
-        .item(&item("view_floor", "Plans au sol", "CmdOrCtrl+3")?)
-        .item(&item("view_shooting", "Tournage (installations)", "CmdOrCtrl+4")?)
-        .item(&item("view_days", "Jours de tournage et matériel", "CmdOrCtrl+5")?)
-        .item(&item("view_library", "Bibliothèque d’images", "CmdOrCtrl+6")?)
+        .item(&item("view_table", "Écrire › Tableau", "CmdOrCtrl+1")?)
+        .item(&item("view_cards", "Écrire › Fiches", "CmdOrCtrl+2")?)
+        .item(&item("view_library", "Écrire › Images", "CmdOrCtrl+6")?)
+        .item(&item("view_floor", "Mettre en place › Plans au sol", "CmdOrCtrl+3")?)
+        .item(&item("view_days", "Organiser › Jours", "CmdOrCtrl+5")?)
+        .item(&item("view_shooting", "Organiser › Installations", "CmdOrCtrl+4")?)
         .separator()
         .item(&item("view_inspector", "Afficher / masquer Détails", "CmdOrCtrl+I")?)
+        .item(&plain("view_verify", "Afficher / masquer À vérifier")?)
         .item(&item("view_settings", "Réglages du projet…", "CmdOrCtrl+Shift+,")?)
         .separator()
         .fullscreen()
@@ -364,7 +365,7 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
 
     let window_menu = SubmenuBuilder::new(app, "Fenêtre").minimize().maximize().build()?;
 
-    let help_menu = SubmenuBuilder::new(app, "Aide").item(&plain("help_shortcuts", "Raccourcis clavier")?).build()?;
+    let help_menu = SubmenuBuilder::new(app, "Aide").item(&item("help_shortcuts", "Aide et raccourcis clavier", "CmdOrCtrl+/")?).build()?;
 
     let menu = MenuBuilder::new(app)
         .items(&[&app_menu, &file_menu, &edit_menu, &plan_menu, &view_menu, &window_menu, &help_menu])

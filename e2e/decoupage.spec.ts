@@ -80,11 +80,17 @@ test('⌘↩ nouveau plan hérité, renumérotation, ⌘Z', async ({ page }) => 
   await expect(page.locator('.line.first')).toHaveCount(before + 1);
 });
 
-test('filtre des plans à compléter et repli de séquence', async ({ page }) => {
-  await page.getByRole('button', { name: /à compléter/ }).click();
+test('À vérifier : filtre des plans à compléter, accès direct, et repli de séquence', async ({ page }) => {
+  await page.locator('.verify-btn').click();
+  const panel = page.getByRole('complementary', { name: 'À vérifier' });
+  await expect(panel.getByRole('button', { name: /^3\/1 · / })).toBeVisible();
+  await expect(panel.getByRole('button', { name: '4/1' })).toBeVisible();
+  await panel.getByRole('button', { name: /^3\/1 · / }).click();
+  await expect(page.locator('.status .msg')).toContainText('3/1');
+  await panel.getByRole('button', { name: /à compléter/ }).click();
   await expect(page.locator('.line.first')).toHaveCount(2);
   await page.screenshot({ path: 'test-results/04-filtre.png' });
-  await page.getByRole('button', { name: /tout afficher/ }).click();
+  await panel.getByRole('button', { name: 'Tout afficher' }).click();
   await page.getByRole('button', { name: 'Replier la séquence 1' }).click();
   await expect(page.locator('.line.first')).toHaveCount(4);
 });
@@ -273,7 +279,7 @@ test('saisie groupée : plusieurs lignes sélectionnées dans une colonne, une s
   // Valeur des plans 1/1, 1/2, 1/3.
   await page.keyboard.press('Shift+ArrowDown');
   await page.keyboard.press('Shift+ArrowDown');
-  await expect(page.getByText(/3 cellules sélectionnées — tapez une valeur/)).toBeVisible();
+  await expect(page.locator('.status .msg')).toHaveText('3 cellules sélectionnées');
   await page.keyboard.type('gp');
   await expect(page.getByText('↩ remplit les 3 cellules sélectionnées')).toBeVisible();
   await page.keyboard.press('Enter');
@@ -316,7 +322,7 @@ test('saisie groupée sur une sélection de plusieurs colonnes : la colonne acti
 });
 
 test('versions : enregistrer, voir ce qui a changé, revenir en arrière sans rien perdre', async ({ page }) => {
-  await page.getByRole('button', { name: 'Versions' }).click();
+  await page.keyboard.press('ControlOrMeta+Shift+S');
   const dlg = page.getByRole('dialog', { name: 'Versions du projet' });
   await dlg.getByLabel('Nom de la version').fill('V1 réalisation');
   await dlg.getByRole('button', { name: 'Enregistrer cette version' }).click();
@@ -388,5 +394,38 @@ test('↩ sur une case remplie : toute la liste est proposée, les flèches chan
   await page.keyboard.press('Enter');
   await page.keyboard.type('GP');
   await expect(list.getByRole('option').first()).toHaveText('GP');
+  await page.keyboard.press('Escape');
+});
+
+test('0.9 : trois espaces, arbre du film, détails refermables, aide ⌘/', async ({ page }) => {
+  const spaces = page.getByRole('navigation', { name: 'Espaces' });
+  // Un espace rouvre la dernière vue utilisée dans cet espace.
+  await page.getByRole('group', { name: 'Vues de l’espace Écrire' }).getByRole('button', { name: 'Fiches' }).click();
+  await spaces.getByRole('button', { name: 'Organiser' }).click();
+  await expect(page.getByRole('group', { name: 'Vues de l’espace Organiser' }).getByRole('button', { name: 'Jours' })).toHaveAttribute('aria-pressed', 'true');
+  await spaces.getByRole('button', { name: 'Mettre en place' }).click();
+  await expect(page.getByRole('application', { name: 'Plan au sol' }).or(page.getByText('Aucun plan au sol'))).toBeVisible();
+  await spaces.getByRole('button', { name: 'Écrire' }).click();
+  await expect(page.locator('.cards')).toBeVisible();
+  await page.keyboard.press('ControlOrMeta+1');
+  // Arbre : déplier la séquence 2, choisir 2/2 : le tableau et les détails suivent.
+  const tree = page.getByRole('navigation', { name: 'Le film' });
+  await tree.getByRole('button', { name: 'Déplier les plans de la séquence 2' }).click();
+  await tree.getByRole('button', { name: /^2\/2/ }).click();
+  await expect(page.locator('.status .msg')).toContainText('2/2');
+  await expect(page.getByRole('complementary', { name: 'Détails du plan' }).locator('.big')).toHaveText('2/2');
+  // Une séquence repliée dans le tableau se déplie quand on y va depuis l'arbre.
+  await page.getByRole('button', { name: 'Replier la séquence 1' }).click();
+  await tree.getByRole('button', { name: 'Déplier les plans de la séquence 1' }).click();
+  await tree.getByRole('button', { name: /^1\/3/ }).click();
+  await expect(page.locator('.line.sel [id$="-size"]')).toHaveText('Général → Poitrine');
+  // Détails : × ferme, le bouton de la barre des vues rouvre.
+  await page.getByRole('button', { name: 'Fermer les détails' }).click();
+  await expect(page.getByRole('complementary', { name: 'Détails du plan' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Détails', exact: true }).click();
+  await expect(page.getByRole('complementary', { name: 'Détails du plan' })).toBeVisible();
+  // ⌘/ : aide et raccourcis.
+  await page.keyboard.press('ControlOrMeta+/');
+  await expect(page.getByRole('dialog', { name: 'Raccourcis clavier' })).toBeVisible();
   await page.keyboard.press('Escape');
 });

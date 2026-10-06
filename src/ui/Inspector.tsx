@@ -13,6 +13,9 @@ import { replaceCameraSetup } from '../model/ops';
 import { imageStore } from '../platform/images';
 import type { CameraSetup, ImageKind, Plan } from '../model/types';
 import { PlanLinksSection } from './PlanLinks';
+import { verify } from '../model/verify';
+import { StateDot } from './Chrome';
+import { IconClose } from './Icons';
 import { Picker } from './Picker';
 import { applyPreset, emptySetup, matchingPreset, presetLabel, savePreset } from '../model/shotPresets';
 
@@ -25,20 +28,24 @@ export function Inspector() {
   const n = computeNumbers(doc).get(plan.id)!;
   const parent = plan.repriseOf ? computeNumbers(doc).get(plan.repriseOf) : null;
   const missing = missingFields(plan, doc.settings);
+  const state = verify(doc).states.get(plan.id) ?? 'none';
 
   return (
     <aside className="inspector" aria-label="Détails du plan">
       <div className="insp-head">
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
           <span className="big mono">{n.code}</span>
-          <span className="sub">
+          <span className="sub" style={{ flex: 1 }}>
             plan n° {n.global}
             {parent && n.repriseLetter ? ` · reprise de ${parent.code}` : ''}
           </span>
+          <button type="button" className="btn icon ghost-icon insp-close" aria-label="Fermer les détails" title="Fermer (⌘I)" onClick={() => useApp.getState().toggleInspector()}>
+            <IconClose />
+          </button>
         </div>
-        <div className="state" style={{ color: missing.length ? 'var(--warn-text)' : 'var(--ok)' }}>
-          <span className="dot" style={{ background: missing.length ? 'var(--warn)' : 'var(--ok)', width: 7, height: 7 }} />
-          {missing.length ? `À compléter : ${missing.join(', ')}` : 'Complet'}
+        <div className={`state state-${state}`}>
+          <StateDot state={state} />
+          {state === 'none' ? 'Pas encore commencé' : missing.length ? `À compléter : ${missing.join(', ')}` : state === 'warn' ? 'À vérifier : voir « Ce plan ailleurs »' : 'Complet'}
         </div>
       </div>
       <div className="insp-body">
