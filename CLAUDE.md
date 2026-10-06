@@ -23,18 +23,21 @@ Pendant le travail, ne lancer que les tests du sujet (`npx vitest run src/model/
 - `src/model/` : logique pure, testée. `types.ts` (format), `schema.ts` (zod + `checkIntegrity`), `migrate.ts` (une étape par version de format), `ops.ts`, `stamps.ts`, `library.ts`, `equipment.ts` (matériel du projet, reprise d'un autre projet), `template.ts` (projet suivant), `floorIcons.ts` (icônes des figures), `shotPresets.ts` (plans types), `prefs.ts` (préférences de l'app : plan suivant, abréviations — sur le Mac, pas dans le projet), `floor*.ts`, `light.ts`, `sun*.ts`, `days.ts`, `links.ts`, `verify.ts` (« À vérifier » et le code d'état unique vert / orange / gris).
 - `src/state/prefs.ts` : préférences en mémoire + `preferences.json` (Rust `prefs.rs`, écriture atomique ; fichier illisible jamais écrasé sans le demander).
 - `src/state/store.ts` : actions ; `commit()` passe par les nettoyages (`cleanupFloorRefs`, `cleanupShooting`, `cleanupDays`, `cleanupStamps`, `syncLibrary`).
-- `src/ui/` (cadre 0.9 : `spaces.ts` = trois espaces Découpage / Plans au sol / Tournage, `Chrome.tsx` = barre du haut, arbre « Le film », À vérifier, barre d'état, `Info.tsx` = ⓘ ; tableau, fiches, dialogues ; `Settings.tsx` = Réglages du projet ⇧⌘,, `Preferences.tsx` = Préférences de l'app ⌘, ; `Picker.tsx` = liste de choix à recherche, à utiliser au lieu d'un `<select>` qui sert de bouton), `src/floor/` (plan au sol : `FloorView.tsx` = arbre + onglets Plan au sol · Lumière · Soleil, palette d'outils, plans de la séquence en bas ; lumière), `src/export/` (`model.ts` commun, `pdf.tsx`, `excel.ts`), `src/import/` (scénarios), `src/platform/` (Tauri / navigateur ; `kit.ts` = lecture seule de l'ancien materiel.json), `src-tauri/` (Rust).
+- `src/ui/` (cadre 0.11 : `spaces.ts` = trois espaces Découpage / Plans au sol / Tournage, `Chrome.tsx` = barre des espaces en bas (`PageBar`), en-tête du projet (`ProjectHead`), arbre « Le film », barre de l'espace, À vérifier, messages, `Info.tsx` = ⓘ ; tableau, fiches, dialogues ; `Settings.tsx` = Réglages du projet ⇧⌘,, `Preferences.tsx` = Préférences de l'app ⌘, ; `Picker.tsx` = liste de choix à recherche, à utiliser au lieu d'un `<select>` qui sert de bouton), `src/floor/` (plan au sol : `FloorView.tsx` = une seule liste à gauche (séquence → son plan au sol), onglets Plan au sol · Lumière (soleil compris), outils en ligne, plans de la séquence en bas ; lumière), `src/export/` (`model.ts` commun, `pdf.tsx`, `excel.ts`), `src/import/` (scénarios), `src/platform/` (Tauri / navigateur ; `kit.ts` = lecture seule de l'ancien materiel.json), `src-tauri/` (Rust).
 
 ## Ajouter une donnée au format
 1. `types.ts` + `SCHEMA_VERSION` + 1 ; 2. `schema.ts` (même ordre de clés que `defaults.ts`) et `checkIntegrity` ;
 3. `migrate.ts` (étape + test) ; 4. `defaults.ts`, `sample.ts`, `testkit.ts` ; 5. vues, exports (`export/model.ts`), `diff.ts` (versions) ;
 6. test de relecture à l'identique (`migrate.test.ts`).
 
-## Règles d'interface (0.9)
+## Règles d'interface (0.9, style 0.11)
 - Une explication = un ⓘ (`Info`) à droite d'un titre ; jamais de phrase posée dans la page.
 - Un seul code d'état (`StateDot`, `verify.ts`) ; un seul « À vérifier ».
 - Raccourcis seulement dans les menus, les infobulles et la fiche « ? » (⌘/).
 - Gauche : structure du film ; centre : le travail ; droite : la sélection, refermable. État vide = une ligne + un bouton.
+- Thème clair uniquement (pas de mode sombre, décision d'Adrien). Police du Mac (SF Pro / SF Mono), IBM Plex en secours.
+- Verre (imitation de Liquid Glass) seulement sur ce qui flotte : barres, colonnes latérales, palettes, bulles. Le contenu reste opaque.
+- Un panneau en verre (`backdrop-filter`) devient le repère des éléments `position: fixed` : les listes déroulantes passent par un portail (`Picker`).
 
 ## Pièges connus
 - WebKit (app Mac) : composition de texte (accents), presse-papiers, focus ; les tests en app réelle les couvrent.

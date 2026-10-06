@@ -11,7 +11,7 @@ import { focusGrid } from './focus';
 import { flushSave, saveAsDialog, useProject } from '../state/project';
 import { filmFlow } from '../model/stamps';
 import { useFloor } from '../floor/floorStore';
-import { IconClose, IconGear, IconSidebar, IconWarn } from './Icons';
+import { IconClose, IconExport, IconGear, IconSidebar, SpaceIcons } from './Icons';
 import { openSpace, SPACE_OF, SPACES, useVerifyPanel, type Space } from './spaces';
 import { Info } from './Info';
 
@@ -23,51 +23,92 @@ export function useVerification() {
 
 const KEY_OF: Record<Space, string> = { decoupage: '⌘1', sol: '⌘3', tournage: '⌘5' };
 
-export function Toolbar() {
-  const doc = useApp(selectDoc);
+/** Barre des espaces, en bas de la fenêtre (comme les pages de Resolve). */
+export function PageBar() {
   const view = useApp((s) => s.view);
   const space = SPACE_OF[view];
   const n = useVerification().items.length;
   const verifyOpen = useVerifyPanel((s) => s.open);
   const st = useApp.getState;
-
   return (
-    <header className="toolbar">
-      <div className="title">
-        <b>{doc.meta.title || 'Sans titre'}</b>
-        <SaveIndicator />
+    <footer className="pagebar glass" data-tauri-drag-region>
+      <div className="pagebar-left">
+        <button
+          type="button"
+          className={`vpill verify-btn ${verifyOpen ? 'on' : ''}`}
+          aria-pressed={verifyOpen}
+          aria-label={`À vérifier${n ? ` : ${n}` : ''}`}
+          title="À vérifier"
+          onClick={() => useVerifyPanel.getState().set(!verifyOpen)}
+        >
+          <span className={`st ${n ? 'st-warn' : 'st-ok'}`} aria-hidden />
+          {n ? `${n} à vérifier` : 'Rien à vérifier'}
+        </button>
       </div>
-      <nav className="spaces" aria-label="Espaces">
-        {SPACES.map((sp) => (
-          <button key={sp.id} type="button" aria-pressed={space === sp.id} onClick={() => openSpace(sp.id)} title={`${sp.label} (${KEY_OF[sp.id]})`}>
-            {sp.label}
-          </button>
-        ))}
+      <nav className="pages" aria-label="Espaces">
+        {SPACES.map((sp) => {
+          const I = SpaceIcons[sp.id];
+          return (
+            <button key={sp.id} type="button" className="page" aria-pressed={space === sp.id} onClick={() => openSpace(sp.id)} title={`${sp.label} (${KEY_OF[sp.id]})`}>
+              <I />
+              <span>{sp.label}</span>
+            </button>
+          );
+        })}
       </nav>
-      <span className="spacer" />
-      <button
-        type="button"
-        className={`ibtn verify-btn ${verifyOpen ? 'on' : ''}`}
-        aria-pressed={verifyOpen}
-        aria-label={`À vérifier${n ? ` : ${n}` : ''}`}
-        title={n ? `À vérifier : ${n}` : 'Rien à vérifier'}
-        onClick={() => useVerifyPanel.getState().set(!verifyOpen)}
-      >
-        <IconWarn />
-        {n > 0 && <span className="badge">{n > 99 ? '99+' : n}</span>}
-      </button>
-      <button type="button" className="ibtn" aria-label="Réglages" onClick={() => st().setShowSettings(true)} title="Réglages du projet (⇧⌘,)">
-        <IconGear />
-      </button>
-      <button type="button" className="btn primary export-btn" onClick={() => st().setShowExport(true)} title="PDF, Excel, CSV (⌘E)">
-        Exporter…
-      </button>
-    </header>
+      <div className="pagebar-right">
+        <button type="button" className="ibtn" aria-label="Réglages" onClick={() => st().setShowSettings(true)} title="Réglages du projet (⇧⌘,)">
+          <IconGear />
+        </button>
+        <button type="button" className="ibtn" aria-label="Exporter…" onClick={() => st().setShowExport(true)} title="Exporter… (⌘E)">
+          <IconExport />
+        </button>
+        <button type="button" className="ibtn help-btn" onClick={() => st().setShowShortcuts(true)} aria-label="Raccourcis clavier" title="Aide et raccourcis (⌘/)">
+          ?
+        </button>
+      </div>
+    </footer>
+  );
+}
+
+/** En haut de la colonne de gauche : le projet (menu), son état d'enregistrement et sa taille. */
+export function ProjectHead() {
+  const doc = useApp(selectDoc);
+  const st = useApp.getState;
+  const plans = doc.sequences.reduce((n, s) => n + s.plans.length, 0);
+  // Non enregistré, ou erreur : l'état demande des mots (et un bouton), sur sa propre ligne.
+  const saveNeedsWords = useProject((p) => p.mode === 'unsaved' || (p.mode === 'file' && p.status === 'error'));
+  return (
+    <div className="proj-head">
+      <div className="titlebar-space" data-tauri-drag-region aria-hidden />
+      <div className="proj-row">
+        <BarMenu label={doc.meta.title || 'Sans titre'} className="proj-menu" title="Projet">
+          <button type="button" role="menuitem" onClick={() => st().setShowSettings(true)}>
+            Réglages du projet…
+          </button>
+          <button type="button" role="menuitem" onClick={() => st().setShowVersions(true)}>
+            Versions…
+          </button>
+          <button type="button" role="menuitem" onClick={() => st().setShowExport(true)}>
+            Exporter…
+          </button>
+        </BarMenu>
+        {!saveNeedsWords && <SaveIndicator />}
+      </div>
+      <div className="proj-sub">
+        {doc.sequences.length} séquence{doc.sequences.length > 1 ? 's' : ''} · {plans} plan{plans > 1 ? 's' : ''}
+      </div>
+      {saveNeedsWords && (
+        <div className="proj-sub">
+          <SaveIndicator />
+        </div>
+      )}
+    </div>
   );
 }
 
 /** Petit menu déroulant de la barre des vues (« Filtrer ▾ »). */
-export function BarMenu({ label, active, children }: { label: string; active?: boolean; children: ReactNode }) {
+export function BarMenu({ label, active, className = 'tool-b', title, children }: { label: string; active?: boolean; className?: string; title?: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -86,8 +127,8 @@ export function BarMenu({ label, active, children }: { label: string; active?: b
   }, [open]);
   return (
     <div className="bar-menu" ref={ref}>
-      <button type="button" className={`tool-b ${active ? 'on' : ''}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
-        {label} <span aria-hidden>▾</span>
+      <button type="button" className={`${className} ${active ? 'on' : ''}`} title={title} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <span className="lbl">{label}</span> <span className="chev" aria-hidden>▾</span>
       </button>
       {open && (
         <div className="bar-pop" role="menu" onClick={() => setOpen(false)}>
@@ -170,11 +211,9 @@ export function FilmTree({ onPlan, head }: { onPlan?: (planId: Id) => void; head
     focusGrid();
   });
   return (
-    <nav className="tree" aria-label="Le film">
+    <nav className="tree glass-panel" aria-label="Le film">
+      <ProjectHead />
       {head}
-      <div className="tree-head">
-        <h2>Le film</h2>
-      </div>
       {filmFlow(doc).map((it) => {
         if (it.kind === 'stamp')
           return (
@@ -185,6 +224,7 @@ export function FilmTree({ onPlan, head }: { onPlan?: (planId: Id) => void; head
         const s = it.seq;
         const c = stripColors(s);
         const open = s.id === hereSeq;
+        const done = s.plans.filter((p) => states.get(p.id) === 'ok').length;
         return (
           <div key={s.id} className="tree-seq">
             <button
@@ -202,6 +242,11 @@ export function FilmTree({ onPlan, head }: { onPlan?: (planId: Id) => void; head
               <span className="lbl">
                 {s.number || '?'} · {s.location || 'Décor à préciser'}
               </span>
+              {s.plans.length > 0 && (
+                <span className="cnt mono" title={`${done} plan${done > 1 ? 's' : ''} complet${done > 1 ? 's' : ''} sur ${s.plans.length}`}>
+                  {done}/{s.plans.length}
+                </span>
+              )}
             </button>
             {open &&
               s.plans.map((p) => (
@@ -322,9 +367,6 @@ export function StatusBar() {
       <div className={`status ${text ? 'shown' : ''}`} role="status">
         <span className={`msg ${message ? message.kind : ''}`}>{text}</span>
       </div>
-      <button type="button" className="help-float" onClick={() => useApp.getState().setShowShortcuts(true)} aria-label="Raccourcis clavier" title="Aide et raccourcis (⌘/)">
-        ?
-      </button>
     </>
   );
 }

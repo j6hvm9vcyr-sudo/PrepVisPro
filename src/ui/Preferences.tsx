@@ -12,15 +12,13 @@ import { DEFAULT_TERMS } from '../model/defaults';
 import { aliasConflict } from '../model/entry';
 import { norm } from '../model/text';
 import { isComposing, focusGrid, useDialogFocus } from './focus';
-import { useTheme } from './theme';
 import { CAT_LABEL } from './Settings';
 
 const CARRY_LABEL: Record<CarryField, string> = { size: 'Valeur', axis: 'Axe', angle: 'Angle (et inclinaison)', focal: 'Focale', movement: 'Mouvement', grip: 'Machinerie' };
 
 export function PrefsDialog({ onClose }: { onClose: () => void }) {
-  const [tab, setTab] = useState<'saisie' | 'apparence'>('saisie');
+  const [tab, setTab] = useState<'saisie'>('saisie');
   const dlg = useDialogFocus<HTMLDivElement>();
-  const [theme, setTheme] = useTheme();
   const { prefs, status, error } = usePrefs();
   const locked = status === 'broken';
   const close = () => {
@@ -60,7 +58,6 @@ export function PrefsDialog({ onClose }: { onClose: () => void }) {
             {(
               [
                 ['saisie', 'Saisie'],
-                ['apparence', 'Apparence'],
               ] as const
             ).map(([k, l]) => (
               <button key={k} type="button" role="tab" aria-pressed={tab === k} aria-selected={tab === k} onClick={() => setTab(k)}>
@@ -109,22 +106,6 @@ export function PrefsDialog({ onClose }: { onClose: () => void }) {
               </>
             )}
 
-            {tab === 'apparence' && (
-              <div className="sec">
-                {(
-                  [
-                    ['auto', 'Automatique (suit macOS)'],
-                    ['light', 'Clair'],
-                    ['dark', 'Sombre'],
-                  ] as const
-                ).map(([k, l]) => (
-                  <label className="check" key={k}>
-                    <input type="radio" name="theme" checked={theme === k} onChange={() => setTheme(k)} />
-                    {l}
-                  </label>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </div>

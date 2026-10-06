@@ -5,7 +5,7 @@ import { anyOverlay, selectCursor } from '../state/store';
 import { DecoupageTable } from './Table';
 import { CardsView } from './Cards';
 import { Inspector } from './Inspector';
-import { FilmTree, SpaceBar, StatusBar, Toolbar, VerifyPanel } from './Chrome';
+import { FilmTree, PageBar, SpaceBar, StatusBar, VerifyPanel } from './Chrome';
 import { useVerifyPanel } from './spaces';
 import { DropChoice, Preview, SequenceDialog, Shortcuts, StampDialog } from './Overlays';
 import { SettingsDialog } from './Settings';
@@ -277,44 +277,34 @@ function Workspace() {
 
   return (
     <div className="app">
-      <Toolbar />
       <div className="app-body">
-        {view === 'table' || view === 'cards' ? (
+        {view === 'floor' ? (
+          <ErrorBoundary label="plans au sol" key="floor">
+            <FloorView />
+          </ErrorBoundary>
+        ) : (
           <>
-            <FilmTree />
+            <FilmTree onPlan={view === 'days' || view === 'shooting' ? chooseInTournage : undefined} />
             <main className="center">
-              <SpaceBar />
-              <ErrorBoundary label={view === 'table' ? 'tableau' : 'fiches'} key={view}>
-                {view === 'table' ? <DecoupageTable /> : <CardsView />}
+              <SpaceBar>{view === 'days' && <DaysBar />}</SpaceBar>
+              <ErrorBoundary label={VIEW_LABEL[view]} key={view}>
+                {view === 'table' ? (
+                  <DecoupageTable />
+                ) : view === 'cards' ? (
+                  <CardsView />
+                ) : view === 'library' ? (
+                  <LibraryView />
+                ) : (
+                  <div className="space-main">{view === 'days' ? <DaysView /> : <ShootingView />}</div>
+                )}
               </ErrorBoundary>
             </main>
-            {inspector && !verifying && (
+            {(view === 'table' || view === 'cards') && inspector && !verifying && (
               <ErrorBoundary label="détails">
                 <Inspector />
               </ErrorBoundary>
             )}
           </>
-        ) : view === 'floor' ? (
-          <ErrorBoundary label="plans au sol" key="floor">
-            <FloorView />
-          </ErrorBoundary>
-        ) : view === 'library' ? (
-          <div className="center">
-            <SpaceBar />
-            <ErrorBoundary label={VIEW_LABEL[view]} key={view}>
-              <LibraryView />
-            </ErrorBoundary>
-          </div>
-        ) : (
-          <div className="space-body">
-            <FilmTree onPlan={chooseInTournage} />
-            <div className="center">
-              <SpaceBar>{view === 'days' && <DaysBar />}</SpaceBar>
-              <ErrorBoundary label={VIEW_LABEL[view]} key={view}>
-                <div className="space-main">{view === 'days' ? <DaysView /> : <ShootingView />}</div>
-              </ErrorBoundary>
-            </div>
-          </div>
         )}
         {verifying && (
           <ErrorBoundary label="à vérifier">
@@ -322,6 +312,7 @@ function Workspace() {
           </ErrorBoundary>
         )}
       </div>
+      <PageBar />
       <StatusBar />
       <Preview />
       <Shortcuts />

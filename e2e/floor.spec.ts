@@ -475,7 +475,7 @@ test('soleil : position GPS du décor, nord du plan, heure simulée, rapport ave
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Importer un fond…' }).click();
   await (await chooser).setFiles(resolve('e2e/plan-decor.png'));
-  await page.getByRole('tab', { name: 'Soleil' }).click();
+  await page.getByRole('tab', { name: 'Lumière' }).click();
   const sun = page.getByRole('region', { name: 'Soleil' });
   await expect(sun).toBeVisible();
   // La position du décor se lit (et se corrige) ici aussi.
@@ -507,7 +507,7 @@ test('soleil : position GPS du décor, nord du plan, heure simulée, rapport ave
   await page.screenshot({ path: 'test-results/23-soleil.png' });
   // À 19 h (azimut 277°, ouest) : la caméra regarde au sud, l'ouest est à sa droite → latéral, à droite.
   await page.getByRole('application', { name: 'Plan au sol' }).press('Escape');
-  await page.getByRole('tab', { name: 'Soleil' }).click();
+  await page.getByRole('tab', { name: 'Lumière' }).click();
   await sun.getByLabel('Heure simulée').fill('19:00');
   await expect(sun.getByLabel('Soleil et caméras')).toContainText(/2\/1\s*latéral, à droite/);
 });

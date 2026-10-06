@@ -121,3 +121,33 @@ export const ToolIcons = {
     </Svg>
   ),
 };
+/** Espaces (barre du bas) : un tableau de plans, un champ caméra vu de dessus, un clap. */
+export const SpaceIcons = {
+  decoupage: () => (
+    <Svg size={22}>
+      <rect x="3.5" y="4" width="17" height="16" rx="2.5" />
+      <path d="M3.5 9.3h17M3.5 14.6h17M8.6 4v16" />
+    </Svg>
+  ),
+  sol: () => (
+    <Svg size={22}>
+      <path d="M12 16.5L5.2 6.8M12 16.5l6.8-9.7" />
+      <path d="M5.2 6.8a10 10 0 0113.6 0" />
+      <rect x="9.6" y="16.5" width="4.8" height="4" rx="1" />
+    </Svg>
+  ),
+  tournage: () => (
+    <Svg size={22}>
+      <rect x="3.5" y="10" width="17" height="10" rx="1.6" />
+      <path d="M3.5 10l1-4.4 15-2.6.9 4.4L3.5 10z" />
+      <path d="M8.3 4.9l2.4 4.3M13.4 4l2.4 4.3" />
+    </Svg>
+  ),
+};
+/** Exporter (partager). */
+export const IconExport = () => (
+  <Svg>
+    <path d="M12 3.5v11M7.8 7.7L12 3.5l4.2 4.2" />
+    <path d="M5 12.5v6a2 2 0 002 2h10a2 2 0 002-2v-6" />
+  </Svg>
+);

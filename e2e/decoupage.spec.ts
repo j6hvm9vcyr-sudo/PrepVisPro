@@ -120,7 +120,7 @@ test('images : dépôt sur la vignette, choix Repérage, aperçu à l’espace',
   await expect(page.getByRole('dialog', { name: 'Aperçu de l’image' })).toHaveCount(0);
 });
 
-test('multicaméra et évolutif visibles, vue fiches, thème sombre', async ({ page }) => {
+test('multicaméra et évolutif visibles, vue fiches', async ({ page }) => {
   // Une seule caméra au départ ; ⇧⌘C ajoute la caméra B au plan.
   await expect(page.locator('.camtag')).toHaveCount(0);
   await page.keyboard.press('ControlOrMeta+Shift+c');
@@ -130,12 +130,6 @@ test('multicaméra et évolutif visibles, vue fiches, thème sombre', async ({ p
   await expect(page.locator('.card')).toHaveCount(8);
   await page.screenshot({ path: 'test-results/05-fiches.png' });
   await page.keyboard.press('Meta+1');
-  await page.keyboard.press('ControlOrMeta+,');
-  await page.getByRole('tab', { name: 'Apparence' }).click();
-  await page.getByLabel('Sombre').check();
-  await page.getByRole('button', { name: 'Terminé' }).click();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  await page.screenshot({ path: 'test-results/06-sombre.png' });
 });
 
 test('modifier une séquence', async ({ page }) => {
@@ -430,4 +424,17 @@ test('0.9 : trois espaces, arbre du film, détails refermables, aide ⌘/', asyn
   await page.keyboard.press('ControlOrMeta+/');
   await expect(page.getByRole('dialog', { name: 'Raccourcis clavier' })).toBeVisible();
   await page.keyboard.press('Escape');
+});
+
+test('0.11 : le bandeau de la séquence en cours reste en haut quand on fait défiler', async ({ page }) => {
+  await page.goto('/?exemple=grand');
+  await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
+  const scroller = page.locator('.table-scroll');
+  await scroller.evaluate((el) => el.scrollTo(0, 3000));
+  const head = (await page.locator('.grid-head').boundingBox())!;
+  const top = (await scroller.boundingBox())!.y;
+  expect(Math.abs(head.y - top)).toBeLessThan(2);
+  // Un bandeau colle juste sous l'en-tête des colonnes.
+  const ys = await page.locator('.grid > .band').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().top));
+  expect(ys.some((y) => Math.abs(y - (head.y + head.height)) < 2)).toBe(true);
 });

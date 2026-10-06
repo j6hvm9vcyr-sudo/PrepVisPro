@@ -13,6 +13,8 @@ async function fullSample(page: Page) {
 
 test('audit', async ({ page }) => {
   // Accueil
+  // Captures stables : pas de fondu ni de transition pendant la prise de vue.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'PrepVisPro' })).toBeVisible();
   await shot(page, '01-accueil');
@@ -48,7 +50,7 @@ test('audit', async ({ page }) => {
   await page.getByRole('button', { name: 'Terminé' }).click();
   // Préférences de l'app
   await page.keyboard.press('ControlOrMeta+,');
-  for (const tab of ['Saisie', 'Apparence']) {
+  for (const tab of ['Saisie']) {
     await page.getByRole('tab', { name: tab }).click();
     await shot(page, `10-preferences-${tab}`);
   }
@@ -142,11 +144,4 @@ test('audit', async ({ page }) => {
   await shot(page, '26-petite-fenetre-tableau');
   await page.keyboard.press('ControlOrMeta+3');
   await shot(page, '27-petite-fenetre-plan');
-  // Sombre
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.emulateMedia({ colorScheme: 'dark' });
-  await page.keyboard.press('ControlOrMeta+1');
-  await shot(page, '28-sombre-tableau');
-  await page.keyboard.press('ControlOrMeta+3');
-  await shot(page, '29-sombre-plan');
 });

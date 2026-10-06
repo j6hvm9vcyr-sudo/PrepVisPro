@@ -16,7 +16,6 @@ import { ActorLight, LightInspector } from './LightPanels';
 import { convertIcon } from './iconConvert';
 import { ReflectorInspector } from './ReflectorPanel';
 import { LightingPanel } from './LightingPanel';
-import { SunSection } from './SunPanel';
 import { Fold } from '../ui/Fold';
 import { Picker } from '../ui/Picker';
 import { FiguresPanel } from './FiguresPanel';
@@ -114,7 +113,7 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
   const linked = el?.kind === 'camera' ? setupOptions.find((o) => o.planId === el.planId && o.setupId === el.setupId) : undefined;
 
   const tab = selected.length === 0 ? ui.panel : 'plan';
-  const title = el ? { camera: 'Caméra', actor: 'Personnage', icon: 'Icône', text: 'Texte', light: 'Projecteur', reflector: 'Réflecteur' }[el.kind] : selected.length > 1 ? `${selected.length} éléments` : tab === 'light' ? 'Lumière' : tab === 'sun' ? 'Soleil' : fp.name || 'Plan au sol';
+  const title = el ? { camera: 'Caméra', actor: 'Personnage', icon: 'Icône', text: 'Texte', light: 'Projecteur', reflector: 'Réflecteur' }[el.kind] : selected.length > 1 ? `${selected.length} éléments` : tab === 'light' ? 'Lumière' : fp.name || 'Plan au sol';
   return (
     <aside className="side-panel inspector floor-insp" aria-label="Détails du plan au sol">
       <div className="side-head">
@@ -124,10 +123,6 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
       <div className="side-body floor-body">
         {tab === 'light' ? (
           <LightingPanel fp={fp} />
-        ) : tab === 'sun' ? (
-          <section className="sec" aria-label="Soleil">
-            <SunSection fp={fp} />
-          </section>
         ) : el ? (
           <section className="sec">
             {el.kind === 'camera' && (

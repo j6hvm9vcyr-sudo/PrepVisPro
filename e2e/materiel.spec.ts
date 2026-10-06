@@ -44,7 +44,7 @@ test('projet suivant : un nouveau projet reprend les réglages et l’équipe, p
   await page.getByRole('button', { name: 'Nouveau projet avec ces réglages…' }).click();
   await expect(page.getByRole('dialog', { name: 'Réglages du projet' })).toHaveCount(0);
   await expect(page.locator('.line')).toHaveCount(1);
-  await expect(page.locator('.toolbar .title')).toContainText('Sans titre');
+  await expect(page.locator('.proj-menu .lbl')).toContainText('Sans titre');
   await page.getByRole('button', { name: 'Réglages' }).click();
   await expect(page.getByPlaceholder('Poste')).toHaveValue('Chef opérateur');
   await expect(page.getByPlaceholder('Nom')).toHaveValue('Adrien Rousseau');

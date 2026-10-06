@@ -4,13 +4,11 @@ import './ui/fonts.css';
 import './ui/styles.css';
 import { App } from './ui/App';
 import { ErrorBoundary } from './ui/ErrorBoundary';
-import { initTheme } from './ui/theme';
 import { installMenuBridge } from './platform/menu';
 import { startup } from './state/project';
 import { useApp } from './state/appStore';
 import { setPrefsErrorReporter } from './state/prefs';
 
-initTheme();
 // Texte prédictif en ligne de macOS (WebKit) : il garde la saisie « en composition », ce qui
 // détourne ↩ et ⇥. Désactivé sur tous les champs dès qu'ils reçoivent le focus.
 document.addEventListener(

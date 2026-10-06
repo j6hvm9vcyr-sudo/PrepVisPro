@@ -45,7 +45,5 @@ test('documents liés : un plan modifié se retrouve partout, « ce plan ailleur
   await page.keyboard.press('ControlOrMeta+1');
   await links.getByRole('button', { name: /Lumière : aucun projecteur/ }).click();
   await expect(page.getByRole('tab', { name: 'Lumière' })).toHaveAttribute('aria-selected', 'true');
-  await expect(page.getByRole('region', { name: 'Projecteurs' }).first()).toBeVisible();
-  await page.getByRole('tab', { name: 'Soleil' }).click();
   await expect(page.getByRole('region', { name: 'Soleil' })).toBeVisible();
 });

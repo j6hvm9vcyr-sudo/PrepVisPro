@@ -28,8 +28,8 @@ export interface FloorUi {
   pathFor: Id | null;
   viewports: Record<Id, Viewport>;
   /** Onglet du panneau de droite : le plan (ou la sélection) ou la lumière (soleil, projecteurs, réflecteurs). */
-  /** Onglet de l'espace Plans au sol : plan (sélection, figures), lumière ou soleil. */
-  panel: 'plan' | 'light' | 'sun';
+  /** Onglet de l'espace Plans au sol : plan (sélection, figures) ou lumière (soleil compris). */
+  panel: 'plan' | 'light';
   set(p: Partial<Omit<FloorUi, 'set'>>): void;
 }
 

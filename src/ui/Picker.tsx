@@ -5,6 +5,7 @@
  * Les actions (« + Nouveau projecteur… », « Autre… ») restent en bas de la liste.
  */
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 export interface PickItem {
   id: string;
@@ -200,7 +201,10 @@ export function Picker({ label, groups, actions = [], onPick, children, variant 
         <span className="picker-v">{children}</span>
         {variant === 'field' && <span className="picker-chev" aria-hidden="true" />}
       </button>
-      {open && pos && (
+      {/* Rendue au niveau de la page : un panneau en verre (backdrop-filter) deviendrait sinon le repère de « position: fixed ». */}
+      {open &&
+        pos &&
+        createPortal(
         <div ref={list} className="pick-pop" style={{ position: 'fixed', left: pos.left, top: pos.top, bottom: pos.bottom, width: pos.width, maxHeight: pos.maxHeight }} onKeyDown={onKeyDown}>
           {searchable && (
             <input
@@ -227,8 +231,9 @@ export function Picker({ label, groups, actions = [], onPick, children, variant 
             {!shown.length && (query || !actions.length) && <div className="pick-none">{query ? 'Aucun résultat' : (empty ?? 'Rien à choisir')}</div>}
             {actions.length > 0 && <div className="pick-actions">{actions.map(option)}</div>}
           </div>
-        </div>
-      )}
+        </div>,
+          document.body,
+        )}
     </>
   );
 }

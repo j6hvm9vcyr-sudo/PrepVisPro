@@ -51,12 +51,12 @@ test('nouveau projet depuis un scénario en texte (Fountain) ou en PDF', async (
   await open({ name: 'Le Quai.fountain', mimeType: 'text/plain', buffer: Buffer.from(txt) });
   await expect(page.locator('.band .num')).toHaveText(['SÉQ. 1', 'SÉQ. 2']);
   await expect(page.locator('.band .ttl')).toHaveText(["INT. CHAMBRE D'AXEL — NUIT", 'EXT. QUAI DE GARE — JOUR']);
-  await expect(page.locator('.toolbar .title b')).toHaveText('Le Quai');
+  await expect(page.locator('.proj-menu .lbl')).toHaveText('Le Quai');
 
   // PDF de scénario (numéros dans les deux marges, deux pages).
   await page.goto('/');
   await open({ name: 'scenario.pdf', mimeType: 'application/pdf', buffer: readFileSync(resolve('e2e/scenario.pdf')) });
   await expect(page.locator('.band .num')).toHaveText(['SÉQ. 1', 'SÉQ. 2', 'SÉQ. 3A']);
   await expect(page.locator('.band .ttl').nth(2)).toHaveText('INT. CUISINE — JOUR');
-  await expect(page.locator('.toolbar .title b')).toHaveText('scenario');
+  await expect(page.locator('.proj-menu .lbl')).toHaveText('scenario');
 });

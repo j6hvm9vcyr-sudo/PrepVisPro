@@ -11,7 +11,9 @@ import type { Id } from '../model/types';
 import { useFloor, type FloorTool } from './floorStore';
 import { FloorCanvas } from './FloorCanvas';
 import { FloorInspector } from './FloorInspector';
-import { FilmTree, SpaceBar, BarMenu } from '../ui/Chrome';
+import { BarMenu, ProjectHead, SpaceBar } from '../ui/Chrome';
+import { filmFlow } from '../model/stamps';
+import { stripColors } from '../ui/strip';
 import { ToolIcons } from '../ui/Icons';
 
 const TOOLS: { id: Exclude<FloorTool, 'path'>; label: string; key: string }[] = [
@@ -28,7 +30,6 @@ const TOOLS: { id: Exclude<FloorTool, 'path'>; label: string; key: string }[] = 
 const PANELS = [
   { id: 'plan', label: 'Plan au sol' },
   { id: 'light', label: 'Lumière' },
-  { id: 'sun', label: 'Soleil' },
 ] as const;
 
 /** Un plan du découpage choisi dans l'arbre : sa caméra est sélectionnée si elle est placée, sinon prête à placer. */
@@ -77,24 +78,9 @@ export function FloorView() {
       </Picker>
     );
 
-  const floorsHead = doc.floorPlans.length > 0 && (
-    <div className="tree-section" aria-label="Plans au sol">
-      <div className="tree-head">
-        <h2>Plans au sol</h2>
-      </div>
-      {doc.floorPlans.map((f) => (
-        <button key={f.id} type="button" className={`tree-item ${f.id === current?.id ? 'here' : ''}`} title={f.scale ? 'À l’échelle' : 'Pas encore à l’échelle'} onClick={() => useFloor.getState().set({ currentId: f.id, selection: [], tool: 'select', draft: [] })}>
-          <span className="lbl">{f.name}</span>
-          {!f.scale && <span className="st st-warn" aria-hidden />}
-        </button>
-      ))}
-      <div className="tree-new">{newPicker('add')}</div>
-    </div>
-  );
-
   return (
     <div className="space-body">
-      <FilmTree head={floorsHead} onPlan={choosePlan} />
+      <FloorTree current={current} onCreate={create} />
       <div className="center">
         <SpaceBar views={false} left={current && <FloorTabs />}>
           {current && <FloorBarRight fp={current} />}
@@ -119,7 +105,7 @@ export function FloorView() {
   );
 }
 
-/** Onglets de l'espace : Plan au sol, Lumière, Soleil. */
+/** Onglets de l'espace : Plan au sol, Lumière (soleil compris). */
 function FloorTabs() {
   const panel = useFloor((s) => s.panel);
   return (
@@ -149,7 +135,7 @@ function FloorBarRight({ fp }: { fp: FloorPlan }) {
   );
 }
 
-/** Outils, en colonne sur le bord du plan ; la touche de chaque outil est dans son infobulle. */
+/** Outils, en ligne en haut du plan ; la touche de chaque outil est dans son infobulle. */
 function ToolPalette() {
   const tool = useFloor((s) => s.tool);
   return (
@@ -199,5 +185,79 @@ function PlanChips({ fp }: { fp: FloorPlan }) {
         );
       })}
     </div>
+  );
+}
+
+/**
+ * Gauche : une seule liste. Une séquence ouvre son plan au sol ; sans plan au sol, « + Plan au sol » le crée.
+ * Les plans de la séquence ouverte : vert = caméra placée sur ce plan au sol, orange = à placer.
+ */
+function FloorTree({ current, onCreate }: { current: FloorPlan | null; onCreate: (seqId: Id) => void }) {
+  const doc = useApp(selectDoc);
+  const cursorPlan = useApp((s) => s.cursor?.planId ?? null);
+  const numbers = computeNumbers(doc);
+  const cursorSeq = cursorPlan ? locatePlan(doc, cursorPlan)?.seq.id : null;
+  const openSeq = current ? (cursorSeq && current.sequenceIds.includes(cursorSeq) ? cursorSeq : current.sequenceIds[0]) : null;
+  const orphans = doc.floorPlans.filter((f) => !f.sequenceIds.some((id) => doc.sequences.some((x) => x.id === id)));
+  const openFloor = (fp: FloorPlan, seqId: Id) => {
+    useFloor.getState().set({ currentId: fp.id, selection: [], tool: 'select', draft: [], placing: null });
+    const seq = doc.sequences.find((x) => x.id === seqId);
+    if (seq?.plans[0] && locatePlan(selectDoc(useApp.getState()), cursorPlan ?? '')?.seq.id !== seqId) useApp.getState().goToPlan(seq.plans[0].id);
+  };
+  return (
+    <nav className="tree glass-panel" aria-label="Le film">
+      <ProjectHead />
+      {filmFlow(doc).map((it) => {
+        if (it.kind === 'stamp')
+          return (
+            <div key={it.stamp.id} className="tree-stamp" aria-hidden>
+              {it.stamp.text.trim() || 'Tampon'}
+            </div>
+          );
+        const s = it.seq;
+        const c = stripColors(s);
+        const fp = (current && current.sequenceIds.includes(s.id) ? current : null) ?? doc.floorPlans.find((f) => f.sequenceIds.includes(s.id)) ?? null;
+        const open = s.id === openSeq;
+        if (!fp)
+          return (
+            <div key={s.id} className="tree-seq">
+              <button type="button" className="tree-seq-row none" aria-label={`Créer le plan au sol de la séquence ${s.number || '?'}`} onClick={() => onCreate(s.id)}>
+                <span className="strip" style={{ background: c.fill, borderColor: c.edge }} />
+                <span className="lbl">
+                  {s.number || '?'} · {s.location || 'Décor à préciser'}
+                </span>
+                <span className="add-floor">+ Plan au sol</span>
+              </button>
+            </div>
+          );
+        return (
+          <div key={s.id} className="tree-seq">
+            <button type="button" className={`tree-seq-row ${open ? 'open' : ''}`} aria-expanded={open} title={fp.scale ? fp.name : `${fp.name} · pas encore à l’échelle`} onClick={() => openFloor(fp, s.id)}>
+              <span className="strip" style={{ background: c.fill, borderColor: c.edge }} />
+              <span className="lbl">
+                {s.number || '?'} · {s.location || 'Décor à préciser'}
+              </span>
+              {!fp.scale && <span className="st st-warn" aria-hidden />}
+            </button>
+            {open &&
+              s.plans.map((p) => {
+                const placed = p.cameras.every((cam) => fp.elements.some((e) => e.kind === 'camera' && e.planId === p.id && e.setupId === cam.id));
+                const code = numbers.get(p.id)?.code ?? '?';
+                return (
+                  <button key={p.id} type="button" className={`tree-plan ${cursorPlan === p.id ? 'here' : ''}`} aria-label={`Plan ${code}`} title={`${code} · caméra ${placed ? 'placée' : 'à placer'}`} onClick={() => choosePlan(p.id)}>
+                    <span className="mono">{code}</span>
+                    <span className={`st ${placed ? 'st-ok' : 'st-warn'}`} aria-hidden />
+                  </button>
+                );
+              })}
+          </div>
+        );
+      })}
+      {orphans.map((f) => (
+        <button key={f.id} type="button" className={`tree-seq-row ${f.id === current?.id ? 'open' : ''}`} onClick={() => useFloor.getState().set({ currentId: f.id, selection: [], tool: 'select', draft: [] })}>
+          <span className="lbl">{f.name}</span>
+        </button>
+      ))}
+    </nav>
   );
 }
