@@ -349,12 +349,12 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
         .build()?;
 
     let view_menu = SubmenuBuilder::new(app, "Présentation")
-        .item(&item("view_table", "Écrire › Tableau", "CmdOrCtrl+1")?)
-        .item(&item("view_cards", "Écrire › Fiches", "CmdOrCtrl+2")?)
-        .item(&item("view_library", "Écrire › Images", "CmdOrCtrl+6")?)
-        .item(&item("view_floor", "Mettre en place › Plans au sol", "CmdOrCtrl+3")?)
-        .item(&item("view_days", "Organiser › Jours", "CmdOrCtrl+5")?)
-        .item(&item("view_shooting", "Organiser › Installations", "CmdOrCtrl+4")?)
+        .item(&item("view_table", "Découpage › Tableau", "CmdOrCtrl+1")?)
+        .item(&item("view_cards", "Découpage › Fiches", "CmdOrCtrl+2")?)
+        .item(&item("view_library", "Découpage › Images", "CmdOrCtrl+6")?)
+        .item(&item("view_floor", "Plans au sol", "CmdOrCtrl+3")?)
+        .item(&item("view_days", "Tournage › Jours", "CmdOrCtrl+5")?)
+        .item(&item("view_shooting", "Tournage › Installations", "CmdOrCtrl+4")?)
         .separator()
         .item(&item("view_inspector", "Afficher / masquer Détails", "CmdOrCtrl+I")?)
         .item(&plain("view_verify", "Afficher / masquer À vérifier")?)

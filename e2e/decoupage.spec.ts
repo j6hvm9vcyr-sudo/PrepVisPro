@@ -400,12 +400,12 @@ test('↩ sur une case remplie : toute la liste est proposée, les flèches chan
 test('0.9 : trois espaces, arbre du film, détails refermables, aide ⌘/', async ({ page }) => {
   const spaces = page.getByRole('navigation', { name: 'Espaces' });
   // Un espace rouvre la dernière vue utilisée dans cet espace.
-  await page.getByRole('group', { name: 'Vues de l’espace Écrire' }).getByRole('button', { name: 'Fiches' }).click();
-  await spaces.getByRole('button', { name: 'Organiser' }).click();
-  await expect(page.getByRole('group', { name: 'Vues de l’espace Organiser' }).getByRole('button', { name: 'Jours' })).toHaveAttribute('aria-pressed', 'true');
-  await spaces.getByRole('button', { name: 'Mettre en place' }).click();
+  await page.getByRole('group', { name: 'Vues de l’espace Découpage' }).getByRole('button', { name: 'Fiches' }).click();
+  await spaces.getByRole('button', { name: 'Tournage' }).click();
+  await expect(page.getByRole('group', { name: 'Vues de l’espace Tournage' }).getByRole('button', { name: 'Jours' })).toHaveAttribute('aria-pressed', 'true');
+  await spaces.getByRole('button', { name: 'Plans au sol' }).click();
   await expect(page.getByRole('application', { name: 'Plan au sol' }).or(page.getByText('Aucun plan au sol'))).toBeVisible();
-  await spaces.getByRole('button', { name: 'Écrire' }).click();
+  await spaces.getByRole('button', { name: 'Découpage' }).click();
   await expect(page.locator('.cards')).toBeVisible();
   await page.keyboard.press('ControlOrMeta+1');
   // Arbre : déplier la séquence 2, choisir 2/2 : le tableau et les détails suivent.

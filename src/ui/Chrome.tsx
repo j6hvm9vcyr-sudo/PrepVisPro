@@ -30,7 +30,7 @@ export function Toolbar() {
   const n = useVerification().items.length;
   const verifyOpen = useVerifyPanel((s) => s.open);
   const st = useApp.getState;
-  const keyOf: Record<Space, string> = { write: '⌘1', place: '⌘3', organize: '⌘5' };
+  const keyOf: Record<Space, string> = { decoupage: '⌘1', sol: '⌘3', tournage: '⌘5' };
 
   return (
     <header className="toolbar">
