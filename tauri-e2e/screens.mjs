@@ -63,7 +63,7 @@ try {
   await key('?');
   await shot('06-aide');
   await key('');
-  await exec('[...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Réglages")?.click(); return true;');
+  await exec('document.querySelector("button[aria-label=Réglages]")?.click(); return true;');
   await shot('07-reglages');
   await key('');
   await key('e', [CTRL]);

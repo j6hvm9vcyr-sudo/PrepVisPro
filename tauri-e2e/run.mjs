@@ -148,7 +148,7 @@ try {
     const n = await exec(`return await window.__prepvis.addSequences(['Quai', 'Wagon', 'Salon', 'Rue', 'Pont', 'Cave', 'Toit', 'Église Saint-Étienne']);`);
     ok(n === 9, `séquences ajoutées (${n})`);
     await exec('window.__prepvis.app().setView("days"); return true;');
-    await click('xpath', "//button[normalize-space()='+ Jour de tournage']");
+    await click('xpath', "(//button[normalize-space()='+ Jour'])[1]");
     await click('css selector', 'button[aria-label="Ajouter une séquence au jour"]');
     ok(await waitFor(async () => String(await active()).startsWith('input.pick-search'), 3000), 'liste à recherche : le champ de recherche a le focus');
     await keys('étienne');
