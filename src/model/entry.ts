@@ -75,9 +75,9 @@ export function splitAnglePart(part: string): { word: string; tilt: number | nul
 
 // ---------------------------------------------------------------- termes
 
-/** Contexte de la saisie des termes : abréviations du projet, et nombre d'emplois de chaque terme. */
+/** Contexte de la saisie des termes : abréviations (préférences de l'app), et nombre d'emplois de chaque terme dans le projet. */
 export interface TermCtx {
-  /** Abréviations reconnues, par terme (Réglages › Listes de termes). Par défaut : celles de l'application. */
+  /** Abréviations reconnues, par terme (Préférences › Saisie). Par défaut : celles livrées avec l'app. */
   aliases?: Readonly<Record<string, readonly string[]>>;
   /** Emplois dans le projet : départage les termes qui commencent pareil (le plus employé d'abord). */
   usage?: ReadonlyMap<string, number>;
@@ -423,7 +423,7 @@ export function aliasConflict(terms: readonly string[], aliases: Readonly<Record
 }
 
 /** Contexte de saisie d'un champ du projet. */
-export function termCtx(doc: ProjectDoc, field: EditableField): TermCtx {
+export function termCtx(doc: ProjectDoc, field: EditableField, aliases: TermCtx['aliases']): TermCtx {
   if (field === 'action' || field === 'focal') return {};
-  return { aliases: doc.settings.aliases, usage: termUsage(doc, categoryOf(field)) };
+  return { aliases, usage: termUsage(doc, categoryOf(field)) };
 }

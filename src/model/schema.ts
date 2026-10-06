@@ -151,7 +151,7 @@ const exposure = z.object({ iso: z.number().finite().positive(), fps: z.number()
 
 const reflector = z.object({ id, name: z.string(), type: z.enum(['diffuse', 'mirror']), reflectance: z.number().finite().positive().max(1).nullable(), presetId: z.string().min(1).nullable() });
 
-/** Éléments des réglages, repris par « Mon matériel » (model/kit.ts). */
+/** Éléments des réglages, relus par equipment.ts (ancien « Mon matériel »). */
 export const settingsSchemas = { terms, lensSeries, projectCamera, fixture, exposure, reflector };
 
 const projectSchema = z.object({
@@ -180,8 +180,6 @@ const projectSchema = z.object({
     fixtures: z.array(fixture),
     exposure,
     reflectors: z.array(reflector),
-    carryOver: z.object({ size: z.boolean(), axis: z.boolean(), angle: z.boolean(), focal: z.boolean(), movement: z.boolean(), grip: z.boolean() }),
-    aliases: z.record(z.string(), z.array(z.string())),
     shotPresets: z.array(z.object({ id, start: framing, end: framing.nullable(), movements: z.array(z.string()), grip: z.array(z.string()) })),
     exportPresets: z.array(z.object({ id, name: z.string(), options: z.unknown() })),
     floorIcons: z.object({ camera: figureIcon.nullable(), actor: figureIcon.nullable(), light: figureIcon.nullable() }),

@@ -15,13 +15,18 @@ import { closeProject, newProjectDialog, newProjectFromOther, openDialog, openPa
 export function isMenuShortcut(e: Pick<KeyboardEvent, 'key' | 'code' | 'shiftKey' | 'altKey'>): boolean {
   if (e.altKey) return false;
   const k = e.key.toLowerCase();
-  return k === 'z' || e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3' || e.code === 'Digit4' || e.code === 'Digit5' || e.code === 'Digit6' || k === 'i' || k === 'enter' || (e.shiftKey && (k === 'c' || k === 'i' || k === 's')) || k === 's' || k === 'o' || k === 'n' || k === ',' || k === 'q' || k === 'e';
+  // ⌘, (préférences) et ⇧⌘, (réglages du projet) : la virgule, quelle que soit la disposition du clavier.
+  const comma = k === ',' || k === '<' || e.code === 'Comma';
+  return comma || k === 'z' || e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3' || e.code === 'Digit4' || e.code === 'Digit5' || e.code === 'Digit6' || k === 'i' || k === 'enter' || (e.shiftKey && (k === 'c' || k === 'i' || k === 's')) || k === 's' || k === 'o' || k === 'n' || k === 'q' || k === 'e';
 }
 
 /** Exécute une commande de menu. Exporté pour les tests. */
 function runMenuCommand(id: string) {
   // Commandes de fichier : valables partout, même sur l'écran d'accueil.
   switch (id) {
+    case 'app_prefs':
+      useApp.getState().setShowPrefs(true);
+      return;
     case 'file_new':
       void newProjectDialog();
       return;

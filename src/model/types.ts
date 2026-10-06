@@ -159,7 +159,7 @@ export interface ShotPreset {
   grip: string[];
 }
 
-/** Réglages qu'un nouveau plan peut reprendre du plan précédent. */
+/** Réglages qu'un nouveau plan peut reprendre du plan précédent (choix dans les préférences de l'app, voir prefs.ts). */
 export type CarryField = 'size' | 'axis' | 'angle' | 'focal' | 'movement' | 'grip';
 export const CARRY_FIELDS: readonly CarryField[] = ['size', 'axis', 'angle', 'focal', 'movement', 'grip'];
 
@@ -175,10 +175,6 @@ export interface ProjectSettings {
   exposure: Exposure;
   /** Matières de réflecteurs du projet, avec leur taux de réflexion mesuré. */
   reflectors: ReflectorMaterial[];
-  /** Réglages repris par le plan suivant (↩ en fin de plan, « Nouveau plan ») ; les autres partent vides. */
-  carryOver: Record<CarryField, boolean>;
-  /** Abréviations reconnues à la saisie, par terme (« stead » → Steadicam). */
-  aliases: Record<string, string[]>;
   /** Plans types : réglages caméra enregistrés, appliqués en un clic (Détails › Caméras). */
   shotPresets: ShotPreset[];
   /** Modèles d'export du projet (options relues et vérifiées par export/presets.ts). */
@@ -252,7 +248,7 @@ interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 18 as const;
+export const SCHEMA_VERSION = 19 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;

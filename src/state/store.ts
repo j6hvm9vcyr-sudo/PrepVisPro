@@ -5,6 +5,7 @@ import { kitFocals } from '../model/lenses';
 import { formatNumber, norm } from '../model/text';
 import { applyValue, categoryOf, completeWithPick, focalWithPick, editText as fieldEditText, FIELD_LABEL, parseEntry, termCtx, type EditableField, type TermField } from '../model/entry';
 import * as ops from '../model/ops';
+import { getPrefs } from './prefs';
 import { cleanupFloorRefs } from '../model/floorOps';
 import { cleanupShooting } from '../model/shooting';
 import { cleanupDays } from '../model/days';
@@ -58,6 +59,8 @@ export interface AppState {
   /** Choix dans la bibliothèque d'images : pour un plan (repérage / référence) ou un fond de plan au sol. */
   libraryPick: { mode: 'plan'; planId: Id; kind: ImageKind } | { mode: 'background'; floorPlanId: Id } | null;
   showSettings: boolean;
+  /** Préférences de l'app (⌘,), distinctes des réglages du projet (⇧⌘,). */
+  showPrefs: boolean;
   showExport: boolean;
   showVersions: boolean;
   importing: { name: string; scenes: import('../import/fdx').ScriptScene[] } | null;
@@ -85,6 +88,7 @@ function initialState(doc: ProjectDoc): AppState {
     editingStampId: null,
     libraryPick: null,
     showSettings: false,
+    showPrefs: false,
     showExport: false,
     showVersions: false,
     importing: null,
@@ -138,7 +142,7 @@ export function suggestSequenceNumber(doc: ProjectDoc, afterSeqId: Id | null): s
 
 /** Une fenêtre superposée a la main sur le clavier (le tableau ne doit pas réagir). */
 export function anyOverlay(s: AppState): boolean {
-  return !!(s.preview || s.showShortcuts || s.pendingDrop || s.editingSequenceId || s.editingStampId || s.libraryPick || s.showSettings || s.showExport || s.showVersions || s.importing || s.contextMenu);
+  return !!(s.preview || s.showShortcuts || s.pendingDrop || s.editingSequenceId || s.editingStampId || s.libraryPick || s.showSettings || s.showPrefs || s.showExport || s.showVersions || s.importing || s.contextMenu);
 }
 
 /** Rectangle sélectionné (une seule cellule s'il n'y a pas de sélection étendue). */
@@ -202,7 +206,7 @@ function writeCells(doc: ProjectDoc, targets: { line: Line; col: Column; value: 
       continue;
     }
     const terms = t.col === 'focal' ? [] : next.settings.terms[categoryOf(t.col as TermField)];
-    const res = parseEntry(t.col, t.value, terms, { strict: true, ctx: { aliases: next.settings.aliases } });
+    const res = parseEntry(t.col, t.value, terms, { strict: true, ctx: { aliases: getPrefs().aliases } });
     if (!res.ok) {
       errors.push(`${where} : ${res.error}`);
       continue;
@@ -283,6 +287,7 @@ interface Actions {
   resolveDrop(kind: ImageKind | null): void;
   setEditingSequence(id: Id | null): void;
   setShowSettings(v: boolean): void;
+  setShowPrefs(v: boolean): void;
   setShowExport(v: boolean): void;
   setShowVersions(v: boolean): void;
   setImporting(v: AppState['importing']): void;
@@ -423,7 +428,7 @@ export function createAppStore(doc: ProjectDoc) {
         const terms = field === 'action' ? [] : field === 'focal' ? kitFocals(doc.settings.lenses).map(formatNumber) : doc.settings.terms[categoryOf(field as TermField)];
         const at = pick ?? s.editing.pick;
         // Même contexte que les suggestions affichées (abréviations, ordre d'emploi) : le choix surligné est celui validé.
-        const ctx = termCtx(doc, field);
+        const ctx = termCtx(doc, field, getPrefs().aliases);
         // Case vide (ou partie vide) + suggestion choisie aux flèches : c'est elle qu'on valide.
         const text =
           (!strict && s.editing.navigated && (field === 'focal' ? focalWithPick(s.editing.text, terms, at) : completeWithPick(field, s.editing.text, terms, at, ctx))) || s.editing.text;
@@ -587,7 +592,7 @@ export function createAppStore(doc: ProjectDoc) {
         if (!c) return;
         const doc = docNow();
         const before = computeNumbers(doc);
-        const r = ops.insertPlanAfter(doc, c.planId, { reprise });
+        const r = ops.insertPlanAfter(doc, c.planId, { reprise, carry: getPrefs().carryOver });
         const after = computeNumbers(r.doc);
         let changed = 0;
         before.forEach((v, k) => {
@@ -902,7 +907,11 @@ export function createAppStore(doc: ProjectDoc) {
       },
 
       setShowSettings(v) {
-        set({ showSettings: v, editing: null });
+        set(v ? { showSettings: true, showPrefs: false, editing: null } : { showSettings: false });
+      },
+
+      setShowPrefs(v) {
+        set(v ? { showPrefs: true, showSettings: false, editing: null } : { showPrefs: false });
       },
 
       setShowExport(v) {

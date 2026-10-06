@@ -34,6 +34,7 @@ export function migrate(raw: unknown): MigrateResult {
   if (v <= 15) doc = from15to16(doc);
   if (v <= 16) doc = from16to17(doc);
   if (v <= 17) doc = from17to18(doc);
+  if (v <= 18) doc = from18to19(doc);
   return { ok: true, raw: doc };
 }
 
@@ -246,4 +247,15 @@ function from17to18(doc: Record<string, unknown>): Record<string, unknown> {
       )
     : doc.floorPlans;
   return { ...doc, schemaVersion: 18, settings: { ...settings, fixtures }, floorPlans };
+}
+
+/**
+ * Format 18 → 19 : « plan suivant » (champs repris) et abréviations quittent le projet pour les
+ * préférences de l'app, gardées sur le Mac. Leurs valeurs ne sont pas perdues : à l'ouverture, elles
+ * sont reprises dans les préférences (prefs.ts, legacyPrefsOf / adoptLegacy) avant cette étape.
+ */
+function from18to19(doc: Record<string, unknown>): Record<string, unknown> {
+  const settings = doc.settings && typeof doc.settings === 'object' ? (doc.settings as Record<string, unknown>) : {};
+  const { carryOver: _c, aliases: _a, ...rest } = settings;
+  return { ...doc, schemaVersion: 19, settings: rest };
 }

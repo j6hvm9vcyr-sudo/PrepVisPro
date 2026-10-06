@@ -8,6 +8,7 @@ import { Inspector } from './Inspector';
 import { SequenceIndex, StatusBar, Toolbar } from './Chrome';
 import { DropChoice, Preview, SequenceDialog, Shortcuts, StampDialog } from './Overlays';
 import { SettingsDialog } from './Settings';
+import { PrefsDialog } from './Preferences';
 import { Welcome } from './Welcome';
 import { ExportDialog } from './ExportDialog';
 import { ImportDialog } from './ImportDialog';
@@ -63,6 +64,7 @@ function useGlobalShortcuts(settingsOpen: boolean) {
         if (st.showExport) st.setShowExport(false);
         else if (st.showVersions) st.setShowVersions(false);
         else if (st.showSettings) st.setShowSettings(false);
+        else if (st.showPrefs) st.setShowPrefs(false);
         else if (st.importing) st.setImporting(null);
         focusGrid();
         return;
@@ -109,9 +111,11 @@ function useGlobalShortcuts(settingsOpen: boolean) {
         void startScriptImport();
         return;
       }
-      if (meta && e.key === ',') {
+      if (meta && (e.key === ',' || e.key === '<' || e.code === 'Comma')) {
         e.preventDefault();
-        st.setShowSettings(true);
+        // ⌘, : préférences de l'app ; ⇧⌘, : réglages du projet.
+        if (e.shiftKey) st.setShowSettings(true);
+        else st.setShowPrefs(true);
         return;
       }
       if (meta && e.code === 'Digit1') {
@@ -195,8 +199,17 @@ function useGlobalShortcuts(settingsOpen: boolean) {
 
 export function App() {
   const mode = useProject((s) => s.mode);
-  if (mode === 'none') return <Welcome />;
-  return <Workspace />;
+  const prefs = useApp((s) => s.showPrefs);
+  return (
+    <>
+      {mode === 'none' ? <Welcome /> : <Workspace />}
+      {prefs && (
+        <ErrorBoundary label="fenêtre">
+          <PrefsDialog onClose={() => useApp.getState().setShowPrefs(false)} />
+        </ErrorBoundary>
+      )}
+    </>
+  );
 }
 
 /** Titre de la fenêtre : nom du projet. */
@@ -217,10 +230,11 @@ function Workspace() {
   const view = useApp((s) => s.view);
   const inspector = useApp((s) => s.inspector);
   const settings = useApp((s) => s.showSettings);
+  const prefs = useApp((s) => s.showPrefs);
   const exporting = useApp((s) => s.showExport);
   const versions = useApp((s) => s.showVersions);
   const importing = useApp((s) => !!s.importing);
-  useGlobalShortcuts(settings || exporting || importing || versions);
+  useGlobalShortcuts(settings || prefs || exporting || importing || versions);
 
   // Le clavier ne doit jamais « disparaître » après un clic sur un bouton (Safari).
   useEffect(

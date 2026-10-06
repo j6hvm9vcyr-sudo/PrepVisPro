@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { produce } from 'immer';
 import { computeNumbers } from './numbering';
 import { addCameraToPlan, addTerms, carrySetup, deletePlan, insertPlanAfter, movePlan, removeImage, setCover } from './ops';
 import { doc, fr, plan, seq, setup } from './testkit';
@@ -7,7 +6,7 @@ import { coverImage } from './images';
 import { missingFields } from './completeness';
 import { horizontalFovDeg } from './optics';
 import { validateProject } from './schema';
-import { newProject } from './defaults';
+import { DEFAULT_CARRY, newProject } from './defaults';
 
 const codes = (d: ReturnType<typeof doc>) => {
   const n = computeNumbers(d);
@@ -15,10 +14,10 @@ const codes = (d: ReturnType<typeof doc>) => {
 };
 
 describe('opérations sur les plans', () => {
-  it('insère un plan qui reprend les réglages choisis dans le projet (focale, mouvement, machinerie par défaut), et renumérote', () => {
+  it('insère un plan qui reprend les réglages choisis dans les préférences (focale, mouvement, machinerie par défaut), et renumérote', () => {
     const d = doc((c) => [seq('4', [plan(c, { action: 'A', cameras: [setup(c, { start: fr({ size: 'GP', axis: 'Face', angle: 'Plongée', tiltDeg: -10, focalMm: 40 }), movements: ['Pan'], grip: ['Branches'] })] }), plan(c)])]);
     const first = d.sequences[0]!.plans[0]!;
-    const r = insertPlanAfter(d, first.id, { reprise: false });
+    const r = insertPlanAfter(d, first.id, { reprise: false, carry: DEFAULT_CARRY });
     expect(codes(r.doc)).toEqual(['4/1', '4/2', '4/3']);
     const np = r.doc.sequences[0]!.plans[1]!;
     expect(np.id).toBe(r.planId);
@@ -49,20 +48,18 @@ describe('opérations sur les plans', () => {
     expect(carrySetup(src, { ...none, angle: true }).start).toEqual(fr({ angle: 'Plongée', tiltDeg: -10 }));
   });
 
-  it('une reprise reprend tout, quel que soit le réglage du projet', () => {
-    const d = produce(
-      doc((c) => [seq('4', [plan(c, { cameras: [setup(c, { start: fr({ size: 'GP', focalMm: 40 }) })] })])]),
-      (x) => void (x.settings.carryOver = { size: false, axis: false, angle: false, focal: false, movement: false, grip: false }),
-    );
-    const r = insertPlanAfter(d, d.sequences[0]!.plans[0]!.id, { reprise: true });
+  it('une reprise reprend tout, quel que soit le choix « plan suivant »', () => {
+    const d = doc((c) => [seq('4', [plan(c, { cameras: [setup(c, { start: fr({ size: 'GP', focalMm: 40 }) })] })])]);
+    const none = { size: false, axis: false, angle: false, focal: false, movement: false, grip: false };
+    const r = insertPlanAfter(d, d.sequences[0]!.plans[0]!.id, { reprise: true, carry: none });
     expect(r.doc.sequences[0]!.plans[1]!.cameras[0]!.start).toEqual(fr({ size: 'GP', focalMm: 40 }));
   });
 
   it('crée une reprise rattachée au plan d’origine, même depuis une reprise', () => {
     const d = doc((c) => [seq('4', [plan(c, { action: 'Regard' }), plan(c)])]);
     const a = d.sequences[0]!.plans[0]!;
-    const r1 = insertPlanAfter(d, a.id, { reprise: true });
-    const r2 = insertPlanAfter(r1.doc, r1.planId, { reprise: true });
+    const r1 = insertPlanAfter(d, a.id, { reprise: true, carry: DEFAULT_CARRY });
+    const r2 = insertPlanAfter(r1.doc, r1.planId, { reprise: true, carry: DEFAULT_CARRY });
     expect(codes(r2.doc)).toEqual(['4/1', '4/1B', '4/1C', '4/2']);
     expect(r2.doc.sequences[0]!.plans[1]!.action).toBe('Regard');
   });

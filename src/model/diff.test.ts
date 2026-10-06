@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { produce } from 'immer';
+import { DEFAULT_CARRY } from './defaults';
 import { compareDocs } from './diff';
 import { sampleProject } from './sample';
 import { insertPlanAfter, deletePlan } from './ops';
@@ -18,7 +19,7 @@ describe('comparaison de versions', () => {
       d.sequences[0]!.plans[0]!.cameras[0]!.start.focalMm = 40;
       d.sequences[0]!.location = 'Gare du Nord';
     });
-    after = insertPlanAfter(after, after.sequences[0]!.plans[0]!.id, { reprise: false }).doc;
+    after = insertPlanAfter(after, after.sequences[0]!.plans[0]!.id, { reprise: false, carry: DEFAULT_CARRY }).doc;
     const r1 = deletePlan(after, after.sequences[1]!.plans[1]!.id);
     if (!r1.ok) throw new Error(r1.error);
     after = r1.doc;

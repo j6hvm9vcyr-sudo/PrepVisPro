@@ -68,7 +68,7 @@ test('⌘↩ nouveau plan hérité, renumérotation, ⌘Z', async ({ page }) => 
   await expect(page.locator('.line.first')).toHaveCount(before + 1);
   await expect(page.locator('.line.first .code b').nth(1)).toHaveText('1/2');
   await expect(cell(page, 1, 'action')).toHaveText('Nouveau plan de test');
-  // Repris par défaut : focale, mouvement, machinerie ; le cadrage est à saisir (Réglages › Saisie des plans).
+  // Repris par défaut : focale, mouvement, machinerie ; le cadrage est à saisir (Préférences › Saisie).
   await expect(cell(page, 1, 'focal')).toHaveText('32 mm');
   await expect(cell(page, 1, 'grip')).toHaveText('Branches');
   await expect(cell(page, 1, 'size')).not.toHaveText('Ensemble');
@@ -122,7 +122,7 @@ test('multicaméra et évolutif visibles, vue fiches, thème sombre', async ({ p
   await expect(page.locator('.card')).toHaveCount(8);
   await page.screenshot({ path: 'test-results/05-fiches.png' });
   await page.keyboard.press('Meta+1');
-  await page.getByRole('button', { name: 'Réglages' }).click();
+  await page.keyboard.press('ControlOrMeta+,');
   await page.getByRole('tab', { name: 'Apparence' }).click();
   await page.getByLabel('Sombre').check();
   await page.getByRole('button', { name: 'Terminé' }).click();

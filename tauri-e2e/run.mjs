@@ -120,9 +120,10 @@ try {
   // Élément qui a le focus : sa classe et son nom (une liste et son bouton portent le même nom).
   const active = () => exec('const a = document.activeElement; return a ? `${a.tagName.toLowerCase()}.${a.className} ${a.getAttribute("aria-label") ?? ""}`.trim() : null;');
 
-  // Abréviation accentuée du projet, tapée au clavier dans la cellule Machinerie.
+  // Abréviation accentuée (préférences de l'app, enregistrées sur le Mac), tapée au clavier dans la cellule Machinerie.
   {
-    await exec('window.__prepvis.app().updateDoc((d) => void (d.settings.aliases["Dolly"] = ["grué"])); return true;');
+    const file = await exec('return window.__prepvis.setAliases("Dolly", ["grué"]);');
+    ok(typeof file === 'string' && JSON.parse(file).aliases.Dolly.includes('grué'), 'préférences écrites puis relues sur le disque (preferences.json)');
     await click('css selector', '.line [id$="-grip"]');
     await click('css selector', '.line [id$="-grip"]');
     await waitFor(async () => String(await active()).endsWith(' Saisie'), 3000);

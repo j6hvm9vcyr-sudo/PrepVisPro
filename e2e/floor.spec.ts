@@ -254,8 +254,8 @@ test('figures : icônes importées par défaut pour le projet, et une icône dif
   await page.mouse.click(box.x + 500, box.y + 200);
   await pick(page, 'Icône : icône de cette figure', 'Kino 4 tubes');
   await expect(images).toHaveCount(3);
-  const hrefs = await images.evaluateAll((els) => els.map((e) => e.getAttribute('href')));
-  expect(new Set(hrefs).size).toBe(3);
+  // L'icône choisie est d'abord copiée dans le projet : le dessin change juste après.
+  await expect.poll(async () => new Set(await images.evaluateAll((els) => els.map((e) => e.getAttribute('href')))).size).toBe(3);
   // Projecteur : l'icône de son modèle (la source utilisée).
   await canvas.press('l');
   await page.mouse.click(box.x + 300, box.y + 350);

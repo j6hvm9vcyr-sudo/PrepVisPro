@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { produce } from 'immer';
+import { DEFAULT_CARRY } from './defaults';
 import { cleanupShooting, effectiveShooting, movePlanToInstallation, proposeShooting, setShooting } from './shooting';
 import { computeScale, type FloorElement } from './floor';
 import { addElements, addFloorPlan, newFloorPlan } from './floorOps';
@@ -47,7 +48,7 @@ describe('ordre de tournage', () => {
     let d = scene();
     const s = d.sequences[0]!;
     d = setShooting(d, s.id, proposeShooting(d, s));
-    d = insertPlanAfter(d, s.plans[4]!.id, { reprise: false }).doc;
+    d = insertPlanAfter(d, s.plans[4]!.id, { reprise: false, carry: DEFAULT_CARRY }).doc;
     const r = deletePlan(d, s.plans[1]!.id);
     if (!r.ok) throw new Error(r.error);
     d = cleanupShooting(r.doc);

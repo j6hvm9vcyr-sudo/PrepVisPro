@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, type FocusEvent, type KeyboardEvent } from 'react';
 import { useApp } from '../state/appStore';
+import { usePrefs } from '../state/prefs';
 import { categoryOf, suggest, termCtx, type EditableField, type TermField } from '../model/entry';
 import { kitFocals } from '../model/lenses';
 import { formatNumber } from '../model/text';
@@ -22,8 +23,9 @@ export function CellEditor({ field }: { field: EditableField }) {
   // Focale : les focales des optiques du projet servent de propositions.
   const terms = useMemo(() => (field === 'focal' ? (lenses.length ? kitFocals(lenses).map(formatNumber) : null) : termList), [field, lenses, termList]);
   const doc = useApp((s) => s.hist.present.doc);
-  // Abréviations du projet, et ordre d'emploi : le même contexte que la validation (store.commitEdit).
-  const ctx = useMemo(() => termCtx(doc, field), [doc, field]);
+  const aliases = usePrefs((s) => s.prefs.aliases);
+  // Abréviations (préférences), et ordre d'emploi : le même contexte que la validation (store.commitEdit).
+  const ctx = useMemo(() => termCtx(doc, field, aliases), [doc, field, aliases]);
   const text = editing?.text ?? '';
   const browse = editing?.browse;
   const sugs = useMemo(() => (browse ? browse.map((term) => ({ term, create: false })) : terms ? suggest(field, text, terms, ctx) : []), [browse, field, text, terms, ctx]);

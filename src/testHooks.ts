@@ -57,6 +57,14 @@ export async function install() {
       const { invoke } = await import('@tauri-apps/api/core');
       return new TextDecoder().decode(new Uint8Array(await invoke<ArrayBuffer>('script_read', { path })));
     },
+    /** Abréviations d'un terme (préférences de l'app) ; renvoie le fichier relu sur le disque après écriture. */
+    async setAliases(term: string, list: string[]) {
+      const { updatePrefs, prefsWritten } = await import('./state/prefs');
+      const { readPrefsFile } = await import('./platform/prefs');
+      if (!updatePrefs((p) => void (p.aliases[term] = list))) throw new Error('préférences verrouillées (fichier illisible)');
+      await prefsWritten();
+      return readPrefsFile();
+    },
     /** Ancien « Mon matériel » (lecture seule) : ce qu'il propose de reprendre. */
     async oldEquipment() {
       const { readOldEquipment } = await import('./platform/kit');

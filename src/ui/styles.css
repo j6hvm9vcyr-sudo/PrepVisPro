@@ -704,3 +704,4 @@ table.modes input:not(.decimal-field input) { border: 1px solid var(--border); b
 .figure-preview { flex: none; width: 34px; height: 34px; border: 1px solid var(--border-soft); border-radius: 6px; display: flex; align-items: center; justify-content: center; background: var(--head); overflow: hidden; }
 .figure-preview img { width: 28px; height: 28px; object-fit: contain; }
 .figure-row .seg.small button { padding: 2px 7px; }
+.prefs-broken { border: 1px solid var(--warn); background: color-mix(in srgb, var(--warn) 10%, transparent); border-radius: 8px; padding: 10px 12px; color: var(--warn-text); }

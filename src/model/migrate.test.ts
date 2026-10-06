@@ -22,12 +22,11 @@ describe('mise à niveau des fichiers', () => {
     if (!m.ok) return;
     const r = validateProject(m.raw);
     expect(r.ok).toBe(true);
-    // Les anciens projets gardent leur comportement : le plan suivant reprend tout (format 16).
-    if (r.ok) expect(r.doc).toEqual({ ...v2, settings: { ...v2.settings, carryOver: { size: true, axis: true, angle: true, focal: true, movement: true, grip: true } } });
+    if (r.ok) expect(r.doc).toEqual(v2);
   });
-  it('format 15 → 16 : le plan suivant reprend tout (comme avant), clés dans l’ordre du format', () => {
+  it('format 15 → 19 : réglages complétés, clés dans l’ordre du format', () => {
     const cur = newProject('X');
-    const { carryOver: _c, ...oldSettings } = cur.settings;
+    const { shotPresets: _s, exportPresets: _e, floorIcons: _f, ...oldSettings } = cur.settings;
     const v15 = JSON.parse(JSON.stringify({ ...cur, schemaVersion: 15, settings: oldSettings }));
     const m = migrate(v15);
     expect(m.ok).toBe(true);
@@ -35,8 +34,22 @@ describe('mise à niveau des fichiers', () => {
     const r = validateProject(m.raw);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.doc.settings.carryOver).toEqual({ size: true, axis: true, angle: true, focal: true, movement: true, grip: true });
+    expect(r.doc).toEqual(cur);
     expect(Object.keys(r.doc.settings)).toEqual(Object.keys(cur.settings));
+  });
+  it('format 18 → 19 : « plan suivant » et abréviations quittent le projet (repris dans les préférences, voir prefs.test.ts)', () => {
+    const cur = newProject('X');
+    const { timeZone, ...rest } = cur.settings;
+    const carryOver = { size: true, axis: false, angle: false, focal: true, movement: false, grip: true };
+    const v18 = JSON.parse(JSON.stringify({ ...cur, schemaVersion: 18, settings: { ...rest, carryOver, aliases: { Dolly: ['grué'] }, timeZone } }));
+    const m = migrate(v18);
+    expect(m.ok).toBe(true);
+    if (!m.ok) return;
+    const r = validateProject(m.raw);
+    expect(r.ok && r.doc).toEqual(cur);
+    expect(r.ok && Object.keys(r.doc.settings)).toEqual(Object.keys(cur.settings));
+    // Le projet d'origine n'est pas modifié.
+    expect(v18.settings.carryOver).toEqual(carryOver);
   });
   it('format 16 → 17 : modèles d’export et icônes des figures dans le projet (aucun)', () => {
     const cur = newProject('X');

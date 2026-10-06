@@ -41,9 +41,16 @@ test('audit', async ({ page }) => {
   await shot(page, '09-fiches');
   // Réglages
   await page.getByRole('button', { name: 'Réglages' }).click();
-  for (const tab of ['Projet', 'Caméras', 'Optiques', 'Listes de termes', 'Saisie des plans', 'Matériel', 'Apparence']) {
+  for (const tab of ['Projet', 'Caméras', 'Optiques', 'Listes de termes', 'Saisie des plans', 'Matériel']) {
     await page.getByRole('tab', { name: tab }).click();
     await shot(page, `10-reglages-${tab.replace(/ /g, '-')}`);
+  }
+  await page.getByRole('button', { name: 'Terminé' }).click();
+  // Préférences de l'app
+  await page.keyboard.press('ControlOrMeta+,');
+  for (const tab of ['Saisie', 'Apparence']) {
+    await page.getByRole('tab', { name: tab }).click();
+    await shot(page, `10-preferences-${tab}`);
   }
   await page.getByRole('button', { name: 'Terminé' }).click();
   // Plans au sol

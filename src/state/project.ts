@@ -13,6 +13,8 @@ import { create } from 'zustand';
 import type { ProjectDoc } from '../model/types';
 import { validateProject } from '../model/schema';
 import { migrate } from '../model/migrate';
+import { legacyPrefsOf } from '../model/prefs';
+import { adoptFromProject, loadPrefs, usePrefs } from './prefs';
 import { newProject } from '../model/defaults';
 import { largeSampleProject, sampleProject } from '../model/sample';
 import { CONFLICT_PREFIX, getBackend, baseName, type Backend } from '../platform/backend';
@@ -61,7 +63,11 @@ export function parseProject(json: string): { ok: true; doc: ProjectDoc } | { ok
   }
   const m = migrate(raw);
   if (!m.ok) return m;
-  return validateProject(m.raw);
+  const r = validateProject(m.raw);
+  // Projet d'avant le format 19 : son « plan suivant » et ses abréviations passent dans les préférences de l'app.
+  const legacy = r.ok ? legacyPrefsOf(raw) : null;
+  if (legacy) adoptFromProject(legacy);
+  return r;
 }
 
 // ------------------------------------------------------------------ récents
@@ -443,6 +449,9 @@ export async function quitApp(): Promise<void> {
 /** Au lancement : rouvre le dernier projet, s'il existe encore. */
 export async function startup(opts: { sample?: boolean; large?: boolean } = {}): Promise<void> {
   backend ??= await getBackend();
+  // Avant tout projet : un ancien projet ouvert ensuite peut compléter les préférences.
+  await loadPrefs();
+  if (usePrefs.getState().status === 'broken') useApp.getState().setMessage('Préférences illisibles : valeurs par défaut, fichier non modifié (Préférences, ⌘,)', 'warn');
   if (opts.sample) {
     await openSample(opts.large);
     return;

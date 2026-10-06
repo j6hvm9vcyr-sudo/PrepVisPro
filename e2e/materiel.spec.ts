@@ -52,11 +52,15 @@ test('projet suivant : un nouveau projet reprend les réglages et l’équipe, p
   await expect(page.getByRole('textbox', { name: 'Titre' })).toHaveValue('Sans titre');
 });
 
-test('abréviations : ajoutées dans les Réglages, reconnues à la saisie ; une abréviation ambiguë est refusée', async ({ page }) => {
+test('abréviations : ajoutées dans les Préférences, reconnues à la saisie, gardées au lancement suivant ; une abréviation ambiguë est refusée', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Projet vierge' }).click();
+  // Les réglages du projet renvoient vers les préférences.
   await page.getByRole('button', { name: 'Réglages' }).click();
   await page.getByRole('tab', { name: 'Listes de termes' }).click();
+  await page.getByRole('button', { name: 'Préférences… (⌘,)' }).click();
+  await expect(page.getByRole('dialog', { name: 'Réglages du projet' })).toHaveCount(0);
+  await expect(page.getByRole('dialog', { name: 'Préférences de PrepVisPro' })).toBeVisible();
   await page.getByRole('button', { name: 'Dolly', exact: true }).click();
   const field = page.getByLabel('Ajouter une abréviation à Dolly');
   await field.fill('stead');
@@ -70,6 +74,31 @@ test('abréviations : ajoutées dans les Réglages, reconnues à la saisie ; une
   await page.keyboard.type('chariot');
   await page.keyboard.press('Enter');
   await expect(page.locator('.line [id$="-grip"]').first()).toHaveText('Dolly');
+  // Pas dans le projet : sur ce Mac, relues au lancement suivant.
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('prepvispro.prefs') ?? '{}').aliases?.Dolly)).toContain('chariot');
+  await page.reload();
+  await page.getByRole('button', { name: 'Projet vierge' }).click();
+  await page.keyboard.press('ControlOrMeta+,');
+  await expect(page.getByRole('dialog', { name: 'Préférences de PrepVisPro' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Dolly · chariot' })).toBeVisible();
+});
+
+test('plan suivant : choisi dans les Préférences, appliqué au nouveau plan ; ⇧⌘, ouvre les réglages du projet', async ({ page }) => {
+  await page.goto('/?exemple');
+  await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
+  await page.keyboard.press('ControlOrMeta+Shift+,');
+  await expect(page.getByRole('dialog', { name: 'Réglages du projet' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Apparence' })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('ControlOrMeta+,');
+  const dlg = page.getByRole('dialog', { name: 'Préférences de PrepVisPro' });
+  await expect(dlg).toBeVisible();
+  await dlg.getByLabel('Valeur').check();
+  await dlg.getByRole('button', { name: 'Terminé' }).click();
+  // 1/1 : Ensemble ; le plan suivant reprend maintenant la valeur.
+  await page.locator('.line [id$="-size"]').first().click();
+  await page.keyboard.press('ControlOrMeta+Enter');
+  await expect(page.locator('.line [id$="-size"]').nth(1)).toHaveText('Ensemble');
 });
 
 test('plans types : enregistrés depuis un plan, appliqués en un clic à un autre', async ({ page }) => {

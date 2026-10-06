@@ -3,28 +3,23 @@ import { useState } from 'react';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
 import { REQUIRED_LABEL } from '../model/completeness';
-import { CARRY_FIELDS, REQUIRED_FIELDS, TERM_CATEGORIES, type CarryField, type TermCategory } from '../model/types';
+import { REQUIRED_FIELDS, TERM_CATEGORIES, type TermCategory } from '../model/types';
 import { newId } from '../model/defaults';
 import { norm } from '../model/text';
-import { aliasConflict } from '../model/entry';
 import { presetLabel, removePreset } from '../model/shotPresets';
 import { isComposing, focusGrid, useDialogFocus } from './focus';
 import { CamerasTab } from './CamerasTab';
 import { LensesTab } from './LensesTab';
 import { EquipmentTab } from './EquipmentTab';
 import { newProjectFromCurrent } from '../state/project';
-import { useTheme } from './theme';
 
-const CARRY_LABEL: Record<CarryField, string> = { size: 'Valeur', axis: 'Axe', angle: 'Angle (et inclinaison)', focal: 'Focale', movement: 'Mouvement', grip: 'Machinerie' };
-
-const CAT_LABEL: Record<TermCategory, string> = { size: 'Valeurs', axis: 'Axes', angle: 'Angles', movement: 'Mouvements', grip: 'Machinerie' };
+export const CAT_LABEL: Record<TermCategory, string> = { size: 'Valeurs', axis: 'Axes', angle: 'Angles', movement: 'Mouvements', grip: 'Machinerie' };
 
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const doc = useApp(selectDoc);
   const st = useApp.getState;
-  const [tab, setTab] = useState<'projet' | 'cameras' | 'optiques' | 'termes' | 'complet' | 'materiel' | 'apparence'>('projet');
+  const [tab, setTab] = useState<'projet' | 'cameras' | 'optiques' | 'termes' | 'complet' | 'materiel'>('projet');
   const dlg = useDialogFocus<HTMLDivElement>();
-  const [theme, setTheme] = useTheme();
   const close = () => {
     onClose();
     focusGrid();
@@ -62,7 +57,6 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
                 ['termes', 'Listes de termes'],
                 ['complet', 'Saisie des plans'],
                 ['materiel', 'Matériel'],
-                ['apparence', 'Apparence'],
               ] as const
             ).map(([k, l]) => (
               <button key={k} type="button" role="tab" aria-pressed={tab === k} aria-selected={tab === k} onClick={() => setTab(k)}>
@@ -148,47 +142,16 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               <TermEditor key={cat} cat={cat} />
             ))}
             <p className="note" style={{ margin: 0, fontSize: 12 }}>
-              Cliquez un terme pour ses abréviations (« stead » pour Steadicam). Retirer un terme ne modifie pas les plans qui l’utilisent déjà : il y reste, souligné en
-              pointillé. À la saisie, les termes qui commencent pareil sont proposés du plus employé au moins employé dans le projet.
+              Retirer un terme ne modifie pas les plans qui l’utilisent déjà : il y reste, souligné en pointillé. À la saisie, les termes qui commencent pareil sont
+              proposés du plus employé au moins employé dans le projet.
             </p>
-          </div>
-        )}
-
-        {tab === 'apparence' && (
-          <div className="sec">
-            <p style={{ margin: 0, color: 'var(--text2)' }}>Réglage propre à cet ordinateur (il ne fait pas partie du projet).</p>
-            {(
-              [
-                ['auto', 'Automatique (suit macOS)'],
-                ['light', 'Clair'],
-                ['dark', 'Sombre'],
-              ] as const
-            ).map(([k, l]) => (
-              <label className="check" key={k}>
-                <input type="radio" name="theme" checked={theme === k} onChange={() => setTheme(k)} />
-                {l}
-              </label>
-            ))}
+            <PrefsLink what="Abréviations" />
           </div>
         )}
 
         {tab === 'complet' && (
           <>
-            <div className="sec" aria-label="Plan suivant" role="group">
-              <div className="sec-h">
-                <span>Plan suivant (⌘↩, ↩ en fin de ligne)</span>
-              </div>
-              <p style={{ margin: 0, color: 'var(--text2)' }}>Le nouveau plan reprend du plan précédent, pour chaque caméra :</p>
-              {CARRY_FIELDS.map((f) => (
-                <label className="check" key={f}>
-                  <input type="checkbox" checked={doc.settings.carryOver[f]} onChange={(e) => st().updateDoc((d) => void (d.settings.carryOver[f] = e.target.checked))} />
-                  {CARRY_LABEL[f]}
-                </label>
-              ))}
-              <p className="note" style={{ margin: 0 }}>
-                Le reste part vide, à saisir. Une reprise (⇧⌘↩, 4/2B) reprend toujours tout.
-              </p>
-            </div>
+            <PrefsLink what="Plan suivant (réglages repris)" />
             <div className="sec" aria-label="Plans types" role="group">
               <div className="sec-h">
                 <span>Plans types</span>
@@ -240,26 +203,13 @@ function TermEditor({ cat }: { cat: TermCategory }) {
     st().updateDoc((d) => void d.settings.terms[cat].push(t));
     setDraft('');
   };
-  const aliases = useApp((s) => s.hist.present.doc.settings.aliases);
-  const [sel, setSel] = useState<string | null>(null);
-  const [alias, setAlias] = useState('');
-  const term = sel && terms.includes(sel) ? sel : null;
-  const conflict = term && alias.trim() ? aliasConflict(terms, aliases, term, alias) : null;
-  const addAlias = (raw: string) => {
-    if (!term || !raw.trim() || aliasConflict(terms, st().hist.present.doc.settings.aliases, term, raw)) return;
-    st().updateDoc((d) => void (d.settings.aliases[term] = [...(d.settings.aliases[term] ?? []), raw.trim()]));
-    setAlias('');
-  };
   return (
     <div className="sec">
       <div className="sec-h">{CAT_LABEL[cat]}</div>
       <div className="terms-list">
         {terms.map((t, i) => (
-          <span className={`term-chip ${t === term ? 'on' : ''}`} key={t}>
-            <button type="button" className="term-name" aria-pressed={t === term} title="Abréviations reconnues à la saisie" onClick={() => setSel(t === term ? null : t)}>
-              {t}
-              {(aliases[t]?.length ?? 0) > 0 && <small> · {aliases[t]!.join(', ')}</small>}
-            </button>
+          <span className="term-chip" key={t}>
+            <span className="term-name">{t}</span>
             <button type="button" aria-label={`Retirer ${t}`} onClick={() => st().updateDoc((d) => void d.settings.terms[cat].splice(i, 1))}>
               ×
             </button>
@@ -284,36 +234,18 @@ function TermEditor({ cat }: { cat: TermCategory }) {
         />
         {exists && <span className="note">déjà dans la liste</span>}
       </div>
-      {term && (
-        <div className="alias-row" role="group" aria-label={`Abréviations de ${term}`}>
-          <span className="note">Abréviations de « {term} » :</span>
-          {(aliases[term] ?? []).map((a, i) => (
-            <span className="term-chip" key={a}>
-              {a}
-              <button type="button" aria-label={`Retirer l’abréviation ${a}`} onClick={() => st().updateDoc((d) => void d.settings.aliases[term]?.splice(i, 1))}>
-                ×
-              </button>
-            </span>
-          ))}
-          <input
-            className="term-chip"
-            style={{ width: 120, padding: '3px 8px' }}
-            placeholder="+ abréviation"
-            aria-label={`Ajouter une abréviation à ${term}`}
-            aria-invalid={!!conflict}
-            value={alias}
-            onChange={(e) => setAlias(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key !== 'Enter') return;
-              e.preventDefault();
-              const input = e.currentTarget;
-              if (isComposing(e)) setTimeout(() => addAlias(input.value), 60);
-              else addAlias(input.value);
-            }}
-          />
-          {conflict && <span className="note" style={{ color: 'var(--warn-text)' }}>{conflict}</span>}
-        </div>
-      )}
+    </div>
+  );
+}
+
+/** Renvoi vers un réglage qui suit l'utilisateur d'un projet à l'autre (préférences de l'app). */
+function PrefsLink({ what }: { what: string }) {
+  return (
+    <div className="row" style={{ alignItems: 'center', gap: 6 }}>
+      <span className="note">{what} : dans les préférences de l’app, pour tous les projets.</span>
+      <button type="button" className="linkbtn" onClick={() => useApp.getState().setShowPrefs(true)}>
+        Préférences… (⌘,)
+      </button>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { initTheme } from './ui/theme';
 import { installMenuBridge } from './platform/menu';
 import { startup } from './state/project';
 import { useApp } from './state/appStore';
+import { setPrefsErrorReporter } from './state/prefs';
 
 initTheme();
 // Texte prédictif en ligne de macOS (WebKit) : il garde la saisie « en composition », ce qui
@@ -34,6 +35,7 @@ window.addEventListener('error', (e) => {
   report(e.message || 'erreur');
 });
 window.addEventListener('unhandledrejection', (e) => report(String((e.reason as Error)?.message ?? e.reason)));
+setPrefsErrorReporter((msg) => useApp.getState().setMessage(msg, 'warn'));
 void installMenuBridge();
 // ?exemple : ouvre directement le projet d'exemple (démonstration, tests).
 const params = new URLSearchParams(location.search);

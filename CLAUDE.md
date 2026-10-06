@@ -20,9 +20,10 @@ PW_CHROMIUM_PATH=… npx playwright test -c audit/audit.config.ts               
 Pendant le travail, ne lancer que les tests du sujet (`npx vitest run src/model/x.test.ts`, `npx playwright test e2e/x.spec.ts`).
 
 ## Carte du code
-- `src/model/` : logique pure, testée. `types.ts` (format), `schema.ts` (zod + `checkIntegrity`), `migrate.ts` (une étape par version de format), `ops.ts`, `stamps.ts`, `library.ts`, `equipment.ts` (matériel du projet, reprise d'un autre projet), `template.ts` (projet suivant), `floorIcons.ts` (icônes des figures), `shotPresets.ts` (plans types), `floor*.ts`, `light.ts`, `sun*.ts`, `days.ts`, `links.ts`.
+- `src/model/` : logique pure, testée. `types.ts` (format), `schema.ts` (zod + `checkIntegrity`), `migrate.ts` (une étape par version de format), `ops.ts`, `stamps.ts`, `library.ts`, `equipment.ts` (matériel du projet, reprise d'un autre projet), `template.ts` (projet suivant), `floorIcons.ts` (icônes des figures), `shotPresets.ts` (plans types), `prefs.ts` (préférences de l'app : plan suivant, abréviations — sur le Mac, pas dans le projet), `floor*.ts`, `light.ts`, `sun*.ts`, `days.ts`, `links.ts`.
+- `src/state/prefs.ts` : préférences en mémoire + `preferences.json` (Rust `prefs.rs`, écriture atomique ; fichier illisible jamais écrasé sans le demander).
 - `src/state/store.ts` : actions ; `commit()` passe par les nettoyages (`cleanupFloorRefs`, `cleanupShooting`, `cleanupDays`, `cleanupStamps`, `syncLibrary`).
-- `src/ui/` (tableau, fiches, dialogues ; `Picker.tsx` = liste de choix à recherche, à utiliser au lieu d'un `<select>` qui sert de bouton), `src/floor/` (plan au sol, lumière), `src/export/` (`model.ts` commun, `pdf.tsx`, `excel.ts`), `src/import/` (scénarios), `src/platform/` (Tauri / navigateur ; `kit.ts` = lecture seule de l'ancien materiel.json), `src-tauri/` (Rust).
+- `src/ui/` (tableau, fiches, dialogues ; `Settings.tsx` = Réglages du projet ⇧⌘,, `Preferences.tsx` = Préférences de l'app ⌘, ; `Picker.tsx` = liste de choix à recherche, à utiliser au lieu d'un `<select>` qui sert de bouton), `src/floor/` (plan au sol, lumière), `src/export/` (`model.ts` commun, `pdf.tsx`, `excel.ts`), `src/import/` (scénarios), `src/platform/` (Tauri / navigateur ; `kit.ts` = lecture seule de l'ancien materiel.json), `src-tauri/` (Rust).
 
 ## Ajouter une donnée au format
 1. `types.ts` + `SCHEMA_VERSION` + 1 ; 2. `schema.ts` (même ordre de clés que `defaults.ts`) et `checkIntegrity` ;

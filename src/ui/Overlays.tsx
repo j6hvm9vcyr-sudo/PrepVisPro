@@ -95,7 +95,8 @@ const SHORTCUTS: { title: string; items: [string, string][] }[] = [
       ['Versions : enregistrer, comparer, revenir', '⇧⌘S'],
       ['Exporter (PDF, Excel, CSV)', '⌘E'],
       ['Importer un scénario', '⇧⌘I'],
-      ['Réglages du projet', '⌘,'],
+      ['Réglages du projet', '⇧⌘,'],
+      ['Préférences de PrepVisPro', '⌘,'],
     ],
   },
   {

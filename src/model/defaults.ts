@@ -20,7 +20,7 @@ export const TERM_ALIASES: Record<string, string[]> = {
   '3/4 dos': ['3/4dos'],
 };
 
-/** Repris par le plan suivant dans un nouveau projet : l'optique et la machinerie restent souvent ; le cadrage, rarement. */
+/** Repris par le plan suivant (préférences par défaut) : l'optique et la machinerie restent souvent ; le cadrage change d'un plan à l'autre et n'est pas recopié sans être vérifié. */
 export const DEFAULT_CARRY = { size: false, axis: false, angle: false, focal: true, movement: true, grip: true } as const;
 
 let counter = 0;
@@ -86,9 +86,6 @@ export function defaultSettings(): ProjectSettings {
     fixtures: [],
     exposure: { iso: 800, fps: 24, shutterDeg: 180 },
     reflectors: [],
-    // Le cadrage change d'un plan à l'autre : on ne le recopie pas sans le vérifier.
-    carryOver: { ...DEFAULT_CARRY },
-    aliases: structuredClone(TERM_ALIASES),
     shotPresets: [],
     exportPresets: [],
     floorIcons: { camera: null, actor: null, light: null },

@@ -36,8 +36,8 @@ function deepCopySetup(c: CameraSetup): CameraSetup {
   return { ...structuredClone(c), id: newId('cs') };
 }
 
-/** Réglages d'une caméra pour le plan suivant : seulement ceux que le projet reprend (settings.carryOver). */
-export function carrySetup(c: CameraSetup, carry: Record<CarryField, boolean>): CameraSetup {
+/** Réglages d'une caméra pour le plan suivant : seulement ceux choisis dans les préférences (« Plan suivant »). */
+export function carrySetup(c: CameraSetup, carry: Readonly<Record<CarryField, boolean>>): CameraSetup {
   const frame = (f: Framing): Framing => ({
     size: carry.size ? f.size : '',
     axis: carry.axis ? f.axis : '',
@@ -59,16 +59,16 @@ export function carrySetup(c: CameraSetup, carry: Record<CarryField, boolean>): 
 
 /**
  * Insère un plan juste après `afterPlanId`, avec les mêmes caméras. Les réglages repris sont
- * ceux choisis dans le projet (settings.carryOver).
+ * ceux choisis dans les préférences de l'app (`carry`).
  * Reprise : tout est repris (même action, même extrait, mêmes images, mêmes réglages), rattachée au plan d'origine.
  */
-export function insertPlanAfter(doc: ProjectDoc, afterPlanId: Id, opts: { reprise: boolean }): { doc: ProjectDoc; planId: Id } {
+export function insertPlanAfter(doc: ProjectDoc, afterPlanId: Id, opts: { reprise: boolean; carry: Readonly<Record<CarryField, boolean>> }): { doc: ProjectDoc; planId: Id } {
   const loc = locatePlan(doc, afterPlanId);
   if (!loc) throw new Error(`Plan introuvable : ${afterPlanId}`);
   const src = loc.plan;
   const plan: Plan = {
     ...newPlan(src.cameras[0]!.cameraId),
-    cameras: opts.reprise ? src.cameras.map(deepCopySetup) : src.cameras.map((c) => carrySetup(c, doc.settings.carryOver)),
+    cameras: opts.reprise ? src.cameras.map(deepCopySetup) : src.cameras.map((c) => carrySetup(c, opts.carry)),
   };
   if (opts.reprise) {
     plan.repriseOf = src.repriseOf ?? src.id;

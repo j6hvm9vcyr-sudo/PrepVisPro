@@ -91,7 +91,7 @@ export function Toolbar() {
         <button type="button" className="btn icon" aria-label="Versions" onClick={() => st().setShowVersions(true)} title="Versions : enregistrer, comparer, revenir (⇧⌘S)">
           <IconHistory />
         </button>
-        <button type="button" className="btn icon" aria-label="Réglages" onClick={() => st().setShowSettings(true)} title="Réglages du projet (⌘,)">
+        <button type="button" className="btn icon" aria-label="Réglages" onClick={() => st().setShowSettings(true)} title="Réglages du projet (⇧⌘,)">
           <IconGear />
         </button>
         <button type="button" className="btn icon" onClick={() => st().setShowShortcuts(true)} aria-label="Raccourcis clavier" title="Aide et raccourcis (?)">

@@ -3,6 +3,7 @@
 
 mod icons;
 mod kit;
+mod prefs;
 mod storage;
 mod versions;
 
@@ -198,6 +199,18 @@ fn kit_read(app: AppHandle) -> Result<Option<String>, String> {
     kit::read(&data_dir(&app)?)
 }
 
+// ------------------------------------------------------------------ préférences de l'app
+
+#[tauri::command]
+fn prefs_read(app: AppHandle) -> Result<Option<String>, String> {
+    prefs::read(&data_dir(&app)?)
+}
+
+#[tauri::command]
+fn prefs_write(app: AppHandle, json: String) -> Result<(), String> {
+    prefs::write(&data_dir(&app)?, &json)
+}
+
 /// Écrit un export ; chemin dans l'en-tête (encodé), octets bruts dans le corps.
 #[tauri::command]
 fn export_write(request: Request<'_>) -> Result<(), String> {
@@ -284,6 +297,9 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
     let app_menu = SubmenuBuilder::new(app, "PrepVisPro")
         .about(None)
         .separator()
+        // Préférences de l'app (sur ce Mac) ; les réglages du projet sont dans Présentation (⇧⌘,).
+        .item(&item("app_prefs", "Préférences…", "CmdOrCtrl+,")?)
+        .separator()
         .services()
         .separator()
         .hide()
@@ -341,7 +357,7 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
         .item(&item("view_library", "Bibliothèque d’images", "CmdOrCtrl+6")?)
         .separator()
         .item(&item("view_inspector", "Afficher / masquer Détails", "CmdOrCtrl+I")?)
-        .item(&item("view_settings", "Réglages du projet…", "CmdOrCtrl+,")?)
+        .item(&item("view_settings", "Réglages du projet…", "CmdOrCtrl+Shift+,")?)
         .separator()
         .fullscreen()
         .build()?;
@@ -378,7 +394,7 @@ fn request_quit(app: &AppHandle) {
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![project_create, project_load, project_save, image_write, reveal_in_finder, quit_ack, quit_now, take_pending_open, image_read, export_write, open_file, script_read, project_save_conflict_copy, icons_list, icons_scan, icons_read_source, icons_store, icons_read, icons_remove, kit_read, version_create, version_list, version_read])
+        .invoke_handler(tauri::generate_handler![project_create, project_load, project_save, image_write, reveal_in_finder, quit_ack, quit_now, take_pending_open, image_read, export_write, open_file, script_read, project_save_conflict_copy, icons_list, icons_scan, icons_read_source, icons_store, icons_read, icons_remove, kit_read, prefs_read, prefs_write, version_create, version_list, version_read])
         .setup(|app| {
             build_menu(app)?;
             Ok(())
