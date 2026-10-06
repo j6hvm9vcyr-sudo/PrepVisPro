@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { adoptLegacy, defaultPrefs, legacyPrefsOf, mergeAliases, parsePrefs } from './prefs';
+import { adoptLegacy, defaultPrefs, legacyPrefsOf, mergeAliases, parsePrefs, tableTemplate } from './prefs';
 import { DEFAULT_CARRY, TERM_ALIASES } from './defaults';
 
 const none = { size: false, axis: false, angle: false, focal: false, movement: false, grip: false };
 
 describe('préférences de l’app', () => {
   it('par défaut : plan suivant = focale, mouvement, machinerie ; abréviations livrées', () => {
-    expect(defaultPrefs()).toEqual({ version: 1, carryOver: DEFAULT_CARRY, aliases: TERM_ALIASES });
+    expect(defaultPrefs()).toEqual({ version: 1, carryOver: DEFAULT_CARRY, aliases: TERM_ALIASES, table: { widths: {}, rowHeight: null } });
     expect(defaultPrefs().aliases).not.toBe(TERM_ALIASES);
   });
 
@@ -39,7 +39,7 @@ describe('préférences de l’app', () => {
   it('premières préférences du Mac : celles du premier ancien projet ouvert, telles quelles', () => {
     const legacy = { carryOver: { ...none, size: true }, aliases: { Dolly: ['grué'] } };
     const r = adoptLegacy(defaultPrefs(), legacy, true);
-    expect(r.prefs).toEqual({ version: 1, carryOver: legacy.carryOver, aliases: legacy.aliases });
+    expect(r.prefs).toEqual({ version: 1, carryOver: legacy.carryOver, aliases: legacy.aliases, table: { widths: {}, rowHeight: null } });
     expect(r.changed).toBe(true);
     expect(adoptLegacy(defaultPrefs(), { carryOver: { ...DEFAULT_CARRY }, aliases: structuredClone(TERM_ALIASES) }, true).changed).toBe(false);
   });
@@ -51,5 +51,25 @@ describe('préférences de l’app', () => {
     expect(r.prefs.aliases.Dolly).toEqual([...(prefs.aliases.Dolly ?? []), 'grué']);
     expect(r.changed).toBe(true);
     expect(adoptLegacy(r.prefs, { carryOver: null, aliases: { Dolly: ['grué'] } }, false).changed).toBe(false);
+  });
+});
+
+describe('mise en page du tableau (préférences)', () => {
+  it('relit d’anciennes préférences sans « table » : valeurs par défaut ; refuse une largeur absurde', () => {
+    const old = { version: 1, carryOver: DEFAULT_CARRY, aliases: {} };
+    const r = parsePrefs(old);
+    expect(r.ok && r.prefs.table).toEqual({ widths: {}, rowHeight: null });
+    expect(parsePrefs({ ...old, table: { widths: { size: 5 }, rowHeight: null } }).ok).toBe(false);
+    expect(parsePrefs({ ...old, table: { widths: { inconnue: 100 }, rowHeight: null } }).ok).toBe(false);
+    const ok = parsePrefs({ ...old, table: { widths: { size: 140 }, rowHeight: 72 } });
+    expect(ok.ok && ok.prefs.table).toEqual({ widths: { size: 140 }, rowHeight: 72 });
+  });
+  it('colonnes de la grille : largeurs choisies, action souple par défaut, largeur minimale', () => {
+    const d = tableTemplate({});
+    expect(d.columns).toBe('64px 52px 40px minmax(150px, 1fr) 100px 60px 92px 100px 100px 96px');
+    expect(d.minWidth).toBe(854);
+    const c = tableTemplate({ size: 140, action: 300 });
+    expect(c.columns).toBe('64px 52px 40px 300px 140px 60px 92px 100px 100px 96px');
+    expect(c.minWidth).toBe(1044);
   });
 });

@@ -438,3 +438,64 @@ test('0.11 : le bandeau de la séquence en cours reste en haut quand on fait dé
   const ys = await page.locator('.grid > .band').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().top));
   expect(ys.some((y) => Math.abs(y - (head.y + head.height)) < 2)).toBe(true);
 });
+
+test('0.11.1 : colonnes et rangées ajustables, gardées sur ce Mac, sans toucher au projet', async ({ page }) => {
+  await page.goto('/?exemple');
+  await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
+  const head = page.locator('.grid-head [role="columnheader"]', { hasText: 'Valeur' });
+  const w0 = (await head.boundingBox())!.width;
+  const handle = page.getByRole('separator', { name: 'Largeur de la colonne Valeur' });
+  const hb = (await handle.boundingBox())!;
+  await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(hb.x + hb.width / 2 + 60, hb.y + hb.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await expect.poll(async () => Math.round((await head.boundingBox())!.width)).toBe(Math.round(w0 + 60));
+  // Les cellules suivent l'en-tête.
+  expect(Math.round((await page.locator('.line [id$="-size"]').first().boundingBox())!.width)).toBe(Math.round(w0 + 60));
+  // Hauteur des rangées : glisser le bas d'une rangée (colonne N°).
+  const row = page.locator('.line.first').first();
+  const h0 = (await row.boundingBox())!.height;
+  const rh = (await page.getByRole('separator', { name: 'Hauteur des rangées' }).first().boundingBox())!;
+  await page.mouse.move(rh.x + 10, rh.y + rh.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(rh.x + 10, rh.y + rh.height / 2 + 30, { steps: 5 });
+  await page.mouse.up();
+  await expect.poll(async () => Math.round((await page.locator('.line.first').nth(3).boundingBox())!.height)).toBeGreaterThanOrEqual(Math.round(h0 + 28));
+  // Rien dans le projet : pas de modification à annuler.
+  await page.keyboard.press('ControlOrMeta+z');
+  expect(Math.round((await head.boundingBox())!.width)).toBe(Math.round(w0 + 60));
+  // Double-clic : largeur par défaut.
+  await handle.dblclick();
+  await expect.poll(async () => Math.round((await head.boundingBox())!.width)).toBe(Math.round(w0));
+});
+
+test('0.11.1 : la carte Caméra se modifie sur place, avec la même saisie que le tableau', async ({ page }) => {
+  await cell(page, 7, 'action').click();
+  const card = page.getByRole('region', { name: 'Caméra A' });
+  await card.getByRole('button', { name: /^Valeur : / }).click();
+  // Une seule saisie : dans la carte, pas dans la case.
+  await expect(card.getByLabel('Saisie')).toBeFocused();
+  await expect(page.locator('.grid .editor')).toHaveCount(0);
+  await page.keyboard.type('poit');
+  await page.keyboard.press('Tab');
+  await expect(cell(page, 7, 'size')).toHaveText('Poitrine');
+  // ⇥ : champ suivant de la carte.
+  await expect(card.locator('.ef.editing')).toContainText('Axe');
+  await page.keyboard.type('profil');
+  await page.keyboard.press('Enter');
+  await expect(cell(page, 7, 'axis')).toHaveText('Profil');
+  await expect(card.getByRole('button', { name: 'Axe : Profil' })).toBeVisible();
+  // esc annule sans rien changer.
+  await card.getByRole('button', { name: /^Focale : / }).click();
+  await page.keyboard.type('50');
+  await page.keyboard.press('Escape');
+  await expect(card.getByLabel('Saisie')).toHaveCount(0);
+  await page.screenshot({ path: 'test-results/31-carte-camera.png' });
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(cell(page, 7, 'axis')).not.toHaveText('Profil');
+  // Le tableau garde sa saisie dans la case.
+  await cell(page, 7, 'grip').click();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.grid .editor')).toHaveCount(1);
+});

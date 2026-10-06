@@ -12,7 +12,7 @@ Trois espaces qui partagent la même sélection : **Découpage** (tableau, fiche
 - **Lumière** : projecteurs d'après les fiches des fabricants, gélatines LEE, réflecteurs à taux de réflexion publiés, éclairement et diaph sur les personnages, puissance par circuit ; soleil du décor (position GPS, date, heure).
 - **Tournage** : installations, ordre de tournage, jours de tournage et matériel déduit.
 - **Images** : bibliothèque du projet, chaque image importée une seule fois et réutilisable partout.
-- **Travailler vite** : matériel du projet repris d’un autre projet, nouveau projet avec les réglages d’un autre, plans types ; dans les préférences de l’app (⌘,, pour tous les projets) : réglages repris par le plan suivant, abréviations ; figures du plan au sol dessinées avec vos propres icônes.
+- **Travailler vite** : matériel du projet repris d’un autre projet, nouveau projet avec les réglages d’un autre, plans types ; dans les préférences de l’app (⌘,, pour tous les projets) : réglages repris par le plan suivant, abréviations ; figures du plan au sol dessinées avec les icônes PF_ICONES livrées avec l’app, ou vos propres icônes ; colonnes et rangées du tableau ajustables ; carte Caméra modifiable sur place.
 - **Exports** : découpage technique PDF et Excel, plans au sol, ordre de tournage, jours et matériel.
 
 Aucune valeur n'est inventée : sans donnée fiable (fiche fabricant, capteur, échelle), l'application n'affiche pas de chiffre.
@@ -41,4 +41,4 @@ Organisation : `src/model/` (format et logique métier, testés), `src/state/` (
 
 ## Licence
 
-Code sous licence [MIT](LICENSE). Les icônes de la bibliothèque PF_ICONES ne sont pas incluses et restent soumises à leur propre licence.
+Code sous licence [MIT](LICENSE). Les icônes PF_ICONES (`public/pf-icones`, 194 images réduites) sont libres de droits, d’après leur auteur ; elles sont livrées avec l’app.

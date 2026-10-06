@@ -209,6 +209,9 @@ try {
     ok(lib && !lib.__error && lib.r?.added === 1 && lib.items?.[0]?.category === 'Lumière' && lib.items?.[0]?.name === 'Fresnel 650', `icônes importées (${JSON.stringify(lib).slice(0, 200)})`);
     const w = lib?.url ? await exec(`return await new Promise((res) => { const i = new Image(); i.onload = () => res(i.naturalWidth); i.onerror = () => res(-1); i.src = ${JSON.stringify(lib.url)}; });`) : -1;
     ok(w > 0 && w <= 512, `icône affichée depuis la bibliothèque, réduite (${w} px)`);
+    ok(lib?.builtinCount === 194, `icônes livrées avec l'app (${lib?.builtinCount})`);
+    const wb = lib?.builtinUrl ? await exec(`return await new Promise((res) => { const i = new Image(); i.onload = () => res(i.naturalWidth); i.onerror = () => res(-1); i.src = ${JSON.stringify(lib.builtinUrl)}; });`) : -1;
+    ok(wb > 0, `icône livrée affichée (${wb} px)`);
   }
 
   // Ancien « Mon matériel » (fichier du Mac, accents compris) : lu pour être repris dans un projet.

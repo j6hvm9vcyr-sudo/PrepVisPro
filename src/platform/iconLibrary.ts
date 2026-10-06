@@ -1,7 +1,8 @@
 /**
- * Bibliothèque d'icônes personnelle (plans au sol), commune à tous les projets.
- * - App Mac : dossier de données de l'application (src-tauri/src/icons.rs).
- * - Navigateur / tests : en mémoire.
+ * Bibliothèque d'icônes (plans au sol), commune à tous les projets.
+ * - Icônes livrées avec l'app : PF_ICONES (libres de droit), dans public/pf-icones (index.json).
+ * - Icônes importées : app Mac → dossier de données de l'application (src-tauri/src/icons.rs) ;
+ *   navigateur / tests → en mémoire.
  * Les icônes sont réduites à l'import (grand côté 512 px) : légères à afficher et à exporter.
  */
 import { create } from 'zustand';
@@ -11,6 +12,40 @@ export interface IconItem {
   id: string;
   category: string;
   name: string;
+  /** Livrée avec l'app (ne peut pas être retirée). */
+  builtin?: boolean;
+}
+
+/** Préfixe des icônes livrées avec l'app. */
+export const BUILTIN_PREFIX = 'pf/';
+const BUILTIN_DIR = '/pf-icones/';
+
+/** Icônes livrées avec l'app (lues une fois). */
+let builtins: Promise<IconItem[]> | null = null;
+export function builtinIcons(): Promise<IconItem[]> {
+  builtins ??= fetch(`${BUILTIN_DIR}index.json`)
+    .then((r) => (r.ok ? r.json() : { items: [] }))
+    .then((j: { items: { id: string; category: string; name: string }[] }) => j.items.map((i) => ({ id: i.id, category: i.category, name: i.name, builtin: true })))
+    .catch(() => []);
+  return builtins;
+}
+
+const isBuiltin = (id: string) => id.startsWith(BUILTIN_PREFIX);
+
+/** Figures dessinées par défaut avec les icônes livrées (sens : rotation pour regarder vers le haut). */
+export const DEFAULT_FIGURES = {
+  camera: { id: 'pf/cam--cam', turn: 0 },
+  actor: { id: 'pf/actors--person-a', turn: 180 },
+  light: { id: 'pf/fresnels-tweenies-mole--fresnel', turn: 0 },
+} as const;
+const builtinUrl = (id: string) => `${BUILTIN_DIR}${id.slice(BUILTIN_PREFIX.length)}.png`;
+
+/** Octets d'une icône (livrée ou importée). */
+export async function readIcon(id: string): Promise<Uint8Array> {
+  if (!isBuiltin(id)) return iconBackend().read(id);
+  const r = await fetch(builtinUrl(id));
+  if (!r.ok) throw new Error(`Icône introuvable : ${id}`);
+  return new Uint8Array(await r.arrayBuffer());
 }
 
 interface SourceFile {
@@ -177,11 +212,12 @@ export const useIcons = create<IconsState>()((set, get) => ({
   progress: null,
   error: null,
   async load() {
+    const pf = await builtinIcons();
     try {
       const r = await iconBackend().list();
-      set({ dir: r.dir, items: r.items, loaded: true, error: null });
+      set({ dir: r.dir, items: [...pf, ...r.items], loaded: true, error: null });
     } catch (e) {
-      set({ loaded: true, error: e instanceof Error ? e.message : String(e) });
+      set({ items: pf, loaded: true, error: e instanceof Error ? e.message : String(e) });
     }
   },
   async importFolder(given) {
@@ -209,10 +245,11 @@ export const useIcons = create<IconsState>()((set, get) => ({
     return { added, failed };
   },
   async remove(ids) {
-    await iconBackend().remove(ids);
+    const own = ids.filter((id) => !isBuiltin(id));
+    if (own.length) await iconBackend().remove(own);
     await get().load();
   },
   url(item) {
-    return iconBackend().url(get().dir, item.id);
+    return isBuiltin(item.id) ? builtinUrl(item.id) : iconBackend().url(get().dir, item.id);
   },
 }));

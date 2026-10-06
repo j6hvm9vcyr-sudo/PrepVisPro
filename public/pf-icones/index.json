@@ -1,0 +1,1169 @@
+{
+ "source": "PF_ICONES (libres de droit, fournies par Adrien Rousseau)",
+ "items": [
+  {
+   "id": "pf/actors--person-a",
+   "category": "Actors",
+   "name": "Person A",
+   "file": "actors--person-a.png"
+  },
+  {
+   "id": "pf/actors--person-b",
+   "category": "Actors",
+   "name": "Person B",
+   "file": "actors--person-b.png"
+  },
+  {
+   "id": "pf/actors--person-d",
+   "category": "Actors",
+   "name": "Person D",
+   "file": "actors--person-d.png"
+  },
+  {
+   "id": "pf/actors--person-flat-2",
+   "category": "Actors",
+   "name": "Person Flat 2",
+   "file": "actors--person-flat-2.png"
+  },
+  {
+   "id": "pf/actors--person-flat-3",
+   "category": "Actors",
+   "name": "Person Flat 3",
+   "file": "actors--person-flat-3.png"
+  },
+  {
+   "id": "pf/actors--person-flat",
+   "category": "Actors",
+   "name": "Person Flat",
+   "file": "actors--person-flat.png"
+  },
+  {
+   "id": "pf/actors--person-c",
+   "category": "Actors",
+   "name": "Person c",
+   "file": "actors--person-c.png"
+  },
+  {
+   "id": "pf/actors--sitting-b",
+   "category": "Actors",
+   "name": "Sitting B",
+   "file": "actors--sitting-b.png"
+  },
+  {
+   "id": "pf/actors--sitting-c",
+   "category": "Actors",
+   "name": "Sitting C",
+   "file": "actors--sitting-c.png"
+  },
+  {
+   "id": "pf/actors--sitting",
+   "category": "Actors",
+   "name": "Sitting",
+   "file": "actors--sitting.png"
+  },
+  {
+   "id": "pf/aputure--aputure-2",
+   "category": "Aputure",
+   "name": "Aputure 2",
+   "file": "aputure--aputure-2.png"
+  },
+  {
+   "id": "pf/aputure--aputure",
+   "category": "Aputure",
+   "name": "Aputure",
+   "file": "aputure--aputure.png"
+  },
+  {
+   "id": "pf/arri-hmi--1k-tungsten-arrilite",
+   "category": "Arri, HMi",
+   "name": "1K Tungsten Arrilite",
+   "file": "arri-hmi--1k-tungsten-arrilite.png"
+  },
+  {
+   "id": "pf/arri-hmi--arri-skylift",
+   "category": "Arri, HMi",
+   "name": "Arri + Skylift",
+   "file": "arri-hmi--arri-skylift.png"
+  },
+  {
+   "id": "pf/arri-hmi--arri-m18",
+   "category": "Arri, HMi",
+   "name": "Arri M18",
+   "file": "arri-hmi--arri-m18.png"
+  },
+  {
+   "id": "pf/arri-hmi--arri-orbiters",
+   "category": "Arri, HMi",
+   "name": "Arri Orbiters",
+   "file": "arri-hmi--arri-orbiters.png"
+  },
+  {
+   "id": "pf/arri-hmi--hmi-frost",
+   "category": "Arri, HMi",
+   "name": "HMI+ frost",
+   "file": "arri-hmi--hmi-frost.png"
+  },
+  {
+   "id": "pf/arri-hmi--hmi",
+   "category": "Arri, HMi",
+   "name": "HMI",
+   "file": "arri-hmi--hmi.png"
+  },
+  {
+   "id": "pf/arri-hmi--m10",
+   "category": "Arri, HMi",
+   "name": "M10",
+   "file": "arri-hmi--m10.png"
+  },
+  {
+   "id": "pf/arrow--arrow-2",
+   "category": "Arrow",
+   "name": "Arrow 2",
+   "file": "arrow--arrow-2.png"
+  },
+  {
+   "id": "pf/arrow--arrow-3",
+   "category": "Arrow",
+   "name": "Arrow 3",
+   "file": "arrow--arrow-3.png"
+  },
+  {
+   "id": "pf/arrow--arrow-4",
+   "category": "Arrow",
+   "name": "Arrow 4",
+   "file": "arrow--arrow-4.png"
+  },
+  {
+   "id": "pf/arrow--arrow",
+   "category": "Arrow",
+   "name": "Arrow",
+   "file": "arrow--arrow.png"
+  },
+  {
+   "id": "pf/ballon-light--balloon-light",
+   "category": "Ballon Light",
+   "name": "Balloon Light",
+   "file": "ballon-light--balloon-light.png"
+  },
+  {
+   "id": "pf/ballon-light--chimera-pancake",
+   "category": "Ballon Light",
+   "name": "Chimera Pancake",
+   "file": "ballon-light--chimera-pancake.png"
+  },
+  {
+   "id": "pf/ballon-light--china-ball",
+   "category": "Ballon Light",
+   "name": "China Ball",
+   "file": "ballon-light--china-ball.png"
+  },
+  {
+   "id": "pf/bed-chair-bench--bed",
+   "category": "Bed, Chair & Bench",
+   "name": "Bed",
+   "file": "bed-chair-bench--bed.png"
+  },
+  {
+   "id": "pf/bed-chair-bench--bench",
+   "category": "Bed, Chair & Bench",
+   "name": "Bench",
+   "file": "bed-chair-bench--bench.png"
+  },
+  {
+   "id": "pf/bed-chair-bench--chair-2",
+   "category": "Bed, Chair & Bench",
+   "name": "Chair 2",
+   "file": "bed-chair-bench--chair-2.png"
+  },
+  {
+   "id": "pf/bed-chair-bench--chair-3",
+   "category": "Bed, Chair & Bench",
+   "name": "Chair 3",
+   "file": "bed-chair-bench--chair-3.png"
+  },
+  {
+   "id": "pf/bed-chair-bench--chair",
+   "category": "Bed, Chair & Bench",
+   "name": "Chair",
+   "file": "bed-chair-bench--chair.png"
+  },
+  {
+   "id": "pf/bolt--bolt-cam",
+   "category": "Bolt",
+   "name": "Bolt + Cam",
+   "file": "bolt--bolt-cam.png"
+  },
+  {
+   "id": "pf/bolt--bolt-1",
+   "category": "Bolt",
+   "name": "Bolt 1",
+   "file": "bolt--bolt-1.png"
+  },
+  {
+   "id": "pf/boom--boom-light",
+   "category": "Boom",
+   "name": "Boom + Light",
+   "file": "boom--boom-light.png"
+  },
+  {
+   "id": "pf/boom--boom-1",
+   "category": "Boom",
+   "name": "Boom 1",
+   "file": "boom--boom-1.png"
+  },
+  {
+   "id": "pf/boom--boom-2",
+   "category": "Boom",
+   "name": "Boom 2",
+   "file": "boom--boom-2.png"
+  },
+  {
+   "id": "pf/boom--boom-3",
+   "category": "Boom",
+   "name": "Boom 3",
+   "file": "boom--boom-3.png"
+  },
+  {
+   "id": "pf/boom--skylift",
+   "category": "Boom",
+   "name": "Skylift",
+   "file": "boom--skylift.png"
+  },
+  {
+   "id": "pf/bounce-board--bounce-board-2",
+   "category": "Bounce Board",
+   "name": "Bounce Board 2",
+   "file": "bounce-board--bounce-board-2.png"
+  },
+  {
+   "id": "pf/bounce-board--bounce-board-3",
+   "category": "Bounce Board",
+   "name": "Bounce Board 3",
+   "file": "bounce-board--bounce-board-3.png"
+  },
+  {
+   "id": "pf/bounce-board--bounce-board-4",
+   "category": "Bounce Board",
+   "name": "Bounce Board 4",
+   "file": "bounce-board--bounce-board-4.png"
+  },
+  {
+   "id": "pf/bounce-board--bounce-board-5",
+   "category": "Bounce Board",
+   "name": "Bounce Board 5",
+   "file": "bounce-board--bounce-board-5.png"
+  },
+  {
+   "id": "pf/bounce-board--bounce-board",
+   "category": "Bounce Board",
+   "name": "Bounce Board",
+   "file": "bounce-board--bounce-board.png"
+  },
+  {
+   "id": "pf/bounce-board--cove-bounce",
+   "category": "Bounce Board",
+   "name": "Cove bounce",
+   "file": "bounce-board--cove-bounce.png"
+  },
+  {
+   "id": "pf/bounce-board--muslin-frame",
+   "category": "Bounce Board",
+   "name": "Muslin frame",
+   "file": "bounce-board--muslin-frame.png"
+  },
+  {
+   "id": "pf/bounce-board--poly-bounce",
+   "category": "Bounce Board",
+   "name": "Poly Bounce",
+   "file": "bounce-board--poly-bounce.png"
+  },
+  {
+   "id": "pf/bounce-board--ultrabounce",
+   "category": "Bounce Board",
+   "name": "UltraBounce",
+   "file": "bounce-board--ultrabounce.png"
+  },
+  {
+   "id": "pf/bounce-board--white-board",
+   "category": "Bounce Board",
+   "name": "White Board",
+   "file": "bounce-board--white-board.png"
+  },
+  {
+   "id": "pf/bulbs--bulb-3",
+   "category": "Bulbs",
+   "name": "Bulb 3",
+   "file": "bulbs--bulb-3.png"
+  },
+  {
+   "id": "pf/bulbs--bulb",
+   "category": "Bulbs",
+   "name": "Bulb",
+   "file": "bulbs--bulb.png"
+  },
+  {
+   "id": "pf/bulbs--light-bulb",
+   "category": "Bulbs",
+   "name": "Light bulb",
+   "file": "bulbs--light-bulb.png"
+  },
+  {
+   "id": "pf/c-stands-fixtures--arm-or-c-stands",
+   "category": "C-Stands, Fixtures",
+   "name": "Arm or C-stands",
+   "file": "c-stands-fixtures--arm-or-c-stands.png"
+  },
+  {
+   "id": "pf/c-stands-fixtures--grip-support",
+   "category": "C-Stands, Fixtures",
+   "name": "Grip Support",
+   "file": "c-stands-fixtures--grip-support.png"
+  },
+  {
+   "id": "pf/c-stands-fixtures--grip-support-example",
+   "category": "C-Stands, Fixtures",
+   "name": "Grip support example",
+   "file": "c-stands-fixtures--grip-support-example.png"
+  },
+  {
+   "id": "pf/c-stands-fixtures--grp-support-2",
+   "category": "C-Stands, Fixtures",
+   "name": "Grp Support 2",
+   "file": "c-stands-fixtures--grp-support-2.png"
+  },
+  {
+   "id": "pf/cam--cam-3",
+   "category": "Cam",
+   "name": "Cam 3",
+   "file": "cam--cam-3.png"
+  },
+  {
+   "id": "pf/cam--cam",
+   "category": "Cam",
+   "name": "Cam",
+   "file": "cam--cam.png"
+  },
+  {
+   "id": "pf/cam--camera-2",
+   "category": "Cam",
+   "name": "Camera 2",
+   "file": "cam--camera-2.png"
+  },
+  {
+   "id": "pf/cam--tripod",
+   "category": "Cam",
+   "name": "Tripod",
+   "file": "cam--tripod.png"
+  },
+  {
+   "id": "pf/car-rigg--bus",
+   "category": "Car & Rigg",
+   "name": "Bus",
+   "file": "car-rigg--bus.png"
+  },
+  {
+   "id": "pf/car-rigg--canoe",
+   "category": "Car & Rigg",
+   "name": "Canoe",
+   "file": "car-rigg--canoe.png"
+  },
+  {
+   "id": "pf/car-rigg--car-2",
+   "category": "Car & Rigg",
+   "name": "Car 2",
+   "file": "car-rigg--car-2.png"
+  },
+  {
+   "id": "pf/car-rigg--car-rigg",
+   "category": "Car & Rigg",
+   "name": "Car Rigg",
+   "file": "car-rigg--car-rigg.png"
+  },
+  {
+   "id": "pf/car-rigg--car",
+   "category": "Car & Rigg",
+   "name": "Car",
+   "file": "car-rigg--car.png"
+  },
+  {
+   "id": "pf/car-rigg--helicopter",
+   "category": "Car & Rigg",
+   "name": "Helicopter",
+   "file": "car-rigg--helicopter.png"
+  },
+  {
+   "id": "pf/cookies--cookies-1",
+   "category": "Cookies",
+   "name": "Cookies 1",
+   "file": "cookies--cookies-1.png"
+  },
+  {
+   "id": "pf/cookies--cookies-2",
+   "category": "Cookies",
+   "name": "Cookies 2",
+   "file": "cookies--cookies-2.png"
+  },
+  {
+   "id": "pf/diffusion--diffusion-2",
+   "category": "Diffusion",
+   "name": "Diffusion 2",
+   "file": "diffusion--diffusion-2.png"
+  },
+  {
+   "id": "pf/diffusion--diffusion-3",
+   "category": "Diffusion",
+   "name": "Diffusion 3",
+   "file": "diffusion--diffusion-3.png"
+  },
+  {
+   "id": "pf/diffusion--diffusion-4",
+   "category": "Diffusion",
+   "name": "Diffusion 4",
+   "file": "diffusion--diffusion-4.png"
+  },
+  {
+   "id": "pf/diffusion--diffusion-5",
+   "category": "Diffusion",
+   "name": "Diffusion 5",
+   "file": "diffusion--diffusion-5.png"
+  },
+  {
+   "id": "pf/diffusion--diffusion-6",
+   "category": "Diffusion",
+   "name": "Diffusion 6",
+   "file": "diffusion--diffusion-6.png"
+  },
+  {
+   "id": "pf/diffusion--diffusion-frame",
+   "category": "Diffusion",
+   "name": "Diffusion Frame",
+   "file": "diffusion--diffusion-frame.png"
+  },
+  {
+   "id": "pf/diffusion--diffusion",
+   "category": "Diffusion",
+   "name": "Diffusion",
+   "file": "diffusion--diffusion.png"
+  },
+  {
+   "id": "pf/diffusion--large-diffusion",
+   "category": "Diffusion",
+   "name": "Large Diffusion",
+   "file": "diffusion--large-diffusion.png"
+  },
+  {
+   "id": "pf/dolly-slider--desert-dolly",
+   "category": "Dolly & Slider",
+   "name": "Desert Dolly",
+   "file": "dolly-slider--desert-dolly.png"
+  },
+  {
+   "id": "pf/dolly-slider--dolly",
+   "category": "Dolly & Slider",
+   "name": "Dolly",
+   "file": "dolly-slider--dolly.png"
+  },
+  {
+   "id": "pf/dolly-slider--rails",
+   "category": "Dolly & Slider",
+   "name": "Rails",
+   "file": "dolly-slider--rails.png"
+  },
+  {
+   "id": "pf/dolly-slider--slider-1",
+   "category": "Dolly & Slider",
+   "name": "Slider 1",
+   "file": "dolly-slider--slider-1.png"
+  },
+  {
+   "id": "pf/dolly-slider--slider-2",
+   "category": "Dolly & Slider",
+   "name": "Slider 2",
+   "file": "dolly-slider--slider-2.png"
+  },
+  {
+   "id": "pf/flag-nets-grid-and-dots--dots-2",
+   "category": "Flag, Nets Grid and Dots",
+   "name": "Dots 2",
+   "file": "flag-nets-grid-and-dots--dots-2.png"
+  },
+  {
+   "id": "pf/flag-nets-grid-and-dots--dots",
+   "category": "Flag, Nets Grid and Dots",
+   "name": "Dots",
+   "file": "flag-nets-grid-and-dots--dots.png"
+  },
+  {
+   "id": "pf/flag-nets-grid-and-dots--flag-2",
+   "category": "Flag, Nets Grid and Dots",
+   "name": "Flag 2",
+   "file": "flag-nets-grid-and-dots--flag-2.png"
+  },
+  {
+   "id": "pf/flag-nets-grid-and-dots--flag-3",
+   "category": "Flag, Nets Grid and Dots",
+   "name": "Flag 3",
+   "file": "flag-nets-grid-and-dots--flag-3.png"
+  },
+  {
+   "id": "pf/flag-nets-grid-and-dots--flag-4",
+   "category": "Flag, Nets Grid and Dots",
+   "name": "Flag 4",
+   "file": "flag-nets-grid-and-dots--flag-4.png"
+  },
+  {
+   "id": "pf/flag-nets-grid-and-dots--flag-5",
+   "category": "Flag, Nets Grid and Dots",
+   "name": "Flag 5",
+   "file": "flag-nets-grid-and-dots--flag-5.png"
+  },
+  {
+   "id": "pf/flag-nets-grid-and-dots--flex-scrim",
+   "category": "Flag, Nets Grid and Dots",
+   "name": "Flex Scrim",
+   "file": "flag-nets-grid-and-dots--flex-scrim.png"
+  },
+  {
+   "id": "pf/flag-nets-grid-and-dots--grid-cloth",
+   "category": "Flag, Nets Grid and Dots",
+   "name": "Grid cloth",
+   "file": "flag-nets-grid-and-dots--grid-cloth.png"
+  },
+  {
+   "id": "pf/flag-nets-grid-and-dots--grid",
+   "category": "Flag, Nets Grid and Dots",
+   "name": "Grid",
+   "file": "flag-nets-grid-and-dots--grid.png"
+  },
+  {
+   "id": "pf/flag-nets-grid-and-dots--net-2",
+   "category": "Flag, Nets Grid and Dots",
+   "name": "Net 2",
+   "file": "flag-nets-grid-and-dots--net-2.png"
+  },
+  {
+   "id": "pf/flag-nets-grid-and-dots--net-3",
+   "category": "Flag, Nets Grid and Dots",
+   "name": "Net 3",
+   "file": "flag-nets-grid-and-dots--net-3.png"
+  },
+  {
+   "id": "pf/flag-nets-grid-and-dots--net-4",
+   "category": "Flag, Nets Grid and Dots",
+   "name": "Net 4",
+   "file": "flag-nets-grid-and-dots--net-4.png"
+  },
+  {
+   "id": "pf/flag-nets-grid-and-dots--net",
+   "category": "Flag, Nets Grid and Dots",
+   "name": "Net",
+   "file": "flag-nets-grid-and-dots--net.png"
+  },
+  {
+   "id": "pf/flag-nets-grid-and-dots--open-end",
+   "category": "Flag, Nets Grid and Dots",
+   "name": "Open End",
+   "file": "flag-nets-grid-and-dots--open-end.png"
+  },
+  {
+   "id": "pf/fresnels-tweenies-mole--1-000-w",
+   "category": "Fresnels, Tweenies & Mole",
+   "name": "1.000 W",
+   "file": "fresnels-tweenies-mole--1-000-w.png"
+  },
+  {
+   "id": "pf/fresnels-tweenies-mole--10k",
+   "category": "Fresnels, Tweenies & Mole",
+   "name": "10K",
+   "file": "fresnels-tweenies-mole--10k.png"
+  },
+  {
+   "id": "pf/fresnels-tweenies-mole--2k-blonde",
+   "category": "Fresnels, Tweenies & Mole",
+   "name": "2K Blonde",
+   "file": "fresnels-tweenies-mole--2k-blonde.png"
+  },
+  {
+   "id": "pf/fresnels-tweenies-mole--fresnel-2",
+   "category": "Fresnels, Tweenies & Mole",
+   "name": "Fresnel 2",
+   "file": "fresnels-tweenies-mole--fresnel-2.png"
+  },
+  {
+   "id": "pf/fresnels-tweenies-mole--fresnel",
+   "category": "Fresnels, Tweenies & Mole",
+   "name": "Fresnel",
+   "file": "fresnels-tweenies-mole--fresnel.png"
+  },
+  {
+   "id": "pf/fresnels-tweenies-mole--maxi-brute",
+   "category": "Fresnels, Tweenies & Mole",
+   "name": "Maxi Brute",
+   "file": "fresnels-tweenies-mole--maxi-brute.png"
+  },
+  {
+   "id": "pf/fresnels-tweenies-mole--mole",
+   "category": "Fresnels, Tweenies & Mole",
+   "name": "Mole",
+   "file": "fresnels-tweenies-mole--mole.png"
+  },
+  {
+   "id": "pf/fresnels-tweenies-mole--tweenie",
+   "category": "Fresnels, Tweenies & Mole",
+   "name": "Tweenie",
+   "file": "fresnels-tweenies-mole--tweenie.png"
+  },
+  {
+   "id": "pf/gels--ctb",
+   "category": "Gels",
+   "name": "CTB",
+   "file": "gels--ctb.png"
+  },
+  {
+   "id": "pf/gels--cto",
+   "category": "Gels",
+   "name": "CTO",
+   "file": "gels--cto.png"
+  },
+  {
+   "id": "pf/gels--cts",
+   "category": "Gels",
+   "name": "CTS",
+   "file": "gels--cts.png"
+  },
+  {
+   "id": "pf/hard-light--lantern",
+   "category": "Hard Light",
+   "name": "Lantern",
+   "file": "hard-light--lantern.png"
+  },
+  {
+   "id": "pf/hard-light--pepper-500w",
+   "category": "Hard Light",
+   "name": "Pepper 500W",
+   "file": "hard-light--pepper-500w.png"
+  },
+  {
+   "id": "pf/hard-light--redhead",
+   "category": "Hard Light",
+   "name": "Redhead",
+   "file": "hard-light--redhead.png"
+  },
+  {
+   "id": "pf/hard-light--spot-light",
+   "category": "Hard Light",
+   "name": "Spot Light",
+   "file": "hard-light--spot-light.png"
+  },
+  {
+   "id": "pf/hard-light--spotlight-3",
+   "category": "Hard Light",
+   "name": "Spotlight 3",
+   "file": "hard-light--spotlight-3.png"
+  },
+  {
+   "id": "pf/hard-light--spotlight-4",
+   "category": "Hard Light",
+   "name": "Spotlight 4",
+   "file": "hard-light--spotlight-4.png"
+  },
+  {
+   "id": "pf/hard-light--spotlight",
+   "category": "Hard Light",
+   "name": "Spotlight",
+   "file": "hard-light--spotlight.png"
+  },
+  {
+   "id": "pf/kinoflo--kinoflo-2",
+   "category": "KinoFlo",
+   "name": "Kinoflo 2",
+   "file": "kinoflo--kinoflo-2.png"
+  },
+  {
+   "id": "pf/kinoflo--kinoflo-top-view",
+   "category": "KinoFlo",
+   "name": "Kinoflo Top view",
+   "file": "kinoflo--kinoflo-top-view.png"
+  },
+  {
+   "id": "pf/kinoflo--kinoflo",
+   "category": "KinoFlo",
+   "name": "Kinoflo",
+   "file": "kinoflo--kinoflo.png"
+  },
+  {
+   "id": "pf/led-panels--led-panel-softbox-top-view",
+   "category": "LED Panels",
+   "name": "LED Panel + Softbox top view",
+   "file": "led-panels--led-panel-softbox-top-view.png"
+  },
+  {
+   "id": "pf/led-panels--led-panel-2",
+   "category": "LED Panels",
+   "name": "LED Panel 2",
+   "file": "led-panels--led-panel-2.png"
+  },
+  {
+   "id": "pf/led-panels--led-panel-with-softbox",
+   "category": "LED Panels",
+   "name": "LED Panel with softbox",
+   "file": "led-panels--led-panel-with-softbox.png"
+  },
+  {
+   "id": "pf/led-panels--led-panel",
+   "category": "LED Panels",
+   "name": "LED Panel",
+   "file": "led-panels--led-panel.png"
+  },
+  {
+   "id": "pf/led-panels--skypanel-2",
+   "category": "LED Panels",
+   "name": "SkyPanel 2",
+   "file": "led-panels--skypanel-2.png"
+  },
+  {
+   "id": "pf/led-panels--skypanel",
+   "category": "LED Panels",
+   "name": "SkyPanel",
+   "file": "led-panels--skypanel.png"
+  },
+  {
+   "id": "pf/led-panels--skypanel-softbox-top-view",
+   "category": "LED Panels",
+   "name": "Skypanel + Softbox Top view",
+   "file": "led-panels--skypanel-softbox-top-view.png"
+  },
+  {
+   "id": "pf/led-panels--top-view-led-panel",
+   "category": "LED Panels",
+   "name": "Top view LED Panel",
+   "file": "led-panels--top-view-led-panel.png"
+  },
+  {
+   "id": "pf/led-tube--led-tube-1",
+   "category": "LED Tube",
+   "name": "Led Tube 1",
+   "file": "led-tube--led-tube-1.png"
+  },
+  {
+   "id": "pf/led-tube--led-tube-2",
+   "category": "LED Tube",
+   "name": "Led Tube 2",
+   "file": "led-tube--led-tube-2.png"
+  },
+  {
+   "id": "pf/led-tube--led-tube-3",
+   "category": "LED Tube",
+   "name": "Led Tube 3",
+   "file": "led-tube--led-tube-3.png"
+  },
+  {
+   "id": "pf/led-tube--led-tube-blue",
+   "category": "LED Tube",
+   "name": "Led Tube Blue",
+   "file": "led-tube--led-tube-blue.png"
+  },
+  {
+   "id": "pf/led-tube--led-tube-green",
+   "category": "LED Tube",
+   "name": "Led Tube Green",
+   "file": "led-tube--led-tube-green.png"
+  },
+  {
+   "id": "pf/led-tube--led-tube-red",
+   "category": "LED Tube",
+   "name": "Led Tube Red",
+   "file": "led-tube--led-tube-red.png"
+  },
+  {
+   "id": "pf/light-spot--light-spot",
+   "category": "Light Spot",
+   "name": "Light Spot",
+   "file": "light-spot--light-spot.png"
+  },
+  {
+   "id": "pf/light-spot--light-spot-2",
+   "category": "Light Spot",
+   "name": "Light spot 2",
+   "file": "light-spot--light-spot-2.png"
+  },
+  {
+   "id": "pf/light-spot--light-spot-3",
+   "category": "Light Spot",
+   "name": "Light spot 3",
+   "file": "light-spot--light-spot-3.png"
+  },
+  {
+   "id": "pf/light-spot--light-spot-4",
+   "category": "Light Spot",
+   "name": "Light spot 4",
+   "file": "light-spot--light-spot-4.png"
+  },
+  {
+   "id": "pf/machines--fog-machine",
+   "category": "Machines",
+   "name": "Fog Machine",
+   "file": "machines--fog-machine.png"
+  },
+  {
+   "id": "pf/machines--wind-machine-2",
+   "category": "Machines",
+   "name": "Wind Machine 2",
+   "file": "machines--wind-machine-2.png"
+  },
+  {
+   "id": "pf/machines--wind-machine",
+   "category": "Machines",
+   "name": "Wind machine",
+   "file": "machines--wind-machine.png"
+  },
+  {
+   "id": "pf/marks--b1",
+   "category": "Marks",
+   "name": "B1",
+   "file": "marks--b1.png"
+  },
+  {
+   "id": "pf/marks--b2",
+   "category": "Marks",
+   "name": "B2",
+   "file": "marks--b2.png"
+  },
+  {
+   "id": "pf/marks--b3",
+   "category": "Marks",
+   "name": "B3",
+   "file": "marks--b3.png"
+  },
+  {
+   "id": "pf/marks--b4",
+   "category": "Marks",
+   "name": "B4",
+   "file": "marks--b4.png"
+  },
+  {
+   "id": "pf/marks--b5",
+   "category": "Marks",
+   "name": "B5",
+   "file": "marks--b5.png"
+  },
+  {
+   "id": "pf/marks--m1",
+   "category": "Marks",
+   "name": "M1",
+   "file": "marks--m1.png"
+  },
+  {
+   "id": "pf/marks--m2",
+   "category": "Marks",
+   "name": "M2",
+   "file": "marks--m2.png"
+  },
+  {
+   "id": "pf/marks--m3",
+   "category": "Marks",
+   "name": "M3",
+   "file": "marks--m3.png"
+  },
+  {
+   "id": "pf/marks--m4",
+   "category": "Marks",
+   "name": "M4",
+   "file": "marks--m4.png"
+  },
+  {
+   "id": "pf/marks--m5",
+   "category": "Marks",
+   "name": "M5",
+   "file": "marks--m5.png"
+  },
+  {
+   "id": "pf/marks--mark-blue",
+   "category": "Marks",
+   "name": "Mark blue",
+   "file": "marks--mark-blue.png"
+  },
+  {
+   "id": "pf/marks--mark-red",
+   "category": "Marks",
+   "name": "Mark red",
+   "file": "marks--mark-red.png"
+  },
+  {
+   "id": "pf/mirror--mirror-1",
+   "category": "Mirror",
+   "name": "Mirror 1",
+   "file": "mirror--mirror-1.png"
+  },
+  {
+   "id": "pf/mirror--mirror-2",
+   "category": "Mirror",
+   "name": "Mirror 2",
+   "file": "mirror--mirror-2.png"
+  },
+  {
+   "id": "pf/mirror--mirror-3",
+   "category": "Mirror",
+   "name": "Mirror 3",
+   "file": "mirror--mirror-3.png"
+  },
+  {
+   "id": "pf/negative-fill--neg-frame-2",
+   "category": "Negative Fill",
+   "name": "Neg Frame 2",
+   "file": "negative-fill--neg-frame-2.png"
+  },
+  {
+   "id": "pf/negative-fill--neg-frames",
+   "category": "Negative Fill",
+   "name": "Neg Frames",
+   "file": "negative-fill--neg-frames.png"
+  },
+  {
+   "id": "pf/negative-fill--negative-fill-2",
+   "category": "Negative Fill",
+   "name": "Negative fill 2",
+   "file": "negative-fill--negative-fill-2.png"
+  },
+  {
+   "id": "pf/negative-fill--negative-fill",
+   "category": "Negative Fill",
+   "name": "Negative fill",
+   "file": "negative-fill--negative-fill.png"
+  },
+  {
+   "id": "pf/practical--candle",
+   "category": "Practical",
+   "name": "Candle",
+   "file": "practical--candle.png"
+  },
+  {
+   "id": "pf/practical--chandelier",
+   "category": "Practical",
+   "name": "Chandelier",
+   "file": "practical--chandelier.png"
+  },
+  {
+   "id": "pf/practical--practical-2",
+   "category": "Practical",
+   "name": "Practical 2",
+   "file": "practical--practical-2.png"
+  },
+  {
+   "id": "pf/practical--practical-flat",
+   "category": "Practical",
+   "name": "Practical Flat",
+   "file": "practical--practical-flat.png"
+  },
+  {
+   "id": "pf/practical--practical",
+   "category": "Practical",
+   "name": "Practical",
+   "file": "practical--practical.png"
+  },
+  {
+   "id": "pf/props--bicycle",
+   "category": "Props",
+   "name": "Bicycle",
+   "file": "props--bicycle.png"
+  },
+  {
+   "id": "pf/props--laptop",
+   "category": "Props",
+   "name": "Laptop",
+   "file": "props--laptop.png"
+  },
+  {
+   "id": "pf/props--moto-a",
+   "category": "Props",
+   "name": "Moto A",
+   "file": "props--moto-a.png"
+  },
+  {
+   "id": "pf/props--paper",
+   "category": "Props",
+   "name": "Paper",
+   "file": "props--paper.png"
+  },
+  {
+   "id": "pf/props--sofa",
+   "category": "Props",
+   "name": "Sofa",
+   "file": "props--sofa.png"
+  },
+  {
+   "id": "pf/props--stairs",
+   "category": "Props",
+   "name": "Stairs",
+   "file": "props--stairs.png"
+  },
+  {
+   "id": "pf/props--sun",
+   "category": "Props",
+   "name": "Sun",
+   "file": "props--sun.png"
+  },
+  {
+   "id": "pf/props--table-2",
+   "category": "Props",
+   "name": "Table 2",
+   "file": "props--table-2.png"
+  },
+  {
+   "id": "pf/props--table-3",
+   "category": "Props",
+   "name": "Table 3",
+   "file": "props--table-3.png"
+  },
+  {
+   "id": "pf/props--table",
+   "category": "Props",
+   "name": "Table",
+   "file": "props--table.png"
+  },
+  {
+   "id": "pf/props--tree-2",
+   "category": "Props",
+   "name": "Tree 2",
+   "file": "props--tree-2.png"
+  },
+  {
+   "id": "pf/props--tree",
+   "category": "Props",
+   "name": "Tree",
+   "file": "props--tree.png"
+  },
+  {
+   "id": "pf/props--tv",
+   "category": "Props",
+   "name": "Tv",
+   "file": "props--tv.png"
+  },
+  {
+   "id": "pf/reflectors--large-reflector",
+   "category": "Reflectors",
+   "name": "Large Reflector",
+   "file": "reflectors--large-reflector.png"
+  },
+  {
+   "id": "pf/reflectors--reflector-2",
+   "category": "Reflectors",
+   "name": "Reflector 2",
+   "file": "reflectors--reflector-2.png"
+  },
+  {
+   "id": "pf/reflectors--reflector-3",
+   "category": "Reflectors",
+   "name": "Reflector 3",
+   "file": "reflectors--reflector-3.png"
+  },
+  {
+   "id": "pf/reflectors--reflector",
+   "category": "Reflectors",
+   "name": "Reflector",
+   "file": "reflectors--reflector.png"
+  },
+  {
+   "id": "pf/reflectors--umbrella-reflector",
+   "category": "Reflectors",
+   "name": "Umbrella Reflector",
+   "file": "reflectors--umbrella-reflector.png"
+  },
+  {
+   "id": "pf/silk--silk-2",
+   "category": "Silk",
+   "name": "Silk 2",
+   "file": "silk--silk-2.png"
+  },
+  {
+   "id": "pf/silk--silk-large",
+   "category": "Silk",
+   "name": "Silk Large",
+   "file": "silk--silk-large.png"
+  },
+  {
+   "id": "pf/softbox-lightbank--large-overhead-light",
+   "category": "Softbox & Lightbank",
+   "name": "Large Overhead light",
+   "file": "softbox-lightbank--large-overhead-light.png"
+  },
+  {
+   "id": "pf/softbox-lightbank--lightbank",
+   "category": "Softbox & Lightbank",
+   "name": "Lightbank",
+   "file": "softbox-lightbank--lightbank.png"
+  },
+  {
+   "id": "pf/softbox-lightbank--soft-box-2",
+   "category": "Softbox & Lightbank",
+   "name": "Soft Box 2",
+   "file": "softbox-lightbank--soft-box-2.png"
+  },
+  {
+   "id": "pf/softbox-lightbank--soft-box-3",
+   "category": "Softbox & Lightbank",
+   "name": "Soft box 3",
+   "file": "softbox-lightbank--soft-box-3.png"
+  },
+  {
+   "id": "pf/softbox-lightbank--softbox",
+   "category": "Softbox & Lightbank",
+   "name": "SoftBox",
+   "file": "softbox-lightbank--softbox.png"
+  },
+  {
+   "id": "pf/softbox-lightbank--softbox-2",
+   "category": "Softbox & Lightbank",
+   "name": "Softbox 2",
+   "file": "softbox-lightbank--softbox-2.png"
+  },
+  {
+   "id": "pf/softbox-lightbank--softbox-4",
+   "category": "Softbox & Lightbank",
+   "name": "Softbox 4",
+   "file": "softbox-lightbank--softbox-4.png"
+  },
+  {
+   "id": "pf/studio-backdrop--green-screen-backdrop",
+   "category": "Studio Backdrop",
+   "name": "Green Screen Backdrop",
+   "file": "studio-backdrop--green-screen-backdrop.png"
+  },
+  {
+   "id": "pf/studio-backdrop--studio-backdrop",
+   "category": "Studio Backdrop",
+   "name": "Studio Backdrop",
+   "file": "studio-backdrop--studio-backdrop.png"
+  },
+  {
+   "id": "pf/windows--window-1",
+   "category": "Windows",
+   "name": "Window 1",
+   "file": "windows--window-1.png"
+  },
+  {
+   "id": "pf/windows--window-2",
+   "category": "Windows",
+   "name": "Window 2",
+   "file": "windows--window-2.png"
+  },
+  {
+   "id": "pf/windows--window-3",
+   "category": "Windows",
+   "name": "Window 3",
+   "file": "windows--window-3.png"
+  },
+  {
+   "id": "pf/windows--window-4",
+   "category": "Windows",
+   "name": "Window 4",
+   "file": "windows--window-4.png"
+  },
+  {
+   "id": "pf/windows--window-5",
+   "category": "Windows",
+   "name": "Window 5",
+   "file": "windows--window-5.png"
+  }
+ ]
+}

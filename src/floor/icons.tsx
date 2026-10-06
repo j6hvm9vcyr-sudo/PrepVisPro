@@ -10,7 +10,8 @@ import { newId } from '../model/defaults';
 import type { Id } from '../model/types';
 import type { Point } from '../model/floor';
 import { imageStore } from '../platform/images';
-import { iconBackend, useIcons, type IconItem } from '../platform/iconLibrary';
+import { builtinIcons, DEFAULT_FIGURES, readIcon, useIcons, type IconItem } from '../platform/iconLibrary';
+import type { FigureIcon, FigureKind, ProjectDoc } from '../model/types';
 import { norm } from '../model/text';
 import { useFloor } from './floorStore';
 
@@ -27,11 +28,30 @@ export async function copyIntoProject(item: IconItem): Promise<string> {
   const key = `${imageStore.projectDir ?? 'memoire'}|${item.id}`;
   const known = copies.get(key);
   if (known && imageStore.url(known)) return known;
-  const bytes = await iconBackend().read(item.id);
+  const bytes = await readIcon(item.id);
   const [stored] = await imageStore.importFiles([new File([bytes as BlobPart], `${item.name}.png`, { type: 'image/png' })]);
   if (!stored) throw new Error('copie de l’icône dans le projet impossible');
   copies.set(key, stored.file);
   return stored.file;
+}
+
+/**
+ * Icônes livrées par défaut pour les caméras, personnages et projecteurs du projet, copiées dans le projet.
+ * Seulement pour les types sans icône choisie ; renvoie le document inchangé si rien n'est à faire.
+ */
+export async function withDefaultFigures(doc: ProjectDoc): Promise<ProjectDoc> {
+  const kinds = (Object.keys(DEFAULT_FIGURES) as FigureKind[]).filter((k) => !doc.settings.floorIcons[k]);
+  if (!kinds.length) return doc;
+  const all = await builtinIcons();
+  const next: Partial<Record<FigureKind, FigureIcon>> = {};
+  for (const k of kinds) {
+    const def = DEFAULT_FIGURES[k];
+    const item = all.find((i) => i.id === def.id);
+    if (!item) continue;
+    next[k] = { file: await copyIntoProject(item), name: item.name, turn: def.turn };
+  }
+  if (!Object.keys(next).length) return doc;
+  return { ...doc, settings: { ...doc.settings, floorIcons: { ...doc.settings.floorIcons, ...next } } };
 }
 
 export async function placeIcon(floorPlanId: Id, item: IconItem, at: Point): Promise<void> {
@@ -164,7 +184,7 @@ function IconTile({ item, active, managing }: { item: IconItem; active: boolean;
         {url ? <img src={url} alt="" draggable={false} /> : <span className="note">?</span>}
         <span className="icon-name">{item.name}</span>
       </button>
-      {managing && (
+      {managing && !item.builtin && (
         <button type="button" className="icon-remove" aria-label={`Retirer ${item.name} de la bibliothèque`} title="Retirer de la bibliothèque (les plans qui l’utilisent la gardent)" onClick={() => void useIcons.getState().remove([item.id])}>
           ×
         </button>

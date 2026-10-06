@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, type FocusEvent, type KeyboardEvent } from 'react';
+import { create } from 'zustand';
 import { useApp } from '../state/appStore';
 import { usePrefs } from '../state/prefs';
 import { categoryOf, suggest, termCtx, type EditableField, type TermField } from '../model/entry';
@@ -15,6 +16,29 @@ const HINTS: Record<EditableField, string> = {
   movement: '↑↓ choisir · « > » ou « , » enchaîne',
   grip: '↑↓ choisir · « , » ajoute',
 };
+
+/** Champs de la carte Caméra, dans l'ordre du tableau (⇥ passe au suivant). */
+export const CARD_FIELDS = ['size', 'axis', 'angle', 'focal', 'movement', 'grip'] as const;
+export type CardField = (typeof CARD_FIELDS)[number];
+
+/**
+ * Où s'ouvre la saisie : dans la case du tableau, ou dans la carte Caméra (détails).
+ * Une seule saisie à la fois (celle du store) ; ceci ne choisit que l'endroit où elle s'affiche.
+ */
+export const useEditHost = create<{ host: 'grid' | 'inspector' }>(() => ({ host: 'grid' }));
+useApp.subscribe((s) => {
+  if (!s.editing && useEditHost.getState().host !== 'grid') useEditHost.setState({ host: 'grid' });
+});
+
+/** Ouvre la saisie d'un champ depuis la carte Caméra. */
+export function editFromCard(planId: string, setupId: string, col: CardField) {
+  const st = useApp.getState();
+  if (st.editing) return;
+  st.setCursor({ planId, setupId, col });
+  useEditHost.setState({ host: 'inspector' });
+  useApp.getState().startEdit();
+  if (!useApp.getState().editing) useEditHost.setState({ host: 'grid' });
+}
 
 export function CellEditor({ field }: { field: EditableField }) {
   const editing = useApp((s) => s.editing);
@@ -47,6 +71,16 @@ export function CellEditor({ field }: { field: EditableField }) {
 
   const validate = (key: 'Enter' | 'Tab', shift: boolean, meta: boolean, at?: number) => {
     if (!st().editing) return;
+    if (useEditHost.getState().host === 'inspector') {
+      // Carte Caméra : ⇥ valide et ouvre le champ suivant de la carte ; ↩ valide.
+      const c = st().cursor;
+      if (!st().commitEdit('stay', at)) return;
+      const i = CARD_FIELDS.indexOf(c?.col as CardField);
+      const next = key === 'Tab' && c && i >= 0 ? CARD_FIELDS[i + (shift ? -1 : 1)] : undefined;
+      if (c && next) editFromCard(c.planId, c.setupId, next);
+      else focusGrid();
+      return;
+    }
     if (key === 'Enter' && meta) {
       // ⌘↩ : valider puis enchaîner sur un nouveau plan (⇧ pour une reprise).
       if (st().commitEdit('stay', at)) st().newPlan(shift);
@@ -160,7 +194,8 @@ export function CellEditor({ field }: { field: EditableField }) {
               onMouseDown={(e) => {
                 e.preventDefault();
                 st().setPick(i);
-                done(st().commitEdit('right', i));
+                if (useEditHost.getState().host === 'inspector') validate('Enter', false, false, i);
+                else done(st().commitEdit('right', i));
               }}
             >
               <span>{sg.create ? `Créer « ${sg.term} »` : sg.term}</span>

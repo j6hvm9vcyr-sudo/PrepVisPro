@@ -1,4 +1,6 @@
-import { memo, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent as ReactMouseEvent } from 'react';
+import { memo, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type MouseEvent as ReactMouseEvent } from 'react';
+import { tableTemplate, type TableColumn } from '../model/prefs';
+import { ColResize, RowResize, useTableLayout } from './tableLayout';
 import { useApp } from '../state/appStore';
 import { anyOverlay, rangeOf, selectCursor, selectDoc } from '../state/store';
 import { COLUMNS } from '../state/lines';
@@ -12,7 +14,7 @@ import { verify, type PlanState } from '../model/verify';
 import { coverImage } from '../model/images';
 import { imageStore } from '../platform/images';
 import { norm } from '../model/text';
-import { CellEditor } from './CellEditor';
+import { CellEditor, useEditHost } from './CellEditor';
 import { focusGrid, registerGrid } from './focus';
 import { floorMismatches, type FloorMismatch } from '../model/floorSuggest';
 import { inKit } from '../model/lenses';
@@ -27,6 +29,15 @@ const TECH: { col: Exclude<EditableField, 'action'>; label: string }[] = [
   { col: 'focal', label: 'Focale' },
   { col: 'movement', label: 'Mouvement' },
   { col: 'grip', label: 'Machinerie' },
+];
+
+/** En-têtes, dans l'ordre des colonnes (largeurs : préférences de ce Mac). */
+const HEAD: { col: TableColumn; label: string }[] = [
+  { col: 'code', label: 'N°' },
+  { col: 'image', label: 'Img' },
+  { col: 'cam', label: 'Cam' },
+  { col: 'action', label: 'Action' },
+  ...TECH,
 ];
 
 const CATEGORY_OF = { size: 'size', axis: 'axis', angle: 'angle', movement: 'movement', grip: 'grip' } as const;
@@ -46,10 +57,16 @@ export function DecoupageTable() {
   const doc = useApp(selectDoc);
   const cursor = useApp(selectCursor);
   const editing = useApp((s) => s.editing);
+  // Saisie ouverte depuis la carte Caméra : elle s'affiche là-bas, pas dans la case.
+  const editHost = useEditHost((s) => s.host);
   const collapsed = useApp((s) => s.collapsed);
   const onlyIncomplete = useApp((s) => s.onlyIncomplete);
   const numbers = useMemo(() => computeNumbers(doc), [doc]);
   const states = useMemo(() => verify(doc).states, [doc]);
+  // Largeurs des colonnes et hauteur des rangées : préférences de ce Mac (jamais l'export).
+  const layout = useTableLayout();
+  const template = tableTemplate(layout.widths);
+  const gridStyle = { '--cols': template.columns, minWidth: template.minWidth, ...(layout.rowHeight ? { '--row-h': `${layout.rowHeight}px` } : {}) } as CSSProperties;
   // Écarts avec les plans au sol (valeur, axe) : signalés dans les cases concernées.
   const floorDiffs = useMemo(() => (doc.floorPlans.length ? floorMismatches(doc) : EMPTY_DIFFS), [doc]);
   const anchor = useApp((s) => s.anchor);
@@ -264,6 +281,7 @@ export function DecoupageTable() {
       <div
         ref={gridRef}
         className="grid"
+        style={gridStyle}
         role="grid"
         aria-label="Découpage"
         tabIndex={0}
@@ -271,13 +289,10 @@ export function DecoupageTable() {
         onKeyDown={onKeyDown}
       >
         <div className="grid-cols grid-head" role="row">
-          <span role="columnheader">N°</span>
-          <span role="columnheader">Img</span>
-          <span role="columnheader">Cam</span>
-          <span role="columnheader">Action</span>
-          {TECH.map((t) => (
-            <span key={t.col} role="columnheader">
-              {t.label}
+          {HEAD.map((h) => (
+            <span key={h.col} role="columnheader">
+              {h.label}
+              <ColResize col={h.col} label={h.label} />
             </span>
           ))}
         </div>
@@ -297,7 +312,7 @@ export function DecoupageTable() {
               cursorPlanId={cursor?.planId ?? null}
               cursorSetupId={cursor?.setupId ?? null}
               cursorCol={cursor?.col ?? null}
-              editing={!!editing}
+              editing={!!editing && editHost === 'grid'}
               selection={selection?.map ?? null}
               days={doc.shootingDays
                 .filter((d) => d.sequenceIds.includes(it.seq.id))
@@ -517,6 +532,7 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
               )}
               {first && <b className="mono">{code}</b>}
               {first && isReprise && <span className="rep sr-only">reprise</span>}
+              {first && <RowResize />}
             </span>
             <div
               id={cellId(setup.id, 'image')}

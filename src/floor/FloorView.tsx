@@ -11,6 +11,7 @@ import type { Id } from '../model/types';
 import { useFloor, type FloorTool } from './floorStore';
 import { FloorCanvas } from './FloorCanvas';
 import { FloorInspector } from './FloorInspector';
+import { withDefaultFigures } from './icons';
 import { BarMenu, ProjectHead, SpaceBar } from '../ui/Chrome';
 import { filmFlow } from '../model/stamps';
 import { stripColors } from '../ui/strip';
@@ -62,11 +63,22 @@ export function FloorView() {
     useFloor.getState().set({ currentId: fp.id, selection: [] });
   }, [current, doc.floorPlans, doc.sequences, cursorPlan]);
 
-  const create = (seqId: string) => {
+  const create = async (seqId: string) => {
     const s = doc.sequences.find((x) => x.id === seqId);
     if (!s) return;
     const fp = newFloorPlan(`Séq. ${s.number || '?'} — ${s.location || 'Décor'}`, [s.id]);
-    st().applyDoc(addFloorPlan(doc, fp), 'Plan au sol créé');
+    // Premier plan au sol du projet, sans icône choisie : caméras, personnages et projecteurs
+    // sont dessinés avec les icônes livrées (modifiables dans Figures).
+    let base = selectDoc(st());
+    const fresh = base.floorPlans.length === 0 && Object.values(base.settings.floorIcons).every((v) => !v);
+    if (fresh) {
+      try {
+        base = await withDefaultFigures(base);
+      } catch {
+        /* sans icônes par défaut : symboles standard */
+      }
+    }
+    st().applyDoc(addFloorPlan(base, fp), 'Plan au sol créé');
     useFloor.getState().set({ currentId: fp.id, selection: [], tool: 'select' });
   };
 
@@ -192,7 +204,7 @@ function PlanChips({ fp }: { fp: FloorPlan }) {
  * Gauche : une seule liste. Une séquence ouvre son plan au sol ; sans plan au sol, « + Plan au sol » le crée.
  * Les plans de la séquence ouverte : vert = caméra placée sur ce plan au sol, orange = à placer.
  */
-function FloorTree({ current, onCreate }: { current: FloorPlan | null; onCreate: (seqId: Id) => void }) {
+function FloorTree({ current, onCreate }: { current: FloorPlan | null; onCreate: (seqId: Id) => void | Promise<void> }) {
   const doc = useApp(selectDoc);
   const cursorPlan = useApp((s) => s.cursor?.planId ?? null);
   const numbers = computeNumbers(doc);
@@ -221,7 +233,7 @@ function FloorTree({ current, onCreate }: { current: FloorPlan | null; onCreate:
         if (!fp)
           return (
             <div key={s.id} className="tree-seq">
-              <button type="button" className="tree-seq-row none" aria-label={`Créer le plan au sol de la séquence ${s.number || '?'}`} onClick={() => onCreate(s.id)}>
+              <button type="button" className="tree-seq-row none" aria-label={`Créer le plan au sol de la séquence ${s.number || '?'}`} onClick={() => void onCreate(s.id)}>
                 <span className="strip" style={{ background: c.fill, borderColor: c.edge }} />
                 <span className="lbl">
                   {s.number || '?'} · {s.location || 'Décor à préciser'}

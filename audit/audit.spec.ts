@@ -26,6 +26,10 @@ test('audit', async ({ page }) => {
   await page.keyboard.press('Enter');
   await shot(page, '04-tableau-edition');
   await page.keyboard.press('Escape');
+  // Carte Caméra modifiable sur place (0.11.1)
+  await page.getByRole('region', { name: 'Caméra A' }).getByRole('button', { name: /^Axe : / }).click();
+  await shot(page, '04b-carte-camera-edition');
+  await page.keyboard.press('Escape');
   await page.keyboard.press('Shift+ArrowDown');
   await page.keyboard.press('Shift+ArrowDown');
   await shot(page, '05-tableau-selection');

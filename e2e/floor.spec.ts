@@ -174,15 +174,21 @@ test('bibliothèque d’icônes : import d’un dossier, recherche, pose sur le 
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
   await page.keyboard.press('ControlOrMeta+3');
   await pick(page, 'Créer un plan au sol pour la séquence', '1 — Quai de gare');
+  // Les icônes livrées avec l'app (PF_ICONES) sont là sans rien importer.
+  const lib = page.getByRole('region', { name: 'Bibliothèque d’icônes' });
+  await expect(lib.locator('.fold-h .count')).toHaveText('194');
+  await page.getByRole('button', { name: 'Gérer la bibliothèque' }).click();
+  await expect(page.getByRole('button', { name: 'Retirer Cam de la bibliothèque' })).toHaveCount(0);
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Importer un dossier d’icônes…' }).click();
+  await page.getByRole('button', { name: 'Ajouter un dossier d’icônes…' }).click();
   await (await chooser).setFiles(resolve('e2e/icones-test'));
-  await expect(page.getByRole('region', { name: 'Bibliothèque d’icônes' }).locator('.fold-h .count')).toHaveText('4');
+  await expect(lib.locator('.fold-h .count')).toHaveText('198');
   await expect(page.getByText(/4 icônes dans la bibliothèque/)).toBeVisible();
+  await page.getByRole('button', { name: 'Terminé', exact: true }).click();
   // Catégories = sous-dossiers ; les images à la racine vont dans la catégorie du dossier.
   // (Noms sans accents : Chromium piloté par les tests ne relit pas les fichiers d'un dossier accentué ;
   // l'application Mac lit le dossier par son propre code, testé avec accents.)
-  await expect(page.locator('.icon-group-h')).toHaveText([/icones-test\s*1/, /Lumieres\s*2/, /Machinerie\s*1/]);
+  for (const re of [/icones-test\s*1/, /Lumieres\s*2/, /Machinerie\s*1/]) await expect(page.locator('.icon-group-h').filter({ hasText: re })).toHaveCount(1);
   await page.getByLabel('Rechercher une icône').fill('fres');
   await page.getByRole('button', { name: 'Poser Fresnel 650' }).click();
   const canvas = page.locator('.floor-canvas svg');
@@ -226,19 +232,25 @@ test('bibliothèque d’icônes : import d’un dossier, recherche, pose sur le 
   await expect(page.locator('.floor-canvas image')).toHaveCount(2);
 });
 
-test('figures : icônes importées par défaut pour le projet, et une icône différente par figure (deux personnages, deux sources)', async ({ page }) => {
+test('figures : icônes livrées par défaut, icônes importées pour le projet, et une icône différente par figure (deux personnages, deux sources)', async ({ page }) => {
   await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
   await page.keyboard.press('ControlOrMeta+3');
   await pick(page, 'Créer un plan au sol pour la séquence', '1 — Quai de gare');
+  // Premier plan au sol : caméras, personnages et projecteurs prennent les icônes livrées.
+  const figures = page.getByRole('region', { name: 'Figures du plan' });
+  await expect(figures.getByRole('button', { name: 'Icône : caméras' })).toHaveText('Cam');
+  await expect(figures.getByRole('button', { name: 'Icône : personnages' })).toHaveText('Person A');
+  await expect(figures.getByRole('button', { name: 'Icône : projecteurs' })).toHaveText('Fresnel');
+  await page.getByRole('button', { name: 'Gérer la bibliothèque' }).click();
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Importer un dossier d’icônes…' }).click();
+  await page.getByRole('button', { name: 'Ajouter un dossier d’icônes…' }).click();
   await (await chooser).setFiles(resolve('e2e/icones-test'));
   await expect(page.getByText(/4 icônes dans la bibliothèque/)).toBeVisible();
-  const figures = page.getByRole('region', { name: 'Figures du plan' });
+  await page.getByRole('button', { name: 'Terminé', exact: true }).click();
   // Caméras du projet : icône « Dolly », qui regarde vers la droite.
   await pick(page, 'Icône : caméras', 'Dolly');
-  await figures.getByRole('radio', { name: '→' }).click();
+  await figures.getByRole('radiogroup', { name: 'Sens de l’image : caméras' }).getByRole('radio', { name: '→' }).click();
   // Personnages du projet : « Accessoires ».
   await pick(page, 'Icône : personnages', 'Accessoires');
   const canvas = page.getByRole('application', { name: 'Plan au sol' });

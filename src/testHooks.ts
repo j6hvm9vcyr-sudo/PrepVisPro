@@ -94,8 +94,12 @@ export async function install() {
       const b = lib.iconBackend() as unknown as { scan(p: string): Promise<unknown> };
       const picked = await b.scan(path);
       const r = await lib.useIcons.getState().importFolder(picked as never);
-      const items = lib.useIcons.getState().items;
-      return { r, items, url: items[0] ? lib.useIcons.getState().url(items[0]) : null };
+      const all = lib.useIcons.getState().items;
+      // Icônes importées d'un côté, icônes livrées avec l'app de l'autre.
+      const items = all.filter((i) => !i.builtin);
+      const builtin = all.filter((i) => i.builtin);
+      const url = lib.useIcons.getState().url;
+      return { r, items, url: items[0] ? url(items[0]) : null, builtinCount: builtin.length, builtinUrl: builtin[0] ? url(builtin[0]) : null };
     },
     newProjectAt,
     createVersion,

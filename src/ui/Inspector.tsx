@@ -13,6 +13,7 @@ import { replaceCameraSetup } from '../model/ops';
 import { imageStore } from '../platform/images';
 import type { CameraSetup, ImageKind, Plan } from '../model/types';
 import { PlanLinksSection } from './PlanLinks';
+import { CARD_FIELDS, CellEditor, editFromCard, useEditHost, type CardField } from './CellEditor';
 import { verify } from '../model/verify';
 import { IconClose } from './Icons';
 import { Picker } from './Picker';
@@ -227,9 +228,7 @@ function CameraList({ plan }: { plan: Plan }) {
         const ratio = parseAspectRatio(doc.meta.aspectRatio);
         const a = fieldOfView(cam, c.start.focalMm, ratio).horizontal;
         const b = c.end && c.end.focalMm !== c.start.focalMm ? fieldOfView(cam, c.end.focalMm, ratio).horizontal : null;
-        const summary = [displayText('size', c), displayText('axis', c), displayText('angle', c), displayText('focal', c)].filter(Boolean).join(' · ') || '—';
         const fov = w === null ? 'capteur ?' : c.start.focalMm === null ? null : b !== null ? `${formatDeg(a)} → ${formatDeg(b)}` : formatDeg(a);
-        const second = [fov, displayText('movement', c), displayText('grip', c)].filter(Boolean).join(' · ');
         return (
           <section className="icard camrow" key={c.id} aria-label={`Caméra ${cam?.label ?? '?'}`}>
             <div className="icard-h">
@@ -258,10 +257,14 @@ function CameraList({ plan }: { plan: Plan }) {
                 </button>
               )}
             </div>
-            <span className="sum">{summary}</span>
-            {second && (
-              <span className="fov mono" title="Champ horizontal · mouvement · machinerie">
-                {second}
+            <div className="efields">
+              {CARD_FIELDS.map((f) => (
+                <CardFieldRow key={f} planId={plan.id} setup={c} field={f} />
+              ))}
+            </div>
+            {fov && (
+              <span className="fov mono" title="Champ horizontal">
+                Champ {fov}
               </span>
             )}
             {(diffs.get(c.id) ?? []).map((d) => (
@@ -282,6 +285,29 @@ function CameraList({ plan }: { plan: Plan }) {
         + Caméra
       </button>
     </>
+  );
+}
+
+const FIELD_LABELS: Record<CardField, string> = { size: 'Valeur', axis: 'Axe', angle: 'Angle', focal: 'Focale', movement: 'Mouvement', grip: 'Machinerie' };
+
+/** Un champ de la carte Caméra : cliquer ouvre la même saisie que dans le tableau, ici. */
+function CardFieldRow({ planId, setup, field }: { planId: string; setup: CameraSetup; field: CardField }) {
+  const open = useApp((s) => !!s.editing && s.cursor?.planId === planId && s.cursor.setupId === setup.id && s.cursor.col === field);
+  const here = useEditHost((s) => s.host === 'inspector') && open;
+  const text = displayText(field, setup);
+  return (
+    <div className={`ef${here ? ' editing' : ''}`}>
+      <span className="ef-l">{FIELD_LABELS[field]}</span>
+      {here ? (
+        <span className="ef-v">
+          <CellEditor field={field} />
+        </span>
+      ) : (
+        <button type="button" className={`ef-v${text ? '' : ' empty'}`} aria-label={`${FIELD_LABELS[field]} : ${text || 'vide'}`} onClick={() => editFromCard(planId, setup.id, field)}>
+          {text || '—'}
+        </button>
+      )}
+    </div>
   );
 }
 

@@ -3,7 +3,8 @@
  * jamais dans un fichier projet (envoyer un projet ne transmet pas ces choix).
  *
  * - « Plan suivant » : champs qu'un nouveau plan reprend du précédent ;
- * - abréviations reconnues à la saisie, par terme (« stead » → Steadicam).
+ * - abréviations reconnues à la saisie, par terme (« stead » → Steadicam) ;
+ * - largeur des colonnes et hauteur des rangées du tableau (à l'écran seulement, jamais dans l'export).
  *
  * Jusqu'au format 18, ces deux réglages étaient dans chaque projet : à l'ouverture d'un ancien
  * projet, ils sont repris ici (adoptLegacy) pour que rien ne soit perdu.
@@ -15,18 +16,59 @@ import { norm } from './text';
 
 export const PREFS_VERSION = 1 as const;
 
+/** Colonnes du tableau, dans l'ordre. */
+export const TABLE_COLUMNS = ['code', 'image', 'cam', 'action', 'size', 'axis', 'angle', 'focal', 'movement', 'grip'] as const;
+export type TableColumn = (typeof TABLE_COLUMNS)[number];
+
+/** Largeurs par défaut (px) ; null = l'action prend la place qui reste. */
+export const TABLE_DEFAULT_WIDTHS: Record<TableColumn, number | null> = { code: 64, image: 52, cam: 40, action: null, size: 100, axis: 60, angle: 92, focal: 100, movement: 100, grip: 96 };
+export const TABLE_MIN_WIDTH = 36;
+export const TABLE_MAX_WIDTH = 640;
+export const ROW_MIN_HEIGHT = 32;
+export const ROW_MAX_HEIGHT = 200;
+/** Largeur minimale de l'action quand elle prend la place qui reste. */
+const ACTION_FLEX_MIN = 150;
+
+export interface TableLayout {
+  /** Largeurs choisies à la main (px) ; une colonne absente garde sa largeur par défaut. */
+  widths: Partial<Record<TableColumn, number>>;
+  /** Hauteur minimale des rangées (px) ; null = hauteur par défaut. */
+  rowHeight: number | null;
+}
+
 export interface AppPrefs {
   version: typeof PREFS_VERSION;
   carryOver: Record<CarryField, boolean>;
   aliases: Record<string, string[]>;
+  table: TableLayout;
+}
+
+/** Colonnes de la grille CSS et largeur minimale du tableau. */
+export function tableTemplate(widths: Partial<Record<TableColumn, number>>): { columns: string; minWidth: number } {
+  let min = 0;
+  const parts = TABLE_COLUMNS.map((c) => {
+    const w = widths[c] ?? TABLE_DEFAULT_WIDTHS[c];
+    if (w === null) {
+      min += ACTION_FLEX_MIN;
+      return `minmax(${ACTION_FLEX_MIN}px, 1fr)`;
+    }
+    min += w;
+    return `${w}px`;
+  });
+  return { columns: parts.join(' '), minWidth: min };
 }
 
 const carrySchema = z.object({ size: z.boolean(), axis: z.boolean(), angle: z.boolean(), focal: z.boolean(), movement: z.boolean(), grip: z.boolean() });
 const aliasesSchema = z.record(z.string(), z.array(z.string()));
-const prefsSchema = z.object({ version: z.literal(PREFS_VERSION), carryOver: carrySchema, aliases: aliasesSchema });
+const tableSchema = z.object({
+  widths: z.partialRecord(z.enum(TABLE_COLUMNS), z.number().min(TABLE_MIN_WIDTH).max(TABLE_MAX_WIDTH)),
+  rowHeight: z.number().min(ROW_MIN_HEIGHT).max(ROW_MAX_HEIGHT).nullable(),
+});
+// `table` est apparu après la première version des préférences : absent, il prend sa valeur par défaut.
+const prefsSchema = z.object({ version: z.literal(PREFS_VERSION), carryOver: carrySchema, aliases: aliasesSchema, table: tableSchema.default({ widths: {}, rowHeight: null }) });
 
 export function defaultPrefs(): AppPrefs {
-  return { version: PREFS_VERSION, carryOver: { ...DEFAULT_CARRY }, aliases: structuredClone(TERM_ALIASES) };
+  return { version: PREFS_VERSION, carryOver: { ...DEFAULT_CARRY }, aliases: structuredClone(TERM_ALIASES), table: { widths: {}, rowHeight: null } };
 }
 
 /** Relit le fichier de préférences : refusé en bloc s'il n'est pas valide (jamais à moitié). */
@@ -98,6 +140,7 @@ export function adoptLegacy(prefs: AppPrefs, legacy: LegacyPrefs, first: boolean
       version: PREFS_VERSION,
       carryOver: legacy.carryOver ? { ...legacy.carryOver } : { ...prefs.carryOver },
       aliases: legacy.aliases ? structuredClone(legacy.aliases) : structuredClone(prefs.aliases),
+      table: prefs.table,
     };
     return { prefs: next, changed: JSON.stringify(next) !== JSON.stringify(prefs) };
   }
