@@ -907,3 +907,9 @@ table.modes input:not(.decimal-field input) { border: 1px solid var(--border); b
 .fold-row { display: flex; align-items: center; gap: 6px; }
 .fold-row > .fold-h { flex: 0 1 auto; }
 .fold-row > .fold-h { width: auto; }
+/* Tableau entier visible à 1440 px avec l'arbre et les détails ouverts. */
+.tree { width: 224px; }
+.table-scroll { padding: 12px 12px 0; }
+.grid { min-width: 854px; }
+.grid-cols { grid-template-columns: 64px 52px 40px minmax(150px, 1fr) 100px 60px 92px 100px 100px 96px; }
+.c.code { padding-left: 10px; }
