@@ -18,7 +18,7 @@ export function isMenuShortcut(e: Pick<KeyboardEvent, 'key' | 'code' | 'shiftKey
   const k = e.key.toLowerCase();
   // ⌘, (préférences) et ⇧⌘, (réglages du projet) : la virgule, quelle que soit la disposition du clavier.
   const comma = k === ',' || k === '<' || e.code === 'Comma';
-  return comma || k === 'z' || e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3' || e.code === 'Digit4' || e.code === 'Digit5' || e.code === 'Digit6' || k === 'i' || k === 'enter' || (e.shiftKey && (k === 'c' || k === 'i' || k === 's')) || k === 's' || k === 'o' || k === 'n' || k === 'q' || k === 'e';
+  return comma || k === 'z' || e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3' || e.code === 'Digit4' || e.code === 'Digit5' || e.code === 'Digit6' || e.code === 'Digit7' || k === 'i' || k === 'enter' || (e.shiftKey && (k === 'c' || k === 'i' || k === 's')) || k === 's' || k === 'o' || k === 'n' || k === 'q' || k === 'e';
 }
 
 /** Exécute une commande de menu. Exporté pour les tests. */
@@ -82,6 +82,9 @@ function runMenuCommand(id: string) {
     case 'view_library':
       st.setView('library');
       return;
+    case 'view_notes':
+      st.setView('notes');
+      return;
     case 'view_inspector':
       st.toggleInspector();
       return;
@@ -112,7 +115,7 @@ function runMenuCommand(id: string) {
   }
   if (typing || overlay || st.editing) return;
   // Commandes du découpage invisibles depuis les plans au sol : elles ne s'appliquent pas en aveugle.
-  if ((st.view === 'floor' || st.view === 'shooting' || st.view === 'days' || st.view === 'library') && (id === 'plan_camera' || id === 'plan_up' || id === 'plan_down' || id === 'plan_delete')) {
+  if ((st.view === 'floor' || st.view === 'shooting' || st.view === 'days' || st.view === 'library' || st.view === 'notes') && (id === 'plan_camera' || id === 'plan_up' || id === 'plan_down' || id === 'plan_delete')) {
     st.setMessage('Commande du découpage : passez en vue Tableau (⌘1)', 'warn');
     return;
   }

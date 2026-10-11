@@ -36,12 +36,14 @@ const image = z.object({
   caption: z.string(),
 });
 
+const note = z.object({ id, text: z.string(), createdAt: z.number().int().nonnegative().nullable(), done: z.boolean() });
+
 const plan = z.object({
   id,
   repriseOf: id.nullable(),
   action: z.string(),
   scriptExcerpt: z.string(),
-  notes: z.string(),
+  notes: z.array(note),
   cameras: z.array(cameraSetup).min(1),
   images: z.array(image),
   coverImageId: id.nullable(),
@@ -55,7 +57,7 @@ const sequence = z.object({
   location: z.string(),
   address: z.string(),
   gps: z.object({ lat: z.number().finite().min(-90).max(90), lon: z.number().finite().min(-180).max(180) }).nullable(),
-  comments: z.string(),
+  notes: z.array(note),
   scriptText: z.string(),
   breakdown: z.object({ camera: z.string(), grip: z.string(), lighting: z.string(), other: z.string() }),
   plans: z.array(plan).min(1),
@@ -223,11 +225,15 @@ function checkIntegrity(doc: ProjectDoc): string | null {
   };
   const camIds = new Set(doc.settings.cameras.map((c) => c.id));
   for (const c of doc.settings.cameras) if (dup(c.id)) return `identifiant de caméra en double (${c.id}).`;
+  // Notes : identifiants uniques dans leur séquence ou leur plan.
+  const notesOk = (notes: { id: string }[]) => new Set(notes.map((n) => n.id)).size === notes.length;
   for (const s of doc.sequences) {
     if (dup(s.id)) return `identifiant de séquence en double (${s.id}).`;
+    if (!notesOk(s.notes)) return `note en double dans la séquence ${s.id}.`;
     const planIds = new Set(s.plans.map((p) => p.id));
     for (const p of s.plans) {
       if (dup(p.id)) return `identifiant de plan en double (${p.id}).`;
+      if (!notesOk(p.notes)) return `note en double dans le plan ${p.id}.`;
       if (p.repriseOf && !planIds.has(p.repriseOf)) return `la reprise ${p.id} renvoie à un plan absent de sa séquence.`;
       const imgIds = new Set<string>();
       for (const i of p.images) {

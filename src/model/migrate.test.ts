@@ -51,6 +51,39 @@ describe('mise à niveau des fichiers', () => {
     // Le projet d'origine n'est pas modifié.
     expect(v18.settings.carryOver).toEqual(carryOver);
   });
+  it('format 19 → 20 : « Divers » d’un plan et « Commentaires » d’une séquence deviennent des notes (sans date, non cochées)', () => {
+    const cur = sampleProjectMultiCam();
+    const v19 = JSON.parse(
+      JSON.stringify({
+        ...cur,
+        schemaVersion: 19,
+        sequences: cur.sequences.map(({ notes: _n, ...s }, i) => {
+          // Même ordre de clés qu'en format 19 : les commentaires étaient après la position GPS.
+          const out: Record<string, unknown> = {};
+          for (const [k, v] of Object.entries(s)) {
+            out[k] = k === 'plans' ? (v as typeof s.plans).map((p, j) => ({ ...p, notes: i === 0 && j === 1 ? 'Zoom au moteur' : '' })) : v;
+            if (k === 'gps') out.comments = i === 0 ? 'Lumière rasante' : '';
+          }
+          return out;
+        }),
+      }),
+    );
+    const m = migrate(v19);
+    expect(m.ok).toBe(true);
+    if (!m.ok) return;
+    const r = validateProject(m.raw);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const s0 = r.doc.sequences[0]!;
+    expect(s0.notes).toEqual([{ id: `${s0.id}-n1`, text: 'Lumière rasante', createdAt: null, done: false }]);
+    expect(s0.plans[1]!.notes).toEqual([{ id: `${s0.plans[1]!.id}-n1`, text: 'Zoom au moteur', createdAt: null, done: false }]);
+    expect(s0.plans[0]!.notes).toEqual([]);
+    expect(r.doc.sequences[1]!.notes).toEqual([]);
+    // Les notes prennent la place des commentaires (même ordre de clés que le format courant).
+    const ref = newProject('X').sequences[0]!;
+    expect(Object.keys(s0)).toEqual(Object.keys(ref));
+    expect(Object.keys(s0.plans[0]!)).toEqual(Object.keys(ref.plans[0]!));
+  });
   it('format 16 → 17 : modèles d’export et icônes des figures dans le projet (aucun)', () => {
     const cur = newProject('X');
     const { exportPresets: _e, floorIcons: _f, ...old } = cur.settings;

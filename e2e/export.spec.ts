@@ -30,7 +30,7 @@ test('modèle personnalisé : colonnes, ordre, enregistrement', async ({ page })
   await page.getByRole('button', { name: 'Exporter…' }).click();
   const dlg = page.getByRole('dialog', { name: 'Exporter' });
   await dlg.getByRole('radio', { name: 'Version réalisation' }).click();
-  await dlg.getByLabel('Divers').check();
+  await dlg.getByLabel('Notes', { exact: true }).check();
   await expect(dlg.getByText('Personnalisé (non enregistré)')).toBeVisible();
   await dlg.getByRole('button', { name: 'Enregistrer comme modèle…' }).click();
   await dlg.getByLabel('Nom du modèle').fill('Réal + divers');

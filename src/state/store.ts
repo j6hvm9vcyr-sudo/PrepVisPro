@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import * as notesOps from '../model/notes';
+import type { NoteOwner } from '../model/notes';
 import type { Id, ImageKind, ProjectDoc, Sequence } from '../model/types';
 import { computeNumbers } from '../model/numbering';
 import { missingFields } from '../model/completeness';
@@ -46,7 +48,7 @@ export interface AppState {
   /** Début d'une sélection de plusieurs cellules (⇧ + flèches, ⇧ + clic). */
   anchor: Cursor | null;
   editing: EditState | null;
-  view: 'table' | 'cards' | 'floor' | 'shooting' | 'days' | 'library';
+  view: 'table' | 'cards' | 'notes' | 'floor' | 'shooting' | 'days' | 'library';
   inspector: boolean;
   collapsed: Record<Id, boolean>;
   onlyIncomplete: boolean;
@@ -248,7 +250,11 @@ interface Actions {
   movePlan(delta: -1 | 1): void;
   addCamera(planId: Id): void;
   removeCamera(planId: Id, setupId: Id): void;
-  setPlanText(planId: Id, field: 'scriptExcerpt' | 'notes' | 'action', value: string): void;
+  setPlanText(planId: Id, field: 'scriptExcerpt' | 'action', value: string): void;
+  /** Notes datées d'une séquence ou d'un plan. */
+  addNote(owner: NoteOwner, text: string): Id | null;
+  updateNote(owner: NoteOwner, noteId: Id, patch: { text?: string; done?: boolean }): void;
+  removeNote(owner: NoteOwner, noteId: Id): void;
   addImages(planId: Id, kind: ImageKind, files: File[]): Promise<void>;
   removeImage(planId: Id, imageId: Id): void;
   setImageKind(planId: Id, imageId: Id, kind: ImageKind): void;
@@ -277,7 +283,7 @@ interface Actions {
   /** Sélectionne un plan (arbre du film, À vérifier) : déplie sa séquence et lève le filtre s'il le cache. */
   goToPlan(planId: Id): void;
   toggleOnlyIncomplete(): void;
-  setView(v: 'table' | 'cards' | 'floor' | 'shooting' | 'days' | 'library'): void;
+  setView(v: 'table' | 'cards' | 'notes' | 'floor' | 'shooting' | 'days' | 'library'): void;
   /** Enregistre une nouvelle version du document (plan au sol…), annulable. */
   applyDoc(next: ProjectDoc, message?: string, mergeKey?: string): void;
   toggleInspector(): void;
@@ -654,6 +660,23 @@ export function createAppStore(doc: ProjectDoc) {
         if (next === doc) return;
         const p = ops.locatePlan(next, planId)!.plan;
         commit(next, { planId, setupId: p.cameras[0]!.id, col: cur()?.col ?? 'size' }, 'Caméra retirée du plan');
+      },
+
+      addNote(owner, text) {
+        const r = notesOps.addNote(docNow(), owner, text, Date.now());
+        if (r.id) commit(r.doc, cur());
+        return r.id;
+      },
+
+      updateNote(owner, noteId, patch) {
+        // Frappe dans une note : une seule étape d'annulation par note.
+        const next = notesOps.updateNote(docNow(), owner, noteId, patch);
+        if (next !== docNow()) commit(next, cur(), undefined, patch.text !== undefined ? `note:${noteId}` : undefined);
+      },
+
+      removeNote(owner, noteId) {
+        const next = notesOps.removeNote(docNow(), owner, noteId);
+        if (next !== docNow()) commit(next, cur(), 'Note retirée');
       },
 
       setPlanText(planId, field, value) {

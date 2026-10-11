@@ -87,11 +87,11 @@ test('À vérifier : filtre des plans à compléter, accès direct, et repli de 
   await expect(panel.getByRole('button', { name: '4/1' })).toBeVisible();
   await panel.getByRole('button', { name: /^3\/1 · / }).click();
   await expect(page.locator('.line.sel .c.code b')).toHaveText('3/1');
-  await page.getByRole('button', { name: /^Filtrer/ }).click();
+  await page.getByRole('button', { name: /^Afficher/ }).click();
   await page.getByRole('menuitemcheckbox', { name: 'Plans à compléter' }).click();
   await expect(page.locator('.line.first')).toHaveCount(2);
   await page.screenshot({ path: 'test-results/04-filtre.png' });
-  await page.getByRole('button', { name: /^Filtrer/ }).click();
+  await page.getByRole('button', { name: /^Afficher/ }).click();
   await page.getByRole('menuitemcheckbox', { name: 'Plans à compléter' }).click();
   await page.getByRole('button', { name: 'Replier la séquence 1' }).click();
   await expect(page.locator('.line.first')).toHaveCount(4);

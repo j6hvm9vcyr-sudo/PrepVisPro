@@ -18,7 +18,7 @@ describe('PDF', () => {
   it('produit un PDF valide pour chaque modèle, y compris un long projet', async () => {
     const d = produce(sampleProject(), (x) => {
       x.sequences[0]!.plans[0]!.images.push({ id: 'i', kind: 'scouting', file: 'images/a.png', originalName: '', caption: '' });
-      x.sequences[0]!.comments = 'Commentaire de séquence — « guillemets », œ, →.';
+      x.sequences[0]!.notes = [{ id: 'n', text: 'Commentaire de séquence — « guillemets », œ, →.', createdAt: null, done: false }];
       x.sequences[0]!.address = "93 Rue Villiers de l'Isle Adam 75020";
       x.sequences[0]!.shooting = { installations: [{ id: 'i1', name: 'Champ 1', note: 'Contre-jour, réflecteur', planIds: x.sequences[0]!.plans.slice(0, 2).map((p) => p.id) }] };
       x.meta.crew.push({ id: 'c', role: 'Chef opérateur', name: 'A. R.' });

@@ -35,6 +35,7 @@ export function migrate(raw: unknown): MigrateResult {
   if (v <= 16) doc = from16to17(doc);
   if (v <= 17) doc = from17to18(doc);
   if (v <= 18) doc = from18to19(doc);
+  if (v <= 19) doc = from19to20(doc);
   return { ok: true, raw: doc };
 }
 
@@ -258,4 +259,28 @@ function from18to19(doc: Record<string, unknown>): Record<string, unknown> {
   const settings = doc.settings && typeof doc.settings === 'object' ? (doc.settings as Record<string, unknown>) : {};
   const { carryOver: _c, aliases: _a, ...rest } = settings;
   return { ...doc, schemaVersion: 19, settings: rest };
+}
+
+/**
+ * Format 19 → 20 : notes datées, plusieurs par séquence et par plan. Le texte « Divers » d'un plan
+ * et les « Commentaires » d'une séquence deviennent chacun une note, sans date (inconnue), non cochée.
+ */
+function from19to20(doc: Record<string, unknown>): Record<string, unknown> {
+  const notesOf = (text: unknown, ownerId: unknown) => (typeof text === 'string' && text.trim() ? [{ id: `${String(ownerId)}-n1`, text, createdAt: null, done: false }] : []);
+  const seqs = Array.isArray(doc.sequences) ? doc.sequences : [];
+  return {
+    ...doc,
+    schemaVersion: 20,
+    sequences: seqs.map((s) => {
+      if (!s || typeof s !== 'object') return s;
+      // Même ordre de clés que defaults.ts : les notes prennent la place des commentaires.
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(s as Record<string, unknown>)) {
+        if (k === 'comments') out.notes = notesOf(v, (s as { id?: unknown }).id);
+        else if (k === 'plans' && Array.isArray(v)) out.plans = v.map((p) => (p && typeof p === 'object' ? { ...(p as object), notes: notesOf((p as { notes?: unknown }).notes, (p as { id?: unknown }).id) } : p));
+        else out[k] = v;
+      }
+      return out;
+    }),
+  };
 }

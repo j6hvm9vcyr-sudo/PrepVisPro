@@ -45,6 +45,10 @@ test('audit', async ({ page }) => {
   await page.getByRole('dialog', { name: /Séquence/ }).getByRole('button', { name: 'Terminé' }).click();
   await page.keyboard.press('ControlOrMeta+2');
   await shot(page, '09-fiches');
+  await page.keyboard.press('ControlOrMeta+7');
+  await shot(page, '09b-notes');
+  await page.getByRole('button', { name: 'Toutes' }).click();
+  await shot(page, '09c-notes-toutes');
   // Réglages
   await page.getByRole('button', { name: 'Réglages' }).click();
   for (const tab of ['Projet', 'Caméras', 'Optiques', 'Listes de termes', 'Saisie des plans', 'Matériel']) {

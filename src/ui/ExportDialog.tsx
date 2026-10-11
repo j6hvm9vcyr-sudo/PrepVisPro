@@ -213,7 +213,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
               )}
               <label className="check">
                 <input type="checkbox" checked={opts.sequenceComments} onChange={(e) => set({ sequenceComments: e.target.checked })} />
-                Commentaires de séquence
+                Notes de séquence
               </label>
               <label className="check">
                 <input type="checkbox" checked={opts.breakdown} onChange={(e) => set({ breakdown: e.target.checked })} />

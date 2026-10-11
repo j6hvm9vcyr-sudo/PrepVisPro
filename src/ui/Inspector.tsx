@@ -13,6 +13,7 @@ import { replaceCameraSetup } from '../model/ops';
 import { imageStore } from '../platform/images';
 import type { CameraSetup, ImageKind, Plan } from '../model/types';
 import { PlanLinksSection } from './PlanLinks';
+import { NotesList } from './Notes';
 import { CARD_FIELDS, CellEditor, editFromCard, useEditHost, type CardField } from './CellEditor';
 import { verify } from '../model/verify';
 import { IconClose } from './Icons';
@@ -58,10 +59,10 @@ export function Inspector() {
 
         <ImageSection plan={plan} />
 
-        <label className="icard">
+        <section className="icard" aria-label="Notes du plan">
           <span className="icard-h">Notes</span>
-          <textarea className="area" rows={2} value={plan.notes} placeholder="—" onChange={(e) => st().setPlanText(plan.id, 'notes', e.target.value)} />
-        </label>
+          <NotesList owner={{ planId: plan.id }} notes={plan.notes} addLabel="Nouvelle note du plan" />
+        </section>
 
         <PlanLinksSection planId={plan.id} />
       </div>

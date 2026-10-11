@@ -13,7 +13,7 @@ const PNG = Uint8Array.from(Buffer.from(PNG_160x90_B64, 'base64'));
 function docWithImage() {
   return produce(sampleProject(), (d) => {
     d.sequences[0]!.plans[0]!.images.push({ id: 'i1', kind: 'scouting', file: 'images/a.png', originalName: 'a.png', caption: '' });
-    d.sequences[0]!.comments = 'Lumière du matin, rasante.';
+    d.sequences[0]!.notes = [{ id: 'n', text: 'Lumière du matin, rasante.', createdAt: null, done: false }];
     d.sequences[0]!.breakdown.lighting = 'Soleil rasant, réflecteur';
     d.meta.director = 'V. N.';
     d.meta.crew.push({ id: 'c', role: 'Chef opérateur', name: 'A. R.' });

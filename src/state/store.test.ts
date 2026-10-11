@@ -132,11 +132,31 @@ describe('flux de saisie au clavier', () => {
   it('le texte libre tapé d’affilée ne crée qu’une étape d’annulation', () => {
     const { st } = setup();
     const pid = selectCursor(st())!.planId;
-    st().setPlanText(pid, 'notes', 'a');
-    st().setPlanText(pid, 'notes', 'ab');
-    st().setPlanText(pid, 'notes', 'abc');
+    const before = locatePlan(selectDoc(st()), pid)!.plan.scriptExcerpt;
+    st().setPlanText(pid, 'scriptExcerpt', 'a');
+    st().setPlanText(pid, 'scriptExcerpt', 'ab');
+    st().setPlanText(pid, 'scriptExcerpt', 'abc');
     st().undo();
-    expect(locatePlan(selectDoc(st()), pid)!.plan.notes).toBe('');
+    expect(locatePlan(selectDoc(st()), pid)!.plan.scriptExcerpt).toBe(before);
+  });
+
+  it('notes : une note prise, frappée d’affilée, cochée, retirée ; chaque geste s’annule', () => {
+    const { st } = setup();
+    const pid = selectCursor(st())!.planId;
+    const owner = { planId: pid };
+    const id = st().addNote(owner, 'Zoom')!;
+    const note = () => locatePlan(selectDoc(st()), pid)!.plan.notes.find((n) => n.id === id);
+    st().updateNote(owner, id, { text: 'Zoom a' });
+    st().updateNote(owner, id, { text: 'Zoom au' });
+    st().updateNote(owner, id, { done: true });
+    expect(note()).toMatchObject({ text: 'Zoom au', done: true });
+    st().undo();
+    expect(note()).toMatchObject({ text: 'Zoom au', done: false });
+    st().undo();
+    expect(note()!.text).toBe('Zoom');
+    st().removeNote(owner, id);
+    expect(note()).toBeUndefined();
+    expect(st().addNote(owner, '   ')).toBeNull();
   });
 });
 

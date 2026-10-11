@@ -55,13 +55,23 @@ export interface ImageAsset {
   caption: string;
 }
 
+/** Note datée, rattachée à une séquence ou à un plan ; cochée quand c'est fait. */
+export interface Note {
+  id: Id;
+  text: string;
+  /** Date de création (ms depuis 1970) ; null pour une note reprise d'avant la 0.13 (date inconnue). */
+  createdAt: number | null;
+  done: boolean;
+}
+
 export interface Plan {
   id: Id;
   /** Plan dont celui-ci est la reprise (4/2B est une reprise de 4/2). */
   repriseOf: Id | null;
   action: string;
   scriptExcerpt: string;
-  notes: string;
+  /** Notes du plan, dans l'ordre où elles ont été prises (colonne « Divers » des exports). */
+  notes: Note[];
   /** Au moins une caméra. */
   cameras: CameraSetup[];
   images: ImageAsset[];
@@ -80,7 +90,8 @@ export interface Sequence {
   address: string;
   /** Position GPS du décor (pour le soleil) ; null si non renseignée. */
   gps: { lat: number; lon: number } | null;
-  comments: string;
+  /** Notes de la séquence (« Commentaires » des exports). */
+  notes: Note[];
   /** Texte de la scène, importé du scénario (vide si saisi à la main). */
   scriptText: string;
   /** Dépouillement image : besoins particuliers de la séquence, par département. */
@@ -248,7 +259,7 @@ interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 19 as const;
+export const SCHEMA_VERSION = 20 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;

@@ -4,6 +4,7 @@
  * Les plans sont suivis par leur identifiant : un plan renuméroté reste « le même plan ».
  */
 import type { CameraSetup, Plan, ProjectDoc, Sequence } from './types';
+import { notesText } from './notes';
 import { computeNumbers } from './numbering';
 import { displayText } from './entry';
 import { sequenceTitle } from '../ui/strip';
@@ -52,14 +53,14 @@ function setupText(doc: ProjectDoc, s: CameraSetup, multi: boolean): Record<stri
 
 function planFields(doc: ProjectDoc, p: Plan): Record<string, string> {
   const multi = p.cameras.length > 1;
-  const out: Record<string, string> = { Action: p.action, Scénario: p.scriptExcerpt, Divers: p.notes, Caméras: p.cameras.map((c) => doc.settings.cameras.find((k) => k.id === c.cameraId)?.label ?? '?').join(' + ') };
+  const out: Record<string, string> = { Action: p.action, Scénario: p.scriptExcerpt, Notes: notesText(p.notes), Caméras: p.cameras.map((c) => doc.settings.cameras.find((k) => k.id === c.cameraId)?.label ?? '?').join(' + ') };
   for (const s of p.cameras) Object.assign(out, setupText(doc, s, multi));
   out.Images = String(p.images.length);
   return out;
 }
 
 function seqFields(s: Sequence): Record<string, string> {
-  return { Numéro: s.number, 'INT/EXT': s.intExt, Effet: s.dayNight, Décor: s.location, Adresse: s.address, 'Position GPS': s.gps ? `${s.gps.lat.toFixed(5)}, ${s.gps.lon.toFixed(5)}` : '', Commentaires: s.comments };
+  return { Numéro: s.number, 'INT/EXT': s.intExt, Effet: s.dayNight, Décor: s.location, Adresse: s.address, 'Position GPS': s.gps ? `${s.gps.lat.toFixed(5)}, ${s.gps.lon.toFixed(5)}` : '', Notes: notesText(s.notes) };
 }
 
 function changesOf(a: Record<string, string>, b: Record<string, string>): FieldChange[] {

@@ -17,7 +17,7 @@ export const useLive = create<{ widths: Partial<Record<TableColumn, number>>; ro
 export function useTableLayout() {
   const saved = usePrefs((s) => s.prefs.table);
   const live = useLive();
-  return { widths: { ...saved.widths, ...live.widths }, rowHeight: live.rowHeight ?? saved.rowHeight };
+  return { widths: { ...saved.widths, ...live.widths }, rowHeight: live.rowHeight ?? saved.rowHeight, showNotes: saved.showNotes };
 }
 
 function saveWidth(col: TableColumn, w: number | null) {

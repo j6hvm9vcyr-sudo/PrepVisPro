@@ -20,7 +20,7 @@ export function plan(camId: string, partial: Partial<Plan> = {}): Plan {
     repriseOf: null,
     action: '',
     scriptExcerpt: '',
-    notes: '',
+    notes: [],
     cameras: [setup(camId)],
     images: [],
     coverImageId: null,
@@ -29,7 +29,7 @@ export function plan(camId: string, partial: Partial<Plan> = {}): Plan {
 }
 
 export function seq(number: string, plans: Plan[], partial: Partial<Sequence> = {}): Sequence {
-  return { id: uid('s'), number, intExt: 'INT', dayNight: 'JOUR', location: '', address: '', gps: null, comments: '', scriptText: '', breakdown: { camera: '', grip: '', lighting: '', other: '' }, plans, shooting: null, ...partial };
+  return { id: uid('s'), number, intExt: 'INT', dayNight: 'JOUR', location: '', address: '', gps: null, notes: [], scriptText: '', breakdown: { camera: '', grip: '', lighting: '', other: '' }, plans, shooting: null, ...partial };
 }
 
 export function doc(build: (camId: string) => Sequence[]): ProjectDoc {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { NotesList } from './Notes';
 import { APP_VERSION } from '../version';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
@@ -49,7 +50,7 @@ const SHORTCUTS: { title: string; items: [string, string][] }[] = [
       ['Premier / dernier plan', '⌘↑ / ⌘↓'],
       ['Début / fin de ligne', '⌘← / ⌘→'],
       ['Sélectionner plusieurs cellules', '⇧ + flèches, ⇧ + clic'],
-      ['Découpage : Tableau / Fiches / Images', '⌘1 / ⌘2 / ⌘6'],
+      ['Découpage : Tableau / Fiches / Notes / Images', '⌘1 / ⌘2 / ⌘7 / ⌘6'],
       ['Plans au sol', '⌘3'],
       ['Tournage : Jours / Installations', '⌘5 / ⌘4'],
       ['Afficher / masquer Détails', '⌘I'],
@@ -329,10 +330,10 @@ export function SequenceDialog() {
             </button>
           );
         })()}
-        <label className="field">
-          Commentaires
-          <textarea rows={2} value={seq.comments} onChange={(e) => upd('com', (s) => void (s.comments = e.target.value))} />
-        </label>
+        <section className="field" aria-label="Notes de la séquence">
+          Notes
+          <NotesList owner={{ seqId: seq.id }} notes={seq.notes} addLabel="Nouvelle note de la séquence" />
+        </section>
         <div className="sec">
           <div className="sec-h">Dépouillement image</div>
           <p className="note" style={{ margin: 0 }}>

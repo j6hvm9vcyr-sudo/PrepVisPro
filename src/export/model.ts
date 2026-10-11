@@ -3,6 +3,7 @@
  * l'Excel et le CSV. Ainsi, les trois formats disent exactement la même chose.
  */
 import type { Id, Plan, ProjectDoc, Sequence } from '../model/types';
+import { notesText } from '../model/notes';
 import { computeNumbers } from '../model/numbering';
 import { displayText } from '../model/entry';
 import { coverImage } from '../model/images';
@@ -40,7 +41,7 @@ export const COLUMN_DEFS: Record<ColumnId, ColumnDef> = {
   focal: { id: 'focal', label: 'Focale', weight: 0.95, xlsWidth: 12, perCamera: true },
   movement: { id: 'movement', label: 'Mouvement', weight: 1.25, xlsWidth: 18, perCamera: true },
   grip: { id: 'grip', label: 'Machinerie', weight: 1.15, xlsWidth: 16, perCamera: true },
-  notes: { id: 'notes', label: 'Divers', weight: 1.6, xlsWidth: 26, perCamera: false },
+  notes: { id: 'notes', label: 'Notes', weight: 1.6, xlsWidth: 26, perCamera: false },
 };
 
 export const ALL_COLUMNS: ColumnId[] = ['global', 'code', 'image', 'action', 'script', 'size', 'axis', 'angle', 'focal', 'movement', 'grip', 'notes'];
@@ -234,7 +235,7 @@ function planRow(p: Plan, doc: ProjectDoc, n: { global: number; code: string; re
     isReprise: n.repriseLetter !== '',
     action: p.action,
     script: p.scriptExcerpt,
-    notes: p.notes,
+    notes: notesText(p.notes),
     imageFile: cover?.file ?? null,
     missing: missingFields(p, doc.settings),
     cameras: p.cameras.map((c) => ({
@@ -269,7 +270,7 @@ export function buildExportModel(doc: ProjectDoc, opts: Pick<ExportOptions, 'seq
       title: sequenceTitle(s),
       location: s.location,
       address: s.address,
-      comments: s.comments,
+      comments: notesText(s.notes),
       strip: stripColors(s),
       tint: effectTint(s),
       heading: `SÉQUENCE ${s.number || '?'} - ${s.intExt}. ${(s.location || 'Décor à préciser').toUpperCase()} - ${s.dayNight}.`,

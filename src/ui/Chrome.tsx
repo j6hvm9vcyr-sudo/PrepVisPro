@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { updatePrefs, usePrefs } from '../state/prefs';
 import { useApp } from '../state/appStore';
 import { rangeOf, selectCursor, selectDoc } from '../state/store';
 import { computeNumbers } from '../model/numbering';
@@ -107,7 +108,7 @@ export function ProjectHead() {
   );
 }
 
-/** Petit menu déroulant de la barre des vues (« Filtrer ▾ »). */
+/** Petit menu déroulant de la barre des vues (« Afficher ▾ »). */
 export function BarMenu({ label, active, className = 'tool-b', title, children }: { label: string; active?: boolean; className?: string; title?: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -144,6 +145,7 @@ export function SpaceBar({ left, children, views = true }: { left?: ReactNode; c
   const view = useApp((s) => s.view);
   const inspector = useApp((s) => s.inspector);
   const onlyIncomplete = useApp((s) => s.onlyIncomplete);
+  const showNotes = usePrefs((s) => s.prefs.table.showNotes);
   const sp = SPACES.find((x) => x.id === SPACE_OF[view])!;
   const st = useApp.getState;
   const decoupage = view === 'table' || view === 'cards';
@@ -162,7 +164,7 @@ export function SpaceBar({ left, children, views = true }: { left?: ReactNode; c
       <span className="spacer" />
       {children}
       {decoupage && (
-        <BarMenu label="Filtrer" active={onlyIncomplete}>
+        <BarMenu label="Afficher" active={onlyIncomplete || showNotes}>
           <button
             type="button"
             role="menuitemcheckbox"
@@ -177,6 +179,20 @@ export function SpaceBar({ left, children, views = true }: { left?: ReactNode; c
             </span>
             Plans à compléter
           </button>
+          {view === 'table' && (
+            <button type="button" role="menuitemcheckbox" aria-checked={showNotes} onClick={() => {
+                const show = !showNotes;
+                updatePrefs((d) => void (d.table.showNotes = show));
+                // La colonne est la dernière : on la fait voir si le tableau dépasse.
+                if (show) setTimeout(() => document.querySelector('.table-scroll')?.scrollTo({ left: 1e6 }), 0);
+              }}
+            >
+              <span className="check" aria-hidden>
+                {showNotes ? '✓' : ''}
+              </span>
+              Colonne Notes
+            </button>
+          )}
         </BarMenu>
       )}
       {decoupage && !inspector && (

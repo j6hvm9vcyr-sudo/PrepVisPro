@@ -1,5 +1,5 @@
 /** Projet d'exemple (contenu fictif) pour découvrir l'application. */
-import type { CameraSetup, Framing, Plan, ProjectDoc, Sequence } from './types';
+import type { CameraSetup, Framing, Note, Plan, ProjectDoc, Sequence } from './types';
 import { defaultSettings, newId } from './defaults';
 import { addCameraToPlan } from './ops';
 import { SCHEMA_VERSION } from './types';
@@ -30,17 +30,19 @@ export function sampleProject(): ProjectDoc {
     movements,
     grip,
   });
-  const p = (action: string, scriptExcerpt: string, cameras: CameraSetup[], repriseOf: string | null = null): Plan => ({
+  const now = Date.now();
+  const n = (text: string, done = false, daysAgo = 0): Note => ({ id: newId('nt'), text, createdAt: now - daysAgo * 86_400_000, done });
+  const p = (action: string, scriptExcerpt: string, cameras: CameraSetup[], repriseOf: string | null = null, notes: Note[] = []): Plan => ({
     id: newId('pl'),
     repriseOf,
     action,
     scriptExcerpt,
-    notes: '',
+    notes,
     cameras,
     images: [],
     coverImageId: null,
   });
-  const s = (number: string, intExt: Sequence['intExt'], dayNight: Sequence['dayNight'], location: string, plans: Plan[]): Sequence => ({
+  const s = (number: string, intExt: Sequence['intExt'], dayNight: Sequence['dayNight'], location: string, plans: Plan[], notes: Note[] = []): Sequence => ({
     id: newId('sq'),
     number,
     intExt,
@@ -48,14 +50,14 @@ export function sampleProject(): ProjectDoc {
     location,
     address: '',
     gps: null,
-    comments: '',
+    notes,
     scriptText: '',
     breakdown: { camera: '', grip: '', lighting: '', other: '' },
     shooting: null,
     plans,
   });
 
-  const quai = p('Elle attend sur le quai, le train arrive.', 'LÉA (30) attend, seule sur le quai.', [cs(f('Ensemble', 'Face', 'À niveau', null, 32), ['Fixe'], ['Branches'])]);
+  const quai = p('Elle attend sur le quai, le train arrive.', 'LÉA (30) attend, seule sur le quai.', [cs(f('Ensemble', 'Face', 'À niveau', null, 32), ['Fixe'], ['Branches'])], null, [n('Autorisation de tournage en gare reçue', true, 3)]);
   const regard = p('Elle cherche quelqu’un du regard.', 'Elle scrute les fenêtres du train.', [cs(f('Poitrine', '3/4', 'À niveau', null, 75), ['Fixe'], ['Branches'])]);
 
   return {
@@ -69,9 +71,9 @@ export function sampleProject(): ProjectDoc {
         regard,
         p('Le train entre en gare, crash zoom sur la porte.', 'Le train s’immobilise.', [
           cs(f('Général', 'Profil', 'À niveau', null, 75), ['Pan', 'Fixe'], ['Branches'], f('Poitrine', 'Profil', 'À niveau', null, 300)),
-        ]),
+        ], null, [n('Essayer la vitesse du zoom au moteur', false, 1)]),
         p('Elle cherche quelqu’un du regard.', 'Elle scrute les fenêtres du train.', [cs(f('Poitrine', '3/4', 'À niveau', null, 75), ['Fixe'], ['Branches'])], regard.id),
-      ]),
+      ], [n('Demander à la gare les horaires des trains', false, 2)]),
       s('2', 'INT', 'JOUR', 'Wagon', [
         p('Travelling latéral le long des sièges vides.', 'Le wagon est presque vide.', [cs(f('Demi-ensemble', 'Profil', 'À niveau', null, 25), ['Trav latéral', 'Fixe'], ['Steadicam'])]),
         p('Il lit, ne la voit pas arriver.', 'MARC (35) lit, absorbé.', [cs(f('Taille', '3/4', 'Plongée', -10, 50), ['Fixe'], ['Épaule'])]),
@@ -101,8 +103,9 @@ export function largeSampleProject(sequences = 30, perSeq = 12): ProjectDoc {
       number: String(i + 1),
       plans: Array.from({ length: perSeq }, (_, k) => {
         const p = proto.plans[k % proto.plans.length]!;
-        return { ...p, id: newId('pl'), repriseOf: null, cameras: p.cameras.map((c) => ({ ...c, id: newId('cs') })) };
+        return { ...p, id: newId('pl'), repriseOf: null, notes: p.notes.map((x) => ({ ...x, id: newId('nt') })), cameras: p.cameras.map((c) => ({ ...c, id: newId('cs') })) };
       }),
+      notes: src.notes.map((x) => ({ ...x, id: newId('nt') })),
     });
   }
   return { ...base, meta: { ...base.meta, title: 'Exemple — grand projet' }, sequences: out };

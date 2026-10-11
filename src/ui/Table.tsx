@@ -1,4 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type MouseEvent as ReactMouseEvent } from 'react';
+import { notesText, openCount } from '../model/notes';
+import { usePrefs } from '../state/prefs';
 import { tableTemplate, type TableColumn } from '../model/prefs';
 import { ColResize, RowResize, useTableLayout } from './tableLayout';
 import { useApp } from '../state/appStore';
@@ -65,7 +67,7 @@ export function DecoupageTable() {
   const states = useMemo(() => verify(doc).states, [doc]);
   // Largeurs des colonnes et hauteur des rangées : préférences de ce Mac (jamais l'export).
   const layout = useTableLayout();
-  const template = tableTemplate(layout.widths);
+  const template = tableTemplate(layout.widths, layout.showNotes);
   const gridStyle = { '--cols': template.columns, minWidth: template.minWidth, ...(layout.rowHeight ? { '--row-h': `${layout.rowHeight}px` } : {}) } as CSSProperties;
   // Écarts avec les plans au sol (valeur, axe) : signalés dans les cases concernées.
   const floorDiffs = useMemo(() => (doc.floorPlans.length ? floorMismatches(doc) : EMPTY_DIFFS), [doc]);
@@ -289,7 +291,7 @@ export function DecoupageTable() {
         onKeyDown={onKeyDown}
       >
         <div className="grid-cols grid-head" role="row">
-          {HEAD.map((h) => (
+          {(layout.showNotes ? [...HEAD, { col: 'notes' as const, label: 'Notes' }] : HEAD).map((h) => (
             <span key={h.col} role="columnheader">
               {h.label}
               <ColResize col={h.col} label={h.label} />
@@ -400,10 +402,13 @@ function SequenceBlock(p: BlockProps) {
             />
           );
         })}
-      {!p.collapsed && seq.comments.trim() && (
+      {!p.collapsed && openCount(seq.notes) > 0 && (
         <div className="seq-comments" role="row">
-          <b>Commentaires : </b>
-          {seq.comments.trim()}
+          <b>Notes : </b>
+          {seq.notes
+            .filter((n) => !n.done && n.text.trim())
+            .map((n) => n.text.trim())
+            .join(' · ')}
         </div>
       )}
     </>
@@ -437,7 +442,33 @@ function floorNoteOf(plan: Plan, diffs: Map<string, FloorMismatch[]>): string {
   return Object.keys(rec).length ? JSON.stringify(rec) : '';
 }
 
+/** Colonne « Notes » : les notes à faire du plan ; un clic ouvre les détails sur ses notes. */
+function NotesCell({ plan, setupId, first }: { plan: Plan; setupId: string; first: boolean }) {
+  if (!first) return <span className="c notes-c" />;
+  const open = notesText(plan.notes, true);
+  const done = plan.notes.length - openCount(plan.notes);
+  const txt = open || (done > 0 ? `✓ ${done} faite${done > 1 ? 's' : ''}` : '');
+  return (
+    <span
+      className={`c notes-c${open ? '' : ' empty'}`}
+      title={notesText(plan.notes) || 'Aucune note : cliquer pour en prendre une'}
+      onMouseDown={(e) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        const st = useApp.getState();
+        if (st.editing) return;
+        st.setCursor({ planId: plan.id, setupId, col: 'action' });
+        if (!st.inspector) st.toggleInspector();
+        setTimeout(() => document.querySelector<HTMLInputElement>('[aria-label="Nouvelle note du plan"]')?.focus(), 0);
+      }}
+    >
+      <span className="txt">{txt || '—'}</span>
+    </span>
+  );
+}
+
 const PlanRows = memo(function PlanRows({ plan, settings, code, global, isReprise, state, activeSetupId, activeCol, editing, sel, floorNote }: RowsProps) {
+  const showNotes = usePrefs((s) => s.prefs.table.showNotes);
   const floor = floorNote ? (JSON.parse(floorNote) as Record<string, FloorMismatch[]>) : null;
   const missing = missingFields(plan, settings);
   const multi = plan.cameras.length > 1;
@@ -598,6 +629,7 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
                 </div>
               );
             })}
+            {showNotes && <NotesCell plan={plan} setupId={setup.id} first={first} />}
           </div>
         );
       })}

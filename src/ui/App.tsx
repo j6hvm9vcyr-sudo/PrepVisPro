@@ -1,4 +1,5 @@
 import { DaysBar, DaysView } from './DaysView';
+import { NotesView } from './NotesView';
 import { useEffect } from 'react';
 import { useApp } from '../state/appStore';
 import { anyOverlay, selectCursor } from '../state/store';
@@ -155,6 +156,11 @@ function useGlobalShortcuts(settingsOpen: boolean) {
         st.setView('library');
         return;
       }
+      if (meta && e.code === 'Digit7') {
+        e.preventDefault();
+        st.setView('notes');
+        return;
+      }
       if (meta && e.key.toLowerCase() === 'i' && !e.shiftKey) {
         e.preventDefault();
         st.toggleInspector();
@@ -168,7 +174,7 @@ function useGlobalShortcuts(settingsOpen: boolean) {
         return;
       }
       // En vue Plans au sol, ces touches agissent sur le plan au sol, jamais sur le découpage caché.
-      if ((st.view === 'floor' || st.view === 'shooting' || st.view === 'days' || st.view === 'library') && (e.key === 'Backspace' || e.altKey || (meta && e.shiftKey))) return;
+      if ((st.view === 'floor' || st.view === 'shooting' || st.view === 'days' || st.view === 'library' || st.view === 'notes') && (e.key === 'Backspace' || e.altKey || (meta && e.shiftKey))) return;
       if (meta && e.key === 'Backspace') {
         e.preventDefault();
         st.deletePlan();
@@ -240,7 +246,7 @@ function chooseInTournage(planId: string) {
   if (seq) useShootingUi.getState().set(seq.id);
 }
 
-const VIEW_LABEL = { floor: 'plans au sol', days: 'jours de tournage', library: 'bibliothèque d’images', shooting: 'installations', table: 'tableau', cards: 'fiches' } as const;
+const VIEW_LABEL = { floor: 'plans au sol', days: 'jours de tournage', library: 'bibliothèque d’images', shooting: 'installations', table: 'tableau', cards: 'fiches', notes: 'notes' } as const;
 
 function Workspace() {
   useWindowTitle();
@@ -294,6 +300,8 @@ function Workspace() {
                   <CardsView />
                 ) : view === 'library' ? (
                   <LibraryView />
+                ) : view === 'notes' ? (
+                  <NotesView />
                 ) : (
                   <div className="space-main">{view === 'days' ? <DaysView /> : <ShootingView />}</div>
                 )}
