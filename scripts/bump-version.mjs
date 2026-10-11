@@ -20,5 +20,5 @@ json('src-tauri/tauri.conf.json', (o) => void (o.version = v));
 const cargo = readFileSync('src-tauri/Cargo.toml', 'utf8');
 writeFileSync('src-tauri/Cargo.toml', cargo.replace(/^version = "[^"]+"/m, `version = "${v}"`));
 const lock = readFileSync('src-tauri/Cargo.lock', 'utf8');
-writeFileSync('src-tauri/Cargo.lock', lock.replace(/(name = "prepvispro"\nversion = ")[^"]+"/, `$1${v}"`));
+writeFileSync('src-tauri/Cargo.lock', lock.replace(/(name = "topshot"\nversion = ")[^"]+"/, `$1${v}"`));
 console.log(`Version ${v}`);

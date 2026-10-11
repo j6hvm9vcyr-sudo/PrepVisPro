@@ -98,7 +98,7 @@ const SHORTCUTS: { title: string; items: [string, string][] }[] = [
       ['Exporter (PDF, Excel, CSV)', '⌘E'],
       ['Importer un scénario', '⇧⌘I'],
       ['Réglages du projet', '⇧⌘,'],
-      ['Préférences de PrepVisPro', '⌘,'],
+      ['Préférences de Topshot', '⌘,'],
     ],
   },
   {
@@ -129,7 +129,7 @@ export function Shortcuts() {
       <div className="dialog" style={{ width: 660 }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3>Raccourcis clavier</h3>
-          <span className="note" style={{ marginLeft: 8 }}>PrepVisPro {APP_VERSION}</span>
+          <span className="note" style={{ marginLeft: 8 }}>Topshot {APP_VERSION}</span>
           <button type="button" className="btn" onClick={close} autoFocus>
             Fermer
           </button>

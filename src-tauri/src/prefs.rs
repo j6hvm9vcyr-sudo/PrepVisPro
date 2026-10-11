@@ -1,4 +1,4 @@
-//! Préférences de l'app (`preferences.json`, dossier de données de PrepVisPro sur ce Mac).
+//! Préférences de l'app (`preferences.json`, dossier de données de Topshot sur ce Mac).
 //! Le contenu est validé côté interface (src/model/prefs.ts) ; ici : lecture, et écriture
 //! atomique (jamais un fichier à moitié écrit).
 

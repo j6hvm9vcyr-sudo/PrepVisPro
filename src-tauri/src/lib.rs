@@ -1,4 +1,4 @@
-//! Enveloppe macOS de PrepVisPro : fenêtre, menus natifs, accès aux fichiers du projet.
+//! Enveloppe macOS de Topshot : fenêtre, menus natifs, accès aux fichiers du projet.
 //! Toute la logique métier vit dans l'interface (TypeScript), testée séparément.
 
 mod icons;
@@ -52,6 +52,14 @@ fn project_load(app: AppHandle, path: String) -> Result<(String, String, String)
     storage::backup_if_due(&dir, true, now_secs())?;
     allow_project_assets(&app, &dir)?;
     Ok((dir.to_string_lossy().into_owned(), json, fp))
+}
+
+/// Ancien projet `.prepvis` : renommé en `.topshot`. Renvoie le nouveau dossier, ou null s'il garde son nom.
+#[tauri::command]
+fn project_rename_legacy(app: AppHandle, dir: String) -> Result<Option<String>, String> {
+    let Some(new) = storage::rename_legacy(Path::new(&dir))? else { return Ok(None) };
+    allow_project_assets(&app, &new)?;
+    Ok(Some(new.to_string_lossy().into_owned()))
 }
 
 /// Enregistre ; `expected` (empreinte, en texte) protège contre l'écrasement d'une version
@@ -294,7 +302,7 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
     let item = |id: &str, label: &str, accel: &str| MenuItemBuilder::with_id(id, label).accelerator(accel).build(app);
     let plain = |id: &str, label: &str| MenuItemBuilder::with_id(id, label).build(app);
 
-    let app_menu = SubmenuBuilder::new(app, "PrepVisPro")
+    let app_menu = SubmenuBuilder::new(app, "Topshot")
         .about(None)
         .separator()
         // Préférences de l'app (sur ce Mac) ; les réglages du projet sont dans Présentation (⇧⌘,).
@@ -307,7 +315,7 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
         .show_all()
         .separator()
         // « Quitter » passe par l'interface pour enregistrer d'abord.
-        .item(&item("app_quit", "Quitter PrepVisPro", "CmdOrCtrl+Q")?)
+        .item(&item("app_quit", "Quitter Topshot", "CmdOrCtrl+Q")?)
         .build()?;
 
     let file_menu = SubmenuBuilder::new(app, "Fichier")
@@ -395,16 +403,16 @@ fn request_quit(app: &AppHandle) {
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![project_create, project_load, project_save, image_write, reveal_in_finder, quit_ack, quit_now, take_pending_open, image_read, export_write, open_file, script_read, project_save_conflict_copy, icons_list, icons_scan, icons_read_source, icons_store, icons_read, icons_remove, kit_read, prefs_read, prefs_write, version_create, version_list, version_read])
+        .invoke_handler(tauri::generate_handler![project_create, project_load, project_rename_legacy, project_save, image_write, reveal_in_finder, quit_ack, quit_now, take_pending_open, image_read, export_write, open_file, script_read, project_save_conflict_copy, icons_list, icons_scan, icons_read_source, icons_store, icons_read, icons_remove, kit_read, prefs_read, prefs_write, version_create, version_list, version_read])
         .setup(|app| {
             build_menu(app)?;
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("Erreur au lancement de PrepVisPro");
+        .expect("Erreur au lancement de Topshot");
 
     app.run(|app, event| match event {
-        // Double-clic sur un projet .prepvis dans le Finder.
+        // Double-clic sur un projet .topshot (ou un ancien .prepvis) dans le Finder.
         #[cfg(any(target_os = "macos", target_os = "ios"))]
         RunEvent::Opened { urls } => {
             let paths: Vec<String> = urls

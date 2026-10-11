@@ -351,7 +351,7 @@ function FloorPages({ title, floors, date }: { title: string; floors: PdfFloorPa
 
 function FloorPlansPdf({ title, director, floors }: { title: string; director: string; floors: PdfFloorPage[] }): ReactElement {
   return (
-    <Document title={`${title} — Plans au sol`} author={director} creator="PrepVisPro" producer="PrepVisPro" language="fr">
+    <Document title={`${title} — Plans au sol`} author={director} creator="Topshot" producer="Topshot" language="fr">
       <FloorPages title={title} floors={floors} date={today()} />
     </Document>
   );
@@ -396,7 +396,7 @@ function PageHead({ text, date }: { text: string; date: string }) {
 function PageFoot() {
   return (
     <View style={s.foot} fixed>
-      <Text>PrepVisPro {APP_VERSION}</Text>
+      <Text>Topshot {APP_VERSION}</Text>
       <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
     </View>
   );
@@ -563,7 +563,7 @@ export function DecoupagePdf({ m, opts, images, floors = [] }: { m: ExportModel;
   const ordered = [...lay.before, ...lay.cams, ...lay.after];
   const date = today();
   return (
-    <Document title={`${m.title} — Découpage technique`} author={m.director} creator="PrepVisPro" producer="PrepVisPro" language="fr">
+    <Document title={`${m.title} — Découpage technique`} author={m.director} creator="Topshot" producer="Topshot" language="fr">
       {opts.coverPage && (
         <Page size="A4" orientation={opts.orientation} style={s.page}>
           <View style={s.cover}>

@@ -1,4 +1,4 @@
-# PrepVisPro
+# Topshot
 
 Application Mac de préparation image pour chef opérateur. Le découpage technique, les plans au sol, les plans feux, le soleil et les jours de tournage tiennent dans un seul projet : chaque information est saisie une fois, et tous les documents (PDF, Excel, CSV) en découlent.
 
@@ -19,11 +19,11 @@ Aucune valeur n'est inventée : sans donnée fiable (fiche fabricant, capteur, �
 
 ## Installer (Mac Apple Silicon, macOS 13 ou plus récent)
 
-1. Onglet **Actions** du dépôt, dernier passage vert de **CI**, section *Artifacts* : télécharger **PrepVisPro-mac-v…**.
-2. Ouvrir le `.dmg` et glisser PrepVisPro dans Applications.
-3. L'application n'est pas signée par Apple. Au premier lancement : clic droit › **Ouvrir** › **Ouvrir**. Si macOS la dit « endommagée » : `xattr -cr /Applications/PrepVisPro.app` dans le Terminal.
+1. Onglet **Actions** du dépôt, dernier passage vert de **CI**, section *Artifacts* : télécharger **Topshot-mac-v…**.
+2. Ouvrir le `.dmg` et glisser Topshot dans Applications.
+3. L'application n'est pas signée par Apple. Au premier lancement : clic droit › **Ouvrir** › **Ouvrir**. Si macOS la dit « endommagée » : `xattr -cr /Applications/Topshot.app` dans le Terminal.
 
-Les projets sont des dossiers `Nom.prepvis` enregistrés automatiquement, avec copies de sauvegarde et versions.
+Les projets sont des dossiers `Nom.topshot` enregistrés automatiquement, avec copies de sauvegarde et versions. Topshot s'appelait PrepVisPro jusqu'à la 0.11 : un ancien projet `Nom.prepvis` s'ouvre et devient `Nom.topshot` (rien n'est écrasé).
 
 ## Développement
 

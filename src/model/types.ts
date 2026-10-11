@@ -1,5 +1,5 @@
 /**
- * Modèle de données de PrepVisPro.
+ * Modèle de données de Topshot.
  *
  * Principe : une seule source de vérité. Tout ce qui peut être calculé
  * (numéros de plan, complétude, angle de champ…) n'est PAS stocké.

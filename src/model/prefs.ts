@@ -74,7 +74,7 @@ export function defaultPrefs(): AppPrefs {
 /** Relit le fichier de préférences : refusé en bloc s'il n'est pas valide (jamais à moitié). */
 export function parsePrefs(raw: unknown): { ok: true; prefs: AppPrefs } | { ok: false; error: string } {
   const v = raw && typeof raw === 'object' ? (raw as { version?: unknown }).version : undefined;
-  if (typeof v === 'number' && v > PREFS_VERSION) return { ok: false, error: 'préférences écrites par une version plus récente de PrepVisPro' };
+  if (typeof v === 'number' && v > PREFS_VERSION) return { ok: false, error: 'préférences écrites par une version plus récente de Topshot' };
   const r = prefsSchema.safeParse(raw);
   if (!r.success) {
     const first = r.error.issues[0];

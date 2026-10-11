@@ -224,7 +224,7 @@ function useWindowTitle() {
   const title = useApp((s) => s.hist.present.doc.meta.title);
   const mode = useProject((s) => s.mode);
   useEffect(() => {
-    const t = `${title || 'Sans titre'}${mode === 'unsaved' ? ' (non enregistré)' : ''} — PrepVisPro`;
+    const t = `${title || 'Sans titre'}${mode === 'unsaved' ? ' (non enregistré)' : ''} — Topshot`;
     document.title = t;
     if (isTauri()) {
       void import('@tauri-apps/api/window').then(({ getCurrentWindow }) => getCurrentWindow().setTitle(t)).catch(() => {});

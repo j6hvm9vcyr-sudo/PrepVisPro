@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('accueil : ouvrir l’exemple, puis le projet indique qu’il n’est pas enregistré', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'PrepVisPro' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Topshot' })).toBeVisible();
   await page.screenshot({ path: 'test-results/00-accueil.png' });
   await page.getByRole('button', { name: 'Ouvrir l’exemple' }).click();
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeVisible();

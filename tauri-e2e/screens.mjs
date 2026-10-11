@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-const APP = resolve('src-tauri/target/debug/prepvispro');
+const APP = resolve('src-tauri/target/debug/topshot');
 const DRIVER = process.env.TAURI_DRIVER ?? `${process.env.HOME}/.cargo/bin/tauri-driver`;
 const BASE = 'http://127.0.0.1:4444';
 const OUT = resolve(process.argv[2] ?? 'test-results/webkit');

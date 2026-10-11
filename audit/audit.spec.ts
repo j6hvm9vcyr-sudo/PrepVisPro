@@ -16,7 +16,7 @@ test('audit', async ({ page }) => {
   // Captures stables : pas de fondu ni de transition pendant la prise de vue.
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'PrepVisPro' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Topshot' })).toBeVisible();
   await shot(page, '01-accueil');
   await page.getByRole('button', { name: 'Projet vierge' }).click();
   await shot(page, '02-projet-vierge');

@@ -9,11 +9,11 @@ import { TERM_ALIASES } from './defaults';
 export type MigrateResult = { ok: true; raw: unknown } | { ok: false; error: string };
 
 export function migrate(raw: unknown): MigrateResult {
-  if (!raw || typeof raw !== 'object') return { ok: false, error: 'Ce fichier n’est pas un projet PrepVisPro.' };
+  if (!raw || typeof raw !== 'object') return { ok: false, error: 'Ce fichier n’est pas un projet Topshot.' };
   const v = (raw as { schemaVersion?: unknown }).schemaVersion;
-  if (typeof v !== 'number') return { ok: false, error: 'Ce fichier n’est pas un projet PrepVisPro (version de format absente).' };
+  if (typeof v !== 'number') return { ok: false, error: 'Ce fichier n’est pas un projet Topshot (version de format absente).' };
   if (v > SCHEMA_VERSION) {
-    return { ok: false, error: `Ce projet a été créé avec une version plus récente de PrepVisPro (format ${v}). Mettez l’application à jour.` };
+    return { ok: false, error: `Ce projet a été créé avec une version plus récente de Topshot (format ${v}). Mettez l’application à jour.` };
   }
   let doc = raw as Record<string, unknown>;
   // Étapes successives, de version en version.

@@ -1,8 +1,9 @@
-# PrepVisPro — mémo pour Claude
+# Topshot — mémo pour Claude
 
 App Mac (Tauri 2 + React 19 + TypeScript strict) de préparation pour chef opérateur : découpage, plans au sol, plans feux, soleil, jours de tournage. Utilisateur : Adrien Rousseau. Interface et messages en français.
 
 ## Règles
+- Nom : **Topshot** (PrepVisPro jusqu'à la 0.11). Projets `Nom.topshot` ; un ancien `Nom.prepvis` est renommé à l'ouverture (`storage::rename_legacy`, jamais d'écrasement). Gardés exprès pour ne rien perdre : l'identifiant `fr.adrienrousseau.prepvispro` (dossier de données : préférences, icônes ; données WebKit : projets récents), les clés `prepvispro.*` du stockage local, `__prepvis`, les en-têtes `x-prepvis-*`, `prepvisVersion` des versions.
 - **Fiabilité d'abord** : une fonction pas parfaitement fiable n'est pas intégrée. Aucune valeur inventée ; une valeur préréglée cite sa source et sa plage.
 - Une seule source de vérité (`ProjectDoc`) ; rien n'est recopié d'une vue à l'autre.
 - Icônes PF_ICONES : livrées avec l'app (`public/pf-icones` + `index.json`, libres de droits, décision d'Adrien 0.11.1) ; identifiants `pf/…`, jamais supprimables ; `DEFAULT_FIGURES` dans `platform/iconLibrary.ts`. Les tests d'import utilisent `e2e/icones-test`.

@@ -7,11 +7,11 @@ import { mkdtempSync, readFileSync, existsSync, readdirSync, rmSync } from 'node
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-const APP = resolve('src-tauri/target/debug/prepvispro');
+const APP = resolve('src-tauri/target/debug/topshot');
 const DRIVER = process.env.TAURI_DRIVER ?? `${process.env.HOME}/.cargo/bin/tauri-driver`;
 const BASE = 'http://127.0.0.1:4444';
 const work = mkdtempSync(join(tmpdir(), 'prepvis-e2e-'));
-const projectDir = join(work, 'Film test.prepvis');
+const projectDir = join(work, 'Film test.topshot');
 
 let failures = 0;
 /** Dernier script envoyé à l'application (pour situer un blocage). */
@@ -81,7 +81,7 @@ try {
     if (has === true) break;
     await sleep(200);
   }
-  ok(await exec('return document.title;') === 'PrepVisPro', 'la fenêtre s’ouvre');
+  ok(await exec('return document.title;') === 'Topshot', 'la fenêtre s’ouvre');
   ok(await exec('return !!document.querySelector(".welcome");'), 'écran d’accueil sans projet récent');
 
   // Créer un projet sur disque.
@@ -237,7 +237,7 @@ try {
   ok(backups.length >= 1, `copie de sauvegarde à l’ouverture (${backups.length})`);
 
   // Fichier corrompu : refusé, sans rien écraser.
-  const bad = join(work, 'Casse.prepvis');
+  const bad = join(work, 'Casse.topshot');
   const r1 = await call(`window.__prepvis.newProjectAt(${JSON.stringify(bad)})`, 'création du projet Casse');
   ok(r1 === true, 'projet Casse créé');
   const r2 = await call(`window.__prepvis.openPath(${JSON.stringify(projectDir)})`, 'retour au projet');
@@ -249,6 +249,24 @@ try {
   const alerts = await exec('return window.__prepvis.alerts;');
   ok(alerts.length === 1 && /illisible/.test(alerts[0]), `message clair à l’utilisateur (${alerts[0]})`);
   ok((await exec('return window.__prepvis.project().dir;')) === projectDir, 'le projet en cours reste ouvert');
+
+  // Projet d'avant la 0.12 (« Nom.prepvis ») : ouvert, renommé « Nom.topshot », contenu et images intacts.
+  {
+    const { cpSync } = await import('node:fs');
+    const old = join(work, 'Ancien film.prepvis');
+    cpSync(projectDir, old, { recursive: true });
+    const json = readFileSync(join(old, 'project.json'), 'utf8');
+    ok((await call(`window.__prepvis.openPath(${JSON.stringify(old)})`, 'ouverture d’un ancien .prepvis')) === true, 'ancien projet .prepvis ouvert');
+    const renamed = join(work, 'Ancien film.topshot');
+    ok((await exec('return window.__prepvis.project().dir;')) === renamed && !existsSync(old) && existsSync(renamed), 'ancien projet renommé en .topshot');
+    ok(readFileSync(join(renamed, 'project.json'), 'utf8') === json, 'contenu intact après renommage');
+    const imgs = readdirSync(join(renamed, 'images'));
+    if (imgs.length) {
+      const w = await exec(`const d = window.__prepvis.project().dir; return await new Promise((res) => { const i = new Image(); i.onload = () => res(i.naturalWidth); i.onerror = () => res(-1); i.src = window.__prepvis.imageUrl(d, ${JSON.stringify('images/' + imgs[0])}); });`);
+      ok(w > 0, `images lisibles après renommage (${w} px)`);
+    }
+    ok((await call(`window.__prepvis.openPath(${JSON.stringify(projectDir)})`, 'retour au projet')) === true, 'retour au projet');
+  }
 
   // Modification faite ailleurs (synchronisation) : copie de sécurité, rien n'est écrasé en silence.
   {

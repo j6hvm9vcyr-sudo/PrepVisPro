@@ -1,5 +1,5 @@
 /**
- * Fichier des préférences de l'app (`preferences.json`, dossier de données de PrepVisPro sur ce
+ * Fichier des préférences de l'app (`preferences.json`, dossier de données de Topshot sur ce
  * Mac). Dans le navigateur (développement, tests) : le stockage local.
  */
 import { isTauri } from './env';

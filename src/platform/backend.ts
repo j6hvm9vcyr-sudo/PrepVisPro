@@ -8,7 +8,7 @@ import { isTauri } from './env';
 
 export interface Backend {
   readonly kind: 'tauri' | 'memory';
-  /** Boîte de dialogue « Nouveau projet » : renvoie le chemin du dossier .prepvis, ou null. */
+  /** Boîte de dialogue « Nouveau projet » : renvoie le chemin du dossier .topshot, ou null. */
   pickNew(defaultName: string): Promise<string | null>;
   /** Boîte de dialogue « Ouvrir » : renvoie le chemin choisi, ou null. */
   pickOpen(): Promise<string | null>;
@@ -16,6 +16,8 @@ export interface Backend {
   create(dir: string, json: string): Promise<{ dir: string; fp: string }>;
   /** Renvoie le dossier normalisé, le contenu de project.json et son empreinte. */
   load(path: string): Promise<{ dir: string; json: string; fp: string }>;
+  /** Ancien projet `.prepvis` renommé en `.topshot` ; null s'il garde son nom (rien n'est écrasé). */
+  renameLegacy(dir: string): Promise<string | null>;
   /**
    * Enregistre et renvoie la nouvelle empreinte. Si `expected` ne correspond plus au fichier
    * (modifié ailleurs), échoue avec une erreur commençant par CONFLICT_PREFIX.
@@ -49,7 +51,9 @@ interface VersionInfo {
   createdAt: number;
 }
 
-const PROJECT_EXT = '.prepvis';
+/** Extension des projets (un dossier « paquet »). Les projets d'avant la 0.12 (PrepVisPro) portent `.prepvis`. */
+export const PROJECT_EXT = '.topshot';
+export const LEGACY_EXT = '.prepvis';
 export const CONFLICT_PREFIX = 'CONFLIT:';
 
 function withProjectExt(path: string): string {
@@ -60,7 +64,9 @@ function withProjectExt(path: string): string {
 export function baseName(path: string): string {
   const p = path.replace(/[\\/]+$/, '');
   const name = p.split(/[\\/]/).pop() ?? p;
-  return name.toLowerCase().endsWith(PROJECT_EXT) ? name.slice(0, -PROJECT_EXT.length) : name;
+  const low = name.toLowerCase();
+  for (const ext of [PROJECT_EXT, LEGACY_EXT]) if (low.endsWith(ext)) return name.slice(0, -ext.length);
+  return name;
 }
 
 // ------------------------------------------------------------------ Tauri
@@ -77,7 +83,7 @@ class TauriBackend implements Backend {
 
   async pickNew(defaultName: string) {
     const { save } = await this.dialog();
-    const p = await save({ title: 'Nouveau projet', defaultPath: `${defaultName}${PROJECT_EXT}`, filters: [{ name: 'Projet PrepVisPro', extensions: ['prepvis'] }] });
+    const p = await save({ title: 'Nouveau projet', defaultPath: `${defaultName}${PROJECT_EXT}`, filters: [{ name: 'Projet Topshot', extensions: ['topshot'] }] });
     return p ? withProjectExt(p) : null;
   }
 
@@ -87,7 +93,7 @@ class TauriBackend implements Backend {
       title: 'Ouvrir un projet',
       multiple: false,
       directory: false,
-      filters: [{ name: 'Projet PrepVisPro', extensions: ['prepvis', 'json'] }],
+      filters: [{ name: 'Projet Topshot', extensions: ['topshot', 'prepvis', 'json'] }],
     });
     return typeof p === 'string' ? p : null;
   }
@@ -102,6 +108,11 @@ class TauriBackend implements Backend {
     const { invoke } = await this.core();
     const [dir, json, fp] = await invoke<[string, string, string]>('project_load', { path });
     return { dir, json, fp };
+  }
+
+  async renameLegacy(dir: string) {
+    const { invoke } = await this.core();
+    return invoke<string | null>('project_rename_legacy', { dir });
   }
 
   async save(dir: string, json: string, forceBackup: boolean, expected: string | null) {
@@ -251,8 +262,27 @@ export class MemoryBackend implements Backend {
   async load(path: string) {
     const dir = path.endsWith('/project.json') ? path.slice(0, -'/project.json'.length) : path;
     const json = this.files.get(dir);
-    if (json === undefined) throw new Error(`Aucun projet PrepVisPro dans « ${dir} ».`);
+    if (json === undefined) throw new Error(`Aucun projet Topshot dans « ${dir} ».`);
     return { dir, json, fp: this.fp(json) };
+  }
+  async renameLegacy(dir: string) {
+    if (!dir.toLowerCase().endsWith(LEGACY_EXT)) return null;
+    const to = dir.slice(0, -LEGACY_EXT.length) + PROJECT_EXT;
+    const json = this.files.get(dir);
+    if (json === undefined || this.files.has(to)) return null;
+    this.files.delete(dir);
+    this.files.set(to, json);
+    for (const [k, v] of [...this.images]) {
+      if (!k.startsWith(`${dir}/`)) continue;
+      this.images.delete(k);
+      this.images.set(to + k.slice(dir.length), v);
+    }
+    const vs = this.versions.get(dir);
+    if (vs) {
+      this.versions.delete(dir);
+      this.versions.set(to, vs);
+    }
+    return to;
   }
   async save(dir: string, json: string, _force: boolean, expected: string | null) {
     if (this.failNextSave) {
@@ -262,7 +292,7 @@ export class MemoryBackend implements Backend {
     }
     const current = this.files.get(dir);
     if (current === undefined) throw new Error(`Le projet « ${dir} » est introuvable (déplacé ou supprimé ?).`);
-    if (expected !== null && this.fp(current) !== expected) throw new Error(`${CONFLICT_PREFIX}Le projet a été modifié en dehors de PrepVisPro.`);
+    if (expected !== null && this.fp(current) !== expected) throw new Error(`${CONFLICT_PREFIX}Le projet a été modifié en dehors de Topshot.`);
     this.files.set(dir, json);
     this.saves++;
     return this.fp(json);

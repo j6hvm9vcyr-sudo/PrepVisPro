@@ -29,7 +29,7 @@ const colPx = (w: number) => Math.round(w * 7 + 5);
 
 export async function buildWorkbook(m: ExportModel, opts: ExportOptions, images: Map<string, PreparedImage>, floors: PdfFloorPage[] = []): Promise<Uint8Array> {
   const wb = new ExcelJS.Workbook();
-  wb.creator = `PrepVisPro ${APP_VERSION}`;
+  wb.creator = `Topshot ${APP_VERSION}`;
   wb.created = new Date();
 
   // ---------------------------------------------------------- page de garde

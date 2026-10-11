@@ -83,11 +83,11 @@ jobs:
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           mkdir -p livraison
           cp src-tauri/target/release/bundle/dmg/*.dmg livraison/ || true
-          ditto -c -k --keepParent src-tauri/target/release/bundle/macos/PrepVisPro.app "livraison/PrepVisPro-$VERSION-app.zip"
+          ditto -c -k --keepParent src-tauri/target/release/bundle/macos/Topshot.app "livraison/Topshot-$VERSION-app.zip"
           ls -la livraison
       - uses: actions/upload-artifact@v4
         with:
-          name: PrepVisPro-mac-v${{ env.VERSION }}
+          name: Topshot-mac-v${{ env.VERSION }}
           path: livraison/
           retention-days: 30
       - name: Publier la version (tags v*)

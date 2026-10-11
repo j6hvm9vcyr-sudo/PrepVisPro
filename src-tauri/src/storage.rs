@@ -1,6 +1,6 @@
 //! Stockage du projet sur disque.
 //!
-//! Un projet est un dossier `Nom.prepvis` :
+//! Un projet est un dossier `Nom.topshot` (`Nom.prepvis` avant la 0.12) :
 //!   project.json   — le document (validé côté interface avant chaque écriture)
 //!   images/        — les images importées (noms générés, jamais réécrits)
 //!   backups/       — copies horodatées de project.json
@@ -149,7 +149,7 @@ pub fn create_project(dir: &Path, json: &str) -> Result<()> {
 pub fn load_project(dir: &Path) -> Result<String> {
     let path = dir.join(PROJECT_FILE);
     if !path.exists() {
-        return Err(format!("Aucun projet PrepVisPro dans « {} ».", dir.display()));
+        return Err(format!("Aucun projet Topshot dans « {} ».", dir.display()));
     }
     let s = fs::read_to_string(&path).map_err(err("Lecture du projet impossible"))?;
     ensure_layout(dir)?;
@@ -178,7 +178,7 @@ pub fn save_project_checked(dir: &Path, json: &str, force_backup: bool, expected
     if let Some(exp) = expected {
         if let Ok(current) = fs::read(&path) {
             if fingerprint(&current) != exp {
-                return Err(format!("{CONFLICT_PREFIX}Le projet a été modifié en dehors de PrepVisPro (autre ordinateur, synchronisation…)."));
+                return Err(format!("{CONFLICT_PREFIX}Le projet a été modifié en dehors de Topshot (autre ordinateur, synchronisation…)."));
             }
         }
     }
@@ -275,6 +275,26 @@ pub fn read_script(path: &Path) -> Result<Vec<u8>> {
 }
 
 /// Normalise le chemin choisi : un fichier project.json désigne son dossier.
+/// Extension des projets d'avant la 0.12 (PrepVisPro).
+pub const LEGACY_EXT: &str = "prepvis";
+pub const PROJECT_EXT: &str = "topshot";
+
+/// Projet `Nom.prepvis` : renommé en `Nom.topshot` (même dossier, contenu intact).
+/// Renvoie le nouveau chemin, ou `None` si le nom est gardé (pas un ancien projet, ou un
+/// `Nom.topshot` existe déjà à côté : rien n'est jamais écrasé).
+pub fn rename_legacy(dir: &Path) -> Result<Option<PathBuf>> {
+    let legacy = dir.extension().map(|e| e.eq_ignore_ascii_case(LEGACY_EXT)).unwrap_or(false);
+    if !legacy || !dir.join(PROJECT_FILE).is_file() {
+        return Ok(None);
+    }
+    let target = dir.with_extension(PROJECT_EXT);
+    if target.exists() {
+        return Ok(None);
+    }
+    fs::rename(dir, &target).map_err(|e| format!("Renommage de « {} » impossible : {e}", dir.display()))?;
+    Ok(Some(target))
+}
+
 pub fn project_dir_from_pick(p: &Path) -> PathBuf {
     if p.file_name().map(|n| n == PROJECT_FILE).unwrap_or(false) {
         if let Some(parent) = p.parent() {
@@ -406,7 +426,31 @@ mod tests {
 
     #[test]
     fn choix_de_project_json() {
+        assert_eq!(project_dir_from_pick(Path::new("/a/F.topshot/project.json")), PathBuf::from("/a/F.topshot"));
         assert_eq!(project_dir_from_pick(Path::new("/a/F.prepvis/project.json")), PathBuf::from("/a/F.prepvis"));
         assert_eq!(project_dir_from_pick(Path::new("/a/F.prepvis")), PathBuf::from("/a/F.prepvis"));
+    }
+
+    #[test]
+    fn ancien_projet_renomme_sans_rien_ecraser() {
+        let base = tmpdir("legacy");
+        let old = base.join("Le Quai.prepvis");
+        create_project(&old, "{\"a\":1}").unwrap();
+        let new = rename_legacy(&old).unwrap().expect("renommé");
+        assert_eq!(new, base.join("Le Quai.topshot"));
+        assert!(!old.exists());
+        assert_eq!(load_project(&new).unwrap(), "{\"a\":1}");
+        // Déjà en .topshot : rien à faire.
+        assert_eq!(rename_legacy(&new).unwrap(), None);
+        // Un Nom.topshot existe déjà : l'ancien garde son nom.
+        let old2 = base.join("Le Quai.prepvis");
+        create_project(&old2, "{\"b\":2}").unwrap();
+        assert_eq!(rename_legacy(&old2).unwrap(), None);
+        assert_eq!(load_project(&old2).unwrap(), "{\"b\":2}");
+        assert_eq!(load_project(&new).unwrap(), "{\"a\":1}");
+        // Pas un projet : rien n'est renommé.
+        let empty = base.join("Vide.prepvis");
+        fs::create_dir_all(&empty).unwrap();
+        assert_eq!(rename_legacy(&empty).unwrap(), None);
     }
 }

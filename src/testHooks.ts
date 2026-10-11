@@ -46,6 +46,8 @@ export async function install() {
     pending: () => [...inflight.values()].map((x) => `${x.cmd} (${Math.round(performance.now() - x.t0)} ms)`),
     errors,
     openSample,
+    /** Adresse d'une image du projet, telle que l'interface l'affiche. */
+    imageUrl: (dir: string, file: string) => b.imageUrl(dir, file),
     async exportTo(path: string, format: 'pdf' | 'xlsx' | 'csv') {
       const { buildExport } = await import('./export/service');
       const { BUILTIN_PRESETS } = await import('./export/model');

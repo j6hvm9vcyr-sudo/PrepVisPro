@@ -17,7 +17,7 @@ import { legacyPrefsOf } from '../model/prefs';
 import { adoptFromProject, loadPrefs, usePrefs } from './prefs';
 import { newProject } from '../model/defaults';
 import { largeSampleProject, sampleProject } from '../model/sample';
-import { CONFLICT_PREFIX, getBackend, baseName, type Backend } from '../platform/backend';
+import { CONFLICT_PREFIX, LEGACY_EXT, PROJECT_EXT, getBackend, baseName, type Backend } from '../platform/backend';
 import { imageStore } from '../platform/images';
 import { referencedFiles } from '../model/images';
 import { useApp } from './appStore';
@@ -246,8 +246,24 @@ export async function openPath(path: string): Promise<boolean> {
     }
     if (useProject.getState().dir === dir) return true;
     if (!(await closeProject())) return false;
-    openDoc(r.doc, 'file', dir, fp);
-    rememberRecent(dir);
+    // Projet d'avant la 0.12 (PrepVisPro, « Nom.prepvis ») : renommé « Nom.topshot », contenu intact.
+    let at = dir;
+    let note: string | null = null;
+    if (dir.toLowerCase().endsWith(LEGACY_EXT)) {
+      try {
+        const to = await backend.renameLegacy(dir);
+        if (to) {
+          at = to;
+          note = `Projet renommé « ${baseName(to)}${PROJECT_EXT} » (nouveau nom de l’app)`;
+        } else note = `Projet gardé en ${LEGACY_EXT} : un « ${baseName(dir)}${PROJECT_EXT} » existe déjà à côté`;
+      } catch (e) {
+        note = `Projet gardé en ${LEGACY_EXT} : ${e instanceof Error ? e.message : String(e)}`;
+      }
+      if (at !== dir) forgetRecent(dir);
+    }
+    openDoc(r.doc, 'file', at, fp);
+    rememberRecent(at);
+    if (note) useApp.getState().setMessage(note, at === dir ? 'warn' : undefined);
     return true;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -328,7 +344,7 @@ export async function newProjectFromOther(): Promise<boolean> {
   }
 }
 
-/** Crée un projet dans `dir` (dossier .prepvis) et l'ouvre. */
+/** Crée un projet dans `dir` (dossier .topshot) et l'ouvre. */
 export async function newProjectAt(dir: string, prepared?: ProjectDoc): Promise<boolean> {
   backend ??= await getBackend();
   const doc = prepared ?? newProject(baseName(dir));

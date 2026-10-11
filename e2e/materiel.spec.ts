@@ -60,7 +60,7 @@ test('abréviations : ajoutées dans les Préférences, reconnues à la saisie, 
   await page.getByRole('tab', { name: 'Listes de termes' }).click();
   await page.getByRole('button', { name: 'Préférences… (⌘,)' }).click();
   await expect(page.getByRole('dialog', { name: 'Réglages du projet' })).toHaveCount(0);
-  await expect(page.getByRole('dialog', { name: 'Préférences de PrepVisPro' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Préférences de Topshot' })).toBeVisible();
   await page.getByRole('button', { name: 'Dolly', exact: true }).click();
   const field = page.getByLabel('Ajouter une abréviation à Dolly');
   await field.fill('stead');
@@ -79,7 +79,7 @@ test('abréviations : ajoutées dans les Préférences, reconnues à la saisie, 
   await page.reload();
   await page.getByRole('button', { name: 'Projet vierge' }).click();
   await page.keyboard.press('ControlOrMeta+,');
-  await expect(page.getByRole('dialog', { name: 'Préférences de PrepVisPro' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Préférences de Topshot' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Dolly · chariot' })).toBeVisible();
 });
 
@@ -91,7 +91,7 @@ test('plan suivant : choisi dans les Préférences, appliqué au nouveau plan ; 
   await expect(page.getByRole('tab', { name: 'Apparence' })).toHaveCount(0);
   await page.keyboard.press('Escape');
   await page.keyboard.press('ControlOrMeta+,');
-  const dlg = page.getByRole('dialog', { name: 'Préférences de PrepVisPro' });
+  const dlg = page.getByRole('dialog', { name: 'Préférences de Topshot' });
   await expect(dlg).toBeVisible();
   await dlg.getByLabel('Valeur').check();
   await dlg.getByRole('button', { name: 'Terminé' }).click();

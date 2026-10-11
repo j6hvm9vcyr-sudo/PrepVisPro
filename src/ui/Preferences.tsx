@@ -1,6 +1,6 @@
 import { Info } from './Info';
 /**
- * Préférences de PrepVisPro (⌘,) : ce qui suit l'utilisateur d'un projet à l'autre, gardé sur ce
+ * Préférences de Topshot (⌘,) : ce qui suit l'utilisateur d'un projet à l'autre, gardé sur ce
  * Mac. Les réglages propres au film sont dans « Réglages du projet » (⇧⌘,).
  */
 import { useMemo, useState } from 'react';
@@ -33,7 +33,7 @@ export function PrefsDialog({ onClose }: { onClose: () => void }) {
       className="overlay"
       role="dialog"
       aria-modal="true"
-      aria-label="Préférences de PrepVisPro"
+      aria-label="Préférences de Topshot"
       onClick={close}
       onKeyDown={(e) => {
         e.stopPropagation();

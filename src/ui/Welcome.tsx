@@ -16,8 +16,8 @@ export function Welcome() {
       // Le démarrage a pu retirer des projets introuvables entre-temps.
       setRecent(recentProjects());
     });
-    document.title = 'PrepVisPro';
-    if (isTauri()) void import('@tauri-apps/api/window').then(({ getCurrentWindow }) => getCurrentWindow().setTitle('PrepVisPro')).catch(() => {});
+    document.title = 'Topshot';
+    if (isTauri()) void import('@tauri-apps/api/window').then(({ getCurrentWindow }) => getCurrentWindow().setTitle('Topshot')).catch(() => {});
   }, []);
   const mac = kind === 'tauri';
 
@@ -27,7 +27,7 @@ export function Welcome() {
         <div className="welcome-head">
           <AppLogo />
           <div>
-            <h1>PrepVisPro</h1>
+            <h1>Topshot</h1>
             <p>Découpage technique, plans au sol, plans feux · version {APP_VERSION}</p>
           </div>
         </div>
