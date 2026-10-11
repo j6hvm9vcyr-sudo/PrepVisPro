@@ -80,6 +80,7 @@ const SHORTCUTS: { title: string; items: [string, string][] }[] = [
       ['Monter / descendre le plan', '⌥↑ / ⌥↓'],
       ['Supprimer le plan', '⌘⌫'],
       ['Ajouter une caméra au plan', '⇧⌘C'],
+      ['Minuter la séquence : plan suivant / annuler le dernier appui / pause', 'espace / ⌫ / P'],
     ],
   },
   {

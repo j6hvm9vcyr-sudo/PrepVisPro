@@ -3,6 +3,7 @@
  * les mêmes commandes passent alors par les raccourcis clavier.
  */
 import { useApp } from '../state/appStore';
+import { locatePlan } from '../model/ops';
 import { anyOverlay, selectCursor } from '../state/store';
 import { isTypingTarget } from '../ui/focus';
 import { startScriptImport } from '../import/flow';
@@ -132,6 +133,15 @@ function runMenuCommand(id: string) {
     case 'plan_camera':
       if (c) st.addCamera(c.planId);
       return;
+    case 'plan_timing': {
+      const c = st.cursor;
+      const loc = c ? locatePlan(st.hist.present.doc, c.planId) : null;
+      if (loc) {
+        if (st.view !== 'table') st.setView('table');
+        st.setTiming(loc.seq.id);
+      }
+      return;
+    }
     case 'plan_up':
       st.movePlan(-1);
       return;

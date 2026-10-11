@@ -60,6 +60,8 @@ export interface AppState {
   editingSequenceId: Id | null;
   /** Tampon ouvert en modification (TITRE, GÉNÉRIQUE…). */
   editingStampId: Id | null;
+  /** Séquence en cours de minutage à la lecture (fenêtre Minuter). */
+  timingSeqId: Id | null;
   /** Choix dans la bibliothèque d'images : pour un plan (repérage / référence) ou un fond de plan au sol. */
   libraryPick: { mode: 'plan'; planId: Id; kind: ImageKind } | { mode: 'background'; floorPlanId: Id } | null;
   showSettings: boolean;
@@ -90,6 +92,7 @@ function initialState(doc: ProjectDoc): AppState {
     pendingDrop: null,
     editingSequenceId: null,
     editingStampId: null,
+    timingSeqId: null,
     libraryPick: null,
     showSettings: false,
     showPrefs: false,
@@ -160,7 +163,7 @@ export function suggestSequenceNumber(doc: ProjectDoc, afterSeqId: Id | null): s
 
 /** Une fenêtre superposée a la main sur le clavier (le tableau ne doit pas réagir). */
 export function anyOverlay(s: AppState): boolean {
-  return !!(s.preview || s.showShortcuts || s.pendingDrop || s.editingSequenceId || s.editingStampId || s.libraryPick || s.showSettings || s.showPrefs || s.showExport || s.showVersions || s.importing || s.contextMenu);
+  return !!(s.preview || s.showShortcuts || s.pendingDrop || s.editingSequenceId || s.editingStampId || s.timingSeqId || s.libraryPick || s.showSettings || s.showPrefs || s.showExport || s.showVersions || s.importing || s.contextMenu);
 }
 
 /** Rectangle sélectionné (une seule cellule s'il n'y a pas de sélection étendue). */
@@ -327,6 +330,8 @@ interface Actions {
   requestDrop(planId: Id, files: File[]): void;
   resolveDrop(kind: ImageKind | null): void;
   setEditingSequence(id: Id | null): void;
+  /** Ouvre (ou ferme) la fenêtre Minuter pour une séquence. */
+  setTiming(seqId: Id | null): void;
   setShowSettings(v: boolean): void;
   setShowPrefs(v: boolean): void;
   setShowExport(v: boolean): void;
@@ -1012,6 +1017,11 @@ export function createAppStore(doc: ProjectDoc) {
 
       setEditingSequence(id) {
         set({ editingSequenceId: id });
+      },
+
+      setTiming(seqId) {
+        if (get().editing) return;
+        set({ timingSeqId: seqId, editingSequenceId: null });
       },
 
       setShowSettings(v) {

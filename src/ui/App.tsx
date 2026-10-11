@@ -1,4 +1,5 @@
 import { DaysBar, DaysView } from './DaysView';
+import { TimerDialog } from './Timer';
 import { NotesView } from './NotesView';
 import { useEffect } from 'react';
 import { useApp } from '../state/appStore';
@@ -326,6 +327,7 @@ function Workspace() {
       <Shortcuts />
       <DropChoice />
       <SequenceDialog />
+      <TimerDialog />
       <StampDialog />
       <LibraryPicker />
       <ErrorBoundary label="fenêtre">

@@ -348,6 +348,7 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
         .item(&item("plan_new", "Nouveau plan", "CmdOrCtrl+Enter")?)
         .item(&item("plan_reprise", "Reprise du plan", "CmdOrCtrl+Shift+Enter")?)
         .item(&item("plan_camera", "Ajouter une caméra", "CmdOrCtrl+Shift+C")?)
+        .item(&plain("plan_timing", "Minuter la séquence…")?)
         .separator()
         // Sans raccourci de menu : ⌥↑, ⌥↓ et ⌘⌫ doivent garder leur rôle dans les champs de texte.
         .item(&plain("plan_up", "Monter le plan  (⌥↑)")?)

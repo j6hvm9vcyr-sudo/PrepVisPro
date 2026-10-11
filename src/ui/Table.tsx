@@ -384,6 +384,11 @@ function SequenceBlock(p: BlockProps) {
           </span>
         )}
         <span className="spacer" />
+        {seq.plans.some((x) => !x.repriseOf) && (
+          <button type="button" className="linkbtn" tabIndex={-1} aria-label={`Minuter la séquence ${seq.number}`} title="Minuter à la lecture : espace à chaque changement de plan" onClick={() => st().setTiming(seq.id)}>
+            Minuter
+          </button>
+        )}
         <button type="button" className="linkbtn" tabIndex={-1} aria-label={`Modifier la séquence ${seq.number}`} onClick={() => st().setEditingSequence(seq.id)}>
           Modifier
         </button>

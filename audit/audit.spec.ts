@@ -44,6 +44,14 @@ test('audit', async ({ page }) => {
   await shot(page, '08-fiche-sequence');
   await page.getByRole('dialog', { name: /Séquence/ }).getByRole('button', { name: 'Terminé' }).click();
   await page.keyboard.press('ControlOrMeta+2');
+  await page.keyboard.press('ControlOrMeta+1');
+  await page.getByRole('button', { name: 'Minuter la séquence 1' }).click();
+  await page.keyboard.press('Space');
+  await page.keyboard.press('Space');
+  await shot(page, '08b-minuter');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Fermer sans enregistrer' }).click();
+  await page.keyboard.press('ControlOrMeta+2');
   await shot(page, '09-fiches');
   await page.keyboard.press('ControlOrMeta+7');
   await shot(page, '09b-notes');
