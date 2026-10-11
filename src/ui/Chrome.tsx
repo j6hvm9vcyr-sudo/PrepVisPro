@@ -13,7 +13,7 @@ import { flushSave, saveAsDialog, useProject } from '../state/project';
 import { filmFlow } from '../model/stamps';
 import { useFloor } from '../floor/floorStore';
 import { IconClose, IconExport, IconGear, IconSidebar, SpaceIcons } from './Icons';
-import { openSpace, SPACE_OF, SPACES, useVerifyPanel, type Space } from './spaces';
+import { isGridView, openSpace, SPACE_OF, SPACES, useVerifyPanel, type Space } from './spaces';
 import { Info } from './Info';
 
 /** Relevé « À vérifier », recalculé à chaque modification du projet. */
@@ -192,7 +192,7 @@ export function SpaceBar({ left, children, views = true }: { left?: ReactNode; c
   const onlyIncomplete = useApp((s) => s.onlyIncomplete);
   const sp = SPACES.find((x) => x.id === SPACE_OF[view])!;
   const st = useApp.getState;
-  const decoupage = view === 'table' || view === 'cards';
+  const decoupage = view === 'table' || view === 'script' || view === 'cards';
   return (
     <div className="space-bar">
       {views && sp.views.length > 1 && (
@@ -225,7 +225,7 @@ export function SpaceBar({ left, children, views = true }: { left?: ReactNode; c
           </button>
         </BarMenu>
       )}
-      {view === 'table' && <ColumnsMenu />}
+      {isGridView(view) && <ColumnsMenu />}
       {decoupage && !inspector && (
         <button type="button" className="ibtn" aria-label="Détails" title="Afficher les détails du plan (⌘I)" onClick={() => st().toggleInspector()}>
           <IconSidebar />
@@ -282,7 +282,7 @@ export function FilmTree({ onPlan, head }: { onPlan?: (planId: Id) => void; head
               onClick={() => {
                 const first = s.plans[0];
                 if (first) choose(first.id);
-                if (st().view === 'table') requestAnimationFrame(() => document.getElementById(`seq-${s.id}`)?.scrollIntoView({ block: 'start' }));
+                if (isGridView(st().view)) requestAnimationFrame(() => document.getElementById(`seq-${s.id}`)?.scrollIntoView({ block: 'start' }));
               }}
             >
               <span className="strip" style={{ background: c.fill, borderColor: c.edge }} />
@@ -325,7 +325,7 @@ function goTo(it: VerifyItem) {
     return;
   }
   if (it.kind === 'fields') {
-    if (st.view !== 'table' && st.view !== 'cards') st.setView('table');
+    if (!isGridView(st.view) && st.view !== 'cards') st.setView('table');
     st.goToPlan(it.planId);
     focusGrid();
     return;
@@ -380,7 +380,7 @@ export function VerifyPanel() {
                   type="button"
                   className="verify-code mono"
                   onClick={() => {
-                    if (st().view !== 'table' && st().view !== 'cards') st().setView('table');
+                    if (!isGridView(st().view) && st().view !== 'cards') st().setView('table');
                     st().goToPlan(p.planId);
                     focusGrid();
                   }}
@@ -404,7 +404,7 @@ export function StatusBar() {
   const cursor = useApp(selectCursor);
   const view = useApp((s) => s.view);
   let hint = '';
-  if (anchor && cursor && view === 'table') {
+  if (anchor && cursor && isGridView(view)) {
     const r = rangeOf(useApp.getState());
     if (r && (r.r1 > r.r0 || r.c1 > r.c0)) hint = `${(r.r1 - r.r0 + 1) * (r.c1 - r.c0 + 1)} cellules sélectionnées`;
   }

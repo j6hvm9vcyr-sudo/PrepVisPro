@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type MouseEvent as ReactMouseEvent } from 'react';
+import { isGridView } from './spaces';
 import { notesText, openCount } from '../model/notes';
 import { tableTemplate, type TableColumn } from '../model/prefs';
 import { ColResize, RowResize, useTableLayout } from './tableLayout';
@@ -57,7 +58,8 @@ function isCustom(col: Exclude<EditableField, 'action'>, plan: Plan, setupIndex:
 
 const cellId = (setupId: string, col: Column) => `cell-${setupId}-${col}`;
 
-export function DecoupageTable() {
+/** `onlySeqId` : une seule séquence (vue Scénario), sans les tampons. */
+export function DecoupageTable({ onlySeqId = null }: { onlySeqId?: string | null } = {}) {
   const doc = useApp(selectDoc);
   const cursor = useApp(selectCursor);
   const editing = useApp((s) => s.editing);
@@ -98,7 +100,7 @@ export function DecoupageTable() {
   useEffect(() => {
     const mine = () => {
       const st = useApp.getState();
-      if (st.editing || st.view !== 'table') return false;
+      if (st.editing || !isGridView(st.view)) return false;
       if (anyOverlay(st)) return false;
       const a = document.activeElement;
       return a === gridRef.current || a === document.body || a === null;
@@ -302,7 +304,9 @@ export function DecoupageTable() {
             </span>
           ))}
         </div>
-        {filmFlow(doc).map((it) =>
+        {filmFlow(doc)
+          .filter((it) => onlySeqId === null || (it.kind === 'seq' && it.seq.id === onlySeqId))
+          .map((it) =>
           it.kind === 'stamp' ? (
             <StampBand key={it.stamp.id} stamp={it.stamp} />
           ) : (

@@ -43,7 +43,7 @@ export function sampleProject(): ProjectDoc {
     images: [],
     coverImageId: null,
   });
-  const s = (number: string, intExt: Sequence['intExt'], dayNight: Sequence['dayNight'], location: string, plans: Plan[], notes: Note[] = []): Sequence => ({
+  const s = (number: string, intExt: Sequence['intExt'], dayNight: Sequence['dayNight'], location: string, plans: Plan[], notes: Note[] = [], scriptText = ''): Sequence => ({
     id: newId('sq'),
     number,
     intExt,
@@ -52,7 +52,7 @@ export function sampleProject(): ProjectDoc {
     address: '',
     gps: null,
     notes,
-    scriptText: '',
+    scriptText,
     breakdown: { camera: '', grip: '', lighting: '', other: '' },
     shooting: null,
     plans,
@@ -74,7 +74,7 @@ export function sampleProject(): ProjectDoc {
           cs(f('Général', 'Profil', 'À niveau', null, 75), ['Pan', 'Fixe'], ['Branches'], f('Poitrine', 'Profil', 'À niveau', null, 300)),
         ], null, [n('Essayer la vitesse du zoom au moteur', false, 1)], 6),
         p('Elle cherche quelqu’un du regard.', 'Elle scrute les fenêtres du train.', [cs(f('Poitrine', '3/4', 'À niveau', null, 75), ['Fixe'], ['Branches'])], regard.id),
-      ], [n('Demander à la gare les horaires des trains', false, 2)]),
+      ], [n('Demander à la gare les horaires des trains', false, 2)], QUAI_SCENE),
       s('2', 'INT', 'JOUR', 'Wagon', [
         p('Travelling latéral le long des sièges vides.', 'Le wagon est presque vide.', [cs(f('Demi-ensemble', 'Profil', 'À niveau', null, 25), ['Trav latéral', 'Fixe'], ['Steadicam'])]),
         p('Il lit, ne la voit pas arriver.', 'MARC (35) lit, absorbé.', [cs(f('Taille', '3/4', 'Plongée', -10, 50), ['Fixe'], ['Épaule'])]),
@@ -91,6 +91,18 @@ export function sampleProject(): ProjectDoc {
     shootingDays: [],
   };
 }
+
+/** Texte de la scène 1 de l'exemple (fictif) : trois passages ne sont couverts par aucun plan. */
+const QUAI_SCENE = `Un quai de gare, au petit matin. Le panneau annonce un retard.
+
+LÉA (30) attend, seule sur le quai.
+
+Au loin, un sifflet. Le train s’immobilise.
+
+Elle scrute les fenêtres du train.
+
+LÉA
+Il n’est pas là.`;
 
 /** Grand projet fictif (performances) : `sequences` séquences de `perSeq` plans. */
 export function largeSampleProject(sequences = 30, perSeq = 12): ProjectDoc {

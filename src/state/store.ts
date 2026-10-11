@@ -49,7 +49,7 @@ export interface AppState {
   /** Début d'une sélection de plusieurs cellules (⇧ + flèches, ⇧ + clic). */
   anchor: Cursor | null;
   editing: EditState | null;
-  view: 'table' | 'cards' | 'notes' | 'floor' | 'shooting' | 'days' | 'library';
+  view: 'table' | 'script' | 'cards' | 'notes' | 'floor' | 'shooting' | 'days' | 'library';
   inspector: boolean;
   collapsed: Record<Id, boolean>;
   onlyIncomplete: boolean;
@@ -318,7 +318,7 @@ interface Actions {
   /** Sélectionne un plan (arbre du film, À vérifier) : déplie sa séquence et lève le filtre s'il le cache. */
   goToPlan(planId: Id): void;
   toggleOnlyIncomplete(): void;
-  setView(v: 'table' | 'cards' | 'notes' | 'floor' | 'shooting' | 'days' | 'library'): void;
+  setView(v: 'table' | 'script' | 'cards' | 'notes' | 'floor' | 'shooting' | 'days' | 'library'): void;
   /** Enregistre une nouvelle version du document (plan au sol…), annulable. */
   applyDoc(next: ProjectDoc, message?: string, mergeKey?: string): void;
   toggleInspector(): void;

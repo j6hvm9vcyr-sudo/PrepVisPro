@@ -268,6 +268,39 @@ try {
     ok((await call(`window.__prepvis.openPath(${JSON.stringify(projectDir)})`, 'retour au projet')) === true, 'retour au projet');
   }
 
+  // Scénario + tableau (0.17) : sélection d'un passage dans le texte de la scène, sous WebKit.
+  {
+    const r = await exec(`
+      const st = window.__prepvis.app();
+      st.updateDoc((d) => { d.sequences[0].scriptText = 'Le quai est désert.\\n\\nLÉA attend, seule sur le quai.'; d.sequences[0].plans[0].scriptExcerpt = 'LÉA attend, seule sur le quai.'; });
+      st.setView('script');
+      await new Promise((res) => setTimeout(res, 300));
+      const root = document.querySelector('.scene-doc');
+      if (!root) return { error: 'pas de texte de scène affiché' };
+      const linked = document.querySelector('.scene-doc .lk')?.textContent;
+      const uncovered = document.querySelector('.scene-state')?.textContent;
+      const node = [...root.childNodes].find((n) => (n.textContent || '').includes('désert'));
+      const t = node.firstChild;
+      const range = document.createRange();
+      range.setStart(t, 0);
+      range.setEnd(t, 'Le quai est désert.'.length);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      root.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      await new Promise((res) => setTimeout(res, 200));
+      const pick = document.querySelector('.scene-pick .pick-txt')?.textContent;
+      const userSelect = getComputedStyle(root).webkitUserSelect || getComputedStyle(root).userSelect;
+      sel.removeAllRanges();
+      st.setView('table');
+      st.undo();
+      return { linked, uncovered, pick, userSelect };
+    `);
+    ok(r && !r.error && r.linked === 'LÉA attend, seule sur le quai.', `scénario : extrait relié au passage (${JSON.stringify(r)})`);
+    ok(/1 passage non couvert/.test(r?.uncovered ?? ''), 'scénario : passage non couvert signalé');
+    ok(r?.pick === '« Le quai est désert. »' && r?.userSelect === 'text', `scénario : passage sélectionnable sous WebKit (${r?.pick}, ${r?.userSelect})`);
+  }
+
   // Modification faite ailleurs (synchronisation) : copie de sécurité, rien n'est écrasé en silence.
   {
     const pj = join(projectDir, 'project.json');

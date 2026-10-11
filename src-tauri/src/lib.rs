@@ -359,6 +359,7 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
 
     let view_menu = SubmenuBuilder::new(app, "Présentation")
         .item(&item("view_table", "Découpage › Tableau", "CmdOrCtrl+1")?)
+        .item(&item("view_script", "Découpage › Scénario", "CmdOrCtrl+8")?)
         .item(&item("view_cards", "Découpage › Fiches", "CmdOrCtrl+2")?)
         .item(&item("view_notes", "Découpage › Notes", "CmdOrCtrl+7")?)
         .item(&item("view_library", "Découpage › Images", "CmdOrCtrl+6")?)

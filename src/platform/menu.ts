@@ -19,7 +19,7 @@ export function isMenuShortcut(e: Pick<KeyboardEvent, 'key' | 'code' | 'shiftKey
   const k = e.key.toLowerCase();
   // ⌘, (préférences) et ⇧⌘, (réglages du projet) : la virgule, quelle que soit la disposition du clavier.
   const comma = k === ',' || k === '<' || e.code === 'Comma';
-  return comma || k === 'z' || e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3' || e.code === 'Digit4' || e.code === 'Digit5' || e.code === 'Digit6' || e.code === 'Digit7' || k === 'i' || k === 'enter' || (e.shiftKey && (k === 'c' || k === 'i' || k === 's')) || k === 's' || k === 'o' || k === 'n' || k === 'q' || k === 'e';
+  return comma || k === 'z' || e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3' || e.code === 'Digit4' || e.code === 'Digit5' || e.code === 'Digit6' || e.code === 'Digit7' || e.code === 'Digit8' || k === 'i' || k === 'enter' || (e.shiftKey && (k === 'c' || k === 'i' || k === 's')) || k === 's' || k === 'o' || k === 'n' || k === 'q' || k === 'e';
 }
 
 /** Exécute une commande de menu. Exporté pour les tests. */
@@ -83,6 +83,9 @@ function runMenuCommand(id: string) {
     case 'view_library':
       st.setView('library');
       return;
+    case 'view_script':
+      st.setView('script');
+      return;
     case 'view_notes':
       st.setView('notes');
       return;
@@ -137,7 +140,7 @@ function runMenuCommand(id: string) {
       const c = st.cursor;
       const loc = c ? locatePlan(st.hist.present.doc, c.planId) : null;
       if (loc) {
-        if (st.view !== 'table') st.setView('table');
+        if (st.view !== 'table' && st.view !== 'script') st.setView('table');
         st.setTiming(loc.seq.id);
       }
       return;

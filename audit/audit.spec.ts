@@ -30,6 +30,9 @@ test('audit', async ({ page }) => {
   await page.getByRole('region', { name: 'Caméra A' }).getByRole('button', { name: /^Axe : / }).click();
   await shot(page, '04b-carte-camera-edition');
   await page.keyboard.press('Escape');
+  await page.keyboard.press('ControlOrMeta+8');
+  await shot(page, '04c-scenario');
+  await page.keyboard.press('ControlOrMeta+1');
   await page.keyboard.press('Shift+ArrowDown');
   await page.keyboard.press('Shift+ArrowDown');
   await shot(page, '05-tableau-selection');

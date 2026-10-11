@@ -9,7 +9,7 @@ import type { AppState } from '../state/store';
 export type View = AppState['view'];
 export type Space = 'decoupage' | 'sol' | 'tournage';
 
-export const SPACE_OF: Record<View, Space> = { table: 'decoupage', cards: 'decoupage', notes: 'decoupage', library: 'decoupage', floor: 'sol', days: 'tournage', shooting: 'tournage' };
+export const SPACE_OF: Record<View, Space> = { table: 'decoupage', script: 'decoupage', cards: 'decoupage', notes: 'decoupage', library: 'decoupage', floor: 'sol', days: 'tournage', shooting: 'tournage' };
 
 export const SPACES: { id: Space; label: string; views: { view: View; label: string; key: string; title: string }[] }[] = [
   {
@@ -17,6 +17,7 @@ export const SPACES: { id: Space; label: string; views: { view: View; label: str
     label: 'Découpage',
     views: [
       { view: 'table', label: 'Tableau', key: '⌘1', title: 'Le découpage, tel qu’il est exporté' },
+      { view: 'script', label: 'Scénario', key: '⌘8', title: 'Le texte de la scène à côté du tableau, passages reliés aux plans' },
       { view: 'cards', label: 'Fiches', key: '⌘2', title: 'Un plan par fiche, avec son image' },
       { view: 'notes', label: 'Notes', key: '⌘7', title: 'Toutes les notes du film, séquence par séquence' },
       { view: 'library', label: 'Images', key: '⌘6', title: 'Bibliothèque d’images du projet' },
@@ -39,6 +40,11 @@ const useLast = create<Record<Space, View>>()(() => ({ decoupage: 'table', sol: 
 useApp.subscribe((s, prev) => {
   if (s.view !== prev.view) useLast.setState({ [SPACE_OF[s.view]]: s.view });
 });
+
+/** Vues où le tableau du découpage est affiché (et a la main sur le clavier). */
+export function isGridView(v: View): boolean {
+  return v === 'table' || v === 'script';
+}
 
 export function openSpace(space: Space) {
   useApp.getState().setView(useLast.getState()[space]);

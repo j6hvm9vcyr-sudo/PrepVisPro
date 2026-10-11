@@ -1,4 +1,5 @@
 import { DaysBar, DaysView } from './DaysView';
+import { ScriptView } from './ScriptView';
 import { TimerDialog } from './Timer';
 import { NotesView } from './NotesView';
 import { useEffect } from 'react';
@@ -8,7 +9,7 @@ import { DecoupageTable } from './Table';
 import { CardsView } from './Cards';
 import { Inspector } from './Inspector';
 import { FilmTree, PageBar, SpaceBar, StatusBar, VerifyPanel } from './Chrome';
-import { useVerifyPanel } from './spaces';
+import { isGridView, useVerifyPanel } from './spaces';
 import { DropChoice, Preview, SequenceDialog, Shortcuts, StampDialog } from './Overlays';
 import { SettingsDialog } from './Settings';
 import { PrefsDialog } from './Preferences';
@@ -157,6 +158,11 @@ function useGlobalShortcuts(settingsOpen: boolean) {
         st.setView('library');
         return;
       }
+      if (meta && e.code === 'Digit8') {
+        e.preventDefault();
+        st.setView('script');
+        return;
+      }
       if (meta && e.code === 'Digit7') {
         e.preventDefault();
         st.setView('notes');
@@ -170,7 +176,7 @@ function useGlobalShortcuts(settingsOpen: boolean) {
       if (typing) return;
       if (meta && e.key === 'Enter') {
         e.preventDefault();
-        if (st.view !== 'table') st.setView('table');
+        if (!isGridView(st.view)) st.setView('table');
         st.newPlan(e.shiftKey);
         return;
       }
@@ -247,7 +253,7 @@ function chooseInTournage(planId: string) {
   if (seq) useShootingUi.getState().set(seq.id);
 }
 
-const VIEW_LABEL = { floor: 'plans au sol', days: 'jours de tournage', library: 'bibliothèque d’images', shooting: 'installations', table: 'tableau', cards: 'fiches', notes: 'notes' } as const;
+const VIEW_LABEL = { floor: 'plans au sol', days: 'jours de tournage', library: 'bibliothèque d’images', shooting: 'installations', table: 'tableau', script: 'scénario', cards: 'fiches', notes: 'notes' } as const;
 
 function Workspace() {
   useWindowTitle();
@@ -266,7 +272,7 @@ function Workspace() {
     () =>
       installFocusRescue(() => {
         const st = useApp.getState();
-        return st.view === 'table' && !st.editing && !anyOverlay(st);
+        return isGridView(st.view) && !st.editing && !anyOverlay(st);
       }),
     [],
   );
@@ -295,7 +301,9 @@ function Workspace() {
             <main className="center">
               <SpaceBar>{view === 'days' && <DaysBar />}</SpaceBar>
               <ErrorBoundary label={VIEW_LABEL[view]} key={view}>
-                {view === 'table' ? (
+                {view === 'script' ? (
+                  <ScriptView />
+                ) : view === 'table' ? (
                   <DecoupageTable />
                 ) : view === 'cards' ? (
                   <CardsView />
@@ -308,7 +316,7 @@ function Workspace() {
                 )}
               </ErrorBoundary>
             </main>
-            {(view === 'table' || view === 'cards') && inspector && !verifying && (
+            {(view === 'table' || view === 'script' || view === 'cards') && inspector && !verifying && (
               <ErrorBoundary label="détails">
                 <Inspector />
               </ErrorBoundary>

@@ -50,7 +50,7 @@ const SHORTCUTS: { title: string; items: [string, string][] }[] = [
       ['Premier / dernier plan', '⌘↑ / ⌘↓'],
       ['Début / fin de ligne', '⌘← / ⌘→'],
       ['Sélectionner plusieurs cellules', '⇧ + flèches, ⇧ + clic'],
-      ['Découpage : Tableau / Fiches / Notes / Images', '⌘1 / ⌘2 / ⌘7 / ⌘6'],
+      ['Découpage : Tableau / Scénario / Fiches / Notes / Images', '⌘1 / ⌘8 / ⌘2 / ⌘7 / ⌘6'],
       ['Plans au sol', '⌘3'],
       ['Tournage : Jours / Installations', '⌘5 / ⌘4'],
       ['Afficher / masquer Détails', '⌘I'],

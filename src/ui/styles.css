@@ -1091,3 +1091,23 @@ button.ef-v:hover { background: var(--hover, rgba(0, 0, 0, 0.05)); }
 .tm-excerpts li { padding: 4px 6px; border-radius: 6px; }
 .tm-excerpts li.on { background: var(--accent-soft); color: var(--text); }
 .tm-excerpts b { margin-right: 6px; }
+
+/* 0.17 : Scénario + tableau */
+.script-view { flex: 1; min-height: 0; display: flex; gap: 12px; }
+.scene-pane { width: 38%; min-width: 300px; max-width: 520px; flex: none; display: flex; flex-direction: column; gap: 8px; margin-bottom: calc(var(--pagebar-h) + 16px); background: var(--panel); border: 1px solid var(--border-soft); border-radius: 12px; padding: 12px 14px; min-height: 0; position: relative; }
+.scene-head { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.02em; }
+.scene-head .strip { width: 22px; height: 12px; border: 1px solid; border-radius: 3px; }
+.scene-ttl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scene-state { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; }
+.scene-warn { color: var(--warn-text); font-weight: 600; }
+.scene-warn .linkbtn { margin-left: 4px; font-weight: 700; }
+.scene-ok { color: var(--ok, #1a7f37); font-weight: 600; }
+.scene-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; color: var(--text2); font-size: 13px; padding: 8px 0; }
+.scene-doc { flex: 1; min-height: 0; overflow: auto; white-space: pre-wrap; font-family: var(--mono); font-size: 12.5px; line-height: 20px; color: var(--text); user-select: text; -webkit-user-select: text; cursor: text; padding-bottom: 56px; }
+.scene-doc .lk { background: color-mix(in srgb, var(--accent) 9%, transparent); border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); cursor: pointer; border-radius: 2px; }
+.scene-doc .lk:hover { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.scene-doc .lk.on { background: color-mix(in srgb, var(--accent) 24%, transparent); border-bottom: 2px solid var(--accent); }
+.scene-doc .unc { background: color-mix(in srgb, var(--warn) 14%, transparent); text-decoration: underline wavy var(--warn); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.scene-pick { position: absolute; left: 10px; right: 10px; bottom: 10px; display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: var(--glass); -webkit-backdrop-filter: blur(24px) saturate(170%); backdrop-filter: blur(24px) saturate(170%); border: 1px solid var(--hair); box-shadow: var(--glass-shadow); }
+.scene-pick .pick-txt { flex: 1; min-width: 0; font-size: 12px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.script-table { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
