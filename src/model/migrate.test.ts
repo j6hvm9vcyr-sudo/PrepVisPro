@@ -84,6 +84,17 @@ describe('mise à niveau des fichiers', () => {
     expect(Object.keys(s0)).toEqual(Object.keys(ref));
     expect(Object.keys(s0.plans[0]!)).toEqual(Object.keys(ref.plans[0]!));
   });
+  it('format 20 → 21 : dossiers d’images (aucun), chaque image à la racine, clés dans l’ordre du format', () => {
+    const cur = produce(newProject('X'), (d) => void d.library.push({ id: 'l1', file: 'images/a.jpg', originalName: 'a.jpg', caption: 'Réf.', hash: null, folderId: null }));
+    const { imageFolders: _f, ...rest } = cur;
+    const v20 = JSON.parse(JSON.stringify({ ...rest, schemaVersion: 20, library: cur.library.map(({ folderId: _x, ...l }) => l) }));
+    const m = migrate(v20);
+    expect(m.ok).toBe(true);
+    if (!m.ok) return;
+    expect(Object.keys(m.raw as object)).toEqual(Object.keys(cur));
+    const r = validateProject(m.raw);
+    expect(r.ok && r.doc).toEqual(cur);
+  });
   it('format 16 → 17 : modèles d’export et icônes des figures dans le projet (aucun)', () => {
     const cur = newProject('X');
     const { exportPresets: _e, floorIcons: _f, ...old } = cur.settings;

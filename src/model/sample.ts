@@ -85,6 +85,7 @@ export function sampleProject(): ProjectDoc {
     ],
     stamps: [],
     library: [],
+    imageFolders: [],
     floorPlans: [],
     shootingDays: [],
   };

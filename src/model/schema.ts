@@ -189,7 +189,8 @@ const projectSchema = z.object({
   }),
   sequences: z.array(sequence),
   stamps: z.array(z.object({ id, text: z.string(), note: z.string(), beforeSequenceId: id.nullable() })),
-  library: z.array(z.object({ id, file: z.string().min(1), originalName: z.string(), caption: z.string(), hash: z.string().regex(/^[0-9a-f]{64}$/).nullable() })),
+  library: z.array(z.object({ id, file: z.string().min(1), originalName: z.string(), caption: z.string(), hash: z.string().regex(/^[0-9a-f]{64}$/).nullable(), folderId: id.nullable() })),
+  imageFolders: z.array(z.object({ id, name: z.string().trim().min(1), parentId: id.nullable() })),
   floorPlans: z.array(floorPlan),
   shootingDays: z.array(z.object({ id, date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(), sequenceIds: z.array(id), note: z.string() })),
 });
@@ -252,8 +253,24 @@ function checkIntegrity(doc: ProjectDoc): string | null {
   }
   const seqIds = new Set(doc.sequences.map((x) => x.id));
   const libFiles = new Set<string>();
+  const folderIds = new Set<string>();
+  for (const f of doc.imageFolders) {
+    if (dup(f.id)) return `identifiant de dossier d’images en double (${f.id}).`;
+    folderIds.add(f.id);
+  }
+  const parentOf = new Map(doc.imageFolders.map((f) => [f.id, f.parentId]));
+  for (const f of doc.imageFolders) {
+    if (f.parentId !== null && !folderIds.has(f.parentId)) return `un dossier d’images renvoie à un dossier absent (${f.id}).`;
+    // Pas de boucle (un dossier dans lui-même, même de loin).
+    let at: string | null = f.parentId;
+    for (let n = 0; at !== null; n++) {
+      if (at === f.id || n > doc.imageFolders.length) return `dossier d’images rangé dans lui-même (${f.id}).`;
+      at = parentOf.get(at) ?? null;
+    }
+  }
   for (const l of doc.library) {
     if (dup(l.id)) return `identifiant d’image de bibliothèque en double (${l.id}).`;
+    if (l.folderId !== null && !folderIds.has(l.folderId)) return `une image est rangée dans un dossier absent (${l.id}).`;
     if (libFiles.has(l.file)) return `image en double dans la bibliothèque (${l.file}).`;
     libFiles.add(l.file);
   }

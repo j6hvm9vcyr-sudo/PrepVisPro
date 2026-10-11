@@ -43,6 +43,7 @@ export function doc(build: (camId: string) => Sequence[]): ProjectDoc {
     sequences: build(camId),
     stamps: [],
     library: [],
+    imageFolders: [],
     floorPlans: [],
     shootingDays: [],
   };

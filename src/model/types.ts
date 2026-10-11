@@ -259,7 +259,7 @@ interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 20 as const;
+export const SCHEMA_VERSION = 21 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;
@@ -274,6 +274,8 @@ export interface ProjectDoc {
    * dans les plans (repérage, références) et comme fond de plan au sol (voir library.ts).
    */
   library: LibraryImage[];
+  /** Dossiers de la bibliothèque (dossiers dans des dossiers possibles), voir imageFolders.ts. */
+  imageFolders: ImageFolder[];
   /** Plans au sol (voir floor.ts). */
   floorPlans: import('./floor').FloorPlan[];
   /** Jours de tournage, dans l'ordre (J1, J2… : numéros calculés, jamais stockés). */
@@ -301,6 +303,16 @@ export interface LibraryImage {
   caption: string;
   /** Empreinte SHA-256 du contenu, pour ne jamais importer deux fois la même image ; null si inconnue. */
   hash: string | null;
+  /** Dossier où l'image est rangée ; null = à la racine de la bibliothèque. Une image est dans un seul dossier. */
+  folderId: Id | null;
+}
+
+/** Dossier de la bibliothèque d'images. */
+export interface ImageFolder {
+  id: Id;
+  name: string;
+  /** Dossier qui le contient ; null = à la racine. */
+  parentId: Id | null;
 }
 
 /** Jour de tournage : ses séquences, dans l'ordre de la journée. */

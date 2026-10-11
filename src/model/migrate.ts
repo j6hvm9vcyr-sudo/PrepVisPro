@@ -36,6 +36,7 @@ export function migrate(raw: unknown): MigrateResult {
   if (v <= 17) doc = from17to18(doc);
   if (v <= 18) doc = from18to19(doc);
   if (v <= 19) doc = from19to20(doc);
+  if (v <= 20) doc = from20to21(doc);
   return { ok: true, raw: doc };
 }
 
@@ -283,4 +284,18 @@ function from19to20(doc: Record<string, unknown>): Record<string, unknown> {
       return out;
     }),
   };
+}
+
+/** Format 20 → 21 : dossiers dans la bibliothèque d'images (aucun) ; chaque image est à la racine. */
+function from20to21(doc: Record<string, unknown>): Record<string, unknown> {
+  // Même ordre de clés que defaults.ts : les dossiers suivent la bibliothèque.
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(doc)) {
+    if (k === 'library') {
+      out.library = Array.isArray(v) ? v.map((l) => (l && typeof l === 'object' ? { ...(l as object), folderId: null } : l)) : v;
+      out.imageFolders = [];
+    } else out[k] = v;
+  }
+  out.schemaVersion = 21;
+  return out;
 }

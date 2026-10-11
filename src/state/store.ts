@@ -270,7 +270,8 @@ interface Actions {
   moveStamp(id: Id, delta: -1 | 1): void;
   setEditingStamp(id: Id | null): void;
   /** Importe des images dans la bibliothèque du projet (sans les placer). */
-  importToLibrary(files: File[]): Promise<void>;
+  /** Importe dans la bibliothèque, rangées dans `folderId` (null = racine). */
+  importToLibrary(files: File[], folderId?: Id | null): Promise<void>;
   /** Ajoute au plan des images de la bibliothèque. */
   addFromLibrary(planId: Id, ids: Id[], kind: ImageKind): void;
   removeLibraryImage(id: Id): void;
@@ -703,14 +704,14 @@ export function createAppStore(doc: ProjectDoc) {
         commit(r.doc, cur(), `${r.added} image${r.added > 1 ? 's' : ''} ajoutée${r.added > 1 ? 's' : ''} en ${where}${lib.reused ? ` (${lib.reused} déjà dans la bibliothèque, réutilisée${lib.reused > 1 ? 's' : ''})` : ''}`);
       },
 
-      async importToLibrary(files) {
+      async importToLibrary(files, folderId = null) {
         const stored = await imageStore.importFiles(files, library.knownHashes(docNow()));
         if (!stored.length) {
           warn('Aucune image reconnue (JPEG, PNG, HEIC, TIFF, WebP).');
           return;
         }
         const before = docNow().library.length;
-        const lib = library.addToLibrary(docNow(), stored);
+        const lib = library.addToLibrary(docNow(), stored, folderId);
         const added = lib.doc.library.length - before;
         if (!added) {
           get().setMessage(stored.length > 1 ? 'Ces images sont déjà dans la bibliothèque' : 'Cette image est déjà dans la bibliothèque');

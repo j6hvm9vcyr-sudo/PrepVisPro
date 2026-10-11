@@ -104,6 +104,7 @@ export function newProject(title = 'Sans titre'): ProjectDoc {
     sequences: [newSequence('1', cam.id)],
     stamps: [],
     library: [],
+    imageFolders: [],
     floorPlans: [],
     shootingDays: [],
   };

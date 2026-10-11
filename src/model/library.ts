@@ -18,7 +18,7 @@ export function syncLibrary(doc: ProjectDoc): ProjectDoc {
   const add = (file: string, originalName: string) => {
     if (have.has(file)) return;
     have.add(file);
-    missing.push({ id: newId('lib'), file, originalName, caption: '', hash: null });
+    missing.push({ id: newId('lib'), file, originalName, caption: '', hash: null, folderId: null });
   };
   for (const s of doc.sequences) for (const p of s.plans) for (const i of p.images) add(i.file, i.originalName);
   for (const f of doc.floorPlans) if (f.background) add(f.background.file, f.background.originalName);
@@ -36,7 +36,9 @@ export interface StoredImageInfo {
  * Ajoute des images importées. Une image déjà présente (même empreinte ou même fichier) n'est pas
  * dupliquée : on renvoie l'entrée existante.
  */
-export function addToLibrary(doc: ProjectDoc, images: StoredImageInfo[]): { doc: ProjectDoc; entries: LibraryImage[]; reused: number } {
+export function addToLibrary(doc: ProjectDoc, images: StoredImageInfo[], folderId: Id | null = null): { doc: ProjectDoc; entries: LibraryImage[]; reused: number } {
+  // Dossier disparu entre-temps : à la racine.
+  const folder = folderId !== null && doc.imageFolders.some((f) => f.id === folderId) ? folderId : null;
   const entries: LibraryImage[] = [];
   const fresh: LibraryImage[] = [];
   let reused = 0;
@@ -47,7 +49,7 @@ export function addToLibrary(doc: ProjectDoc, images: StoredImageInfo[]): { doc:
       reused++;
       continue;
     }
-    const e: LibraryImage = { id: newId('lib'), file: im.file, originalName: im.originalName, caption: '', hash: im.hash };
+    const e: LibraryImage = { id: newId('lib'), file: im.file, originalName: im.originalName, caption: '', hash: im.hash, folderId: folder };
     fresh.push(e);
     entries.push(e);
   }

@@ -4,7 +4,7 @@ Application Mac de préparation image pour chef opérateur. Le découpage techni
 
 ## Ce qu'elle fait
 
-Trois espaces qui partagent la même sélection : **Découpage** (tableau, fiches, notes, images), **Plans au sol** (plans au sol, lumière, soleil), **Tournage** (jours, installations). Un seul « À vérifier » relève ce qui manque dans tout le projet.
+Trois espaces qui partagent la même sélection : **Découpage** (tableau, fiches, notes, images rangées en dossiers), **Plans au sol** (plans au sol, lumière, soleil), **Tournage** (jours, installations). Un seul « À vérifier » relève ce qui manque dans tout le projet.
 
 - **Découpage** au clavier : valeur, axe, angle, focale, mouvement, machinerie ; plans évolutifs, multicaméra, reprises, numérotation automatique ; tampons entre séquences (TITRE, GÉNÉRIQUE DE FIN…) ; notes datées par séquence et par plan, à cocher, toutes relues dans la vue Notes.
 - **Import de scénario** : Final Draft, Fountain, Word, PDF, texte.

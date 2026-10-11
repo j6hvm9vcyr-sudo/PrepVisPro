@@ -64,3 +64,69 @@ test('bibliothèque : importer une fois, réutiliser dans plusieurs plans, jamai
   await expect(lib.locator('.libcard')).toHaveCount(1);
   await expect(lib.locator('.libcard .usage')).toHaveText('1/1 (rep.) · 2/1 (rep. + réf.)');
 });
+
+test('0.14 : dossiers dans les images — créer, ranger (menu ou glisser), dossiers dans des dossiers, supprimer sans perdre d’image', async ({ page }) => {
+  const { readFileSync } = await import('node:fs');
+  const decor = { name: 'decor.png', mimeType: 'image/png', buffer: readFileSync('e2e/plan-decor.png') };
+  await page.keyboard.press('ControlOrMeta+6');
+  const lib = page.getByRole('region', { name: 'Bibliothèque d’images' });
+  const tree = lib.getByRole('navigation', { name: 'Dossiers' });
+  await lib.locator('input[type=file]').setInputFiles([png, decor]);
+  await expect(lib.locator('.libcard')).toHaveCount(2);
+
+  // Nouveau dossier : nommé tout de suite.
+  await tree.getByRole('button', { name: '+ Dossier' }).click();
+  const name = tree.getByLabel('Nom du dossier');
+  await expect(name).toBeFocused();
+  await name.fill('Repérages');
+  await name.press('Enter');
+  await expect(lib.getByRole('heading', { level: 2 })).toHaveText('Repérages');
+  await expect(lib.locator('.libcard')).toHaveCount(0);
+  // Dossier dans le dossier ouvert ; une image importée ici y est rangée.
+  await tree.getByRole('button', { name: '+ Dossier' }).click();
+  await tree.getByLabel('Nom du dossier').fill('Gare');
+  await tree.getByLabel('Nom du dossier').press('Enter');
+  await expect(lib.getByRole('heading', { level: 2 })).toHaveText('Repérages › Gare');
+  // Renommer : double-clic dans la liste.
+  await tree.getByRole('button', { name: 'Dossier Gare' }).dblclick();
+  await tree.getByLabel('Nom du dossier').fill('Quai de gare');
+  await tree.getByLabel('Nom du dossier').press('Enter');
+  await expect(lib.getByRole('heading', { level: 2 })).toHaveText('Repérages › Quai de gare');
+
+  // Ranger par le menu de la carte.
+  await tree.getByRole('button', { name: 'Toutes les images' }).click();
+  await lib.getByRole('button', { name: 'Ranger quai.png dans' }).click();
+  await page.getByRole('option', { name: /Quai de gare/ }).click();
+  await expect(lib.getByRole('button', { name: 'Ranger quai.png dans' })).toHaveText('▸ Repérages › Quai de gare');
+  await expect(tree.getByRole('button', { name: 'Dossier Repérages' })).toContainText('1');
+  // Ranger en glissant la carte sur un dossier.
+  await lib.locator('.libcard', { hasText: 'decor.png' }).dragTo(tree.getByRole('button', { name: 'Dossier Repérages' }));
+  await expect(lib.getByRole('button', { name: 'Ranger decor.png dans' })).toHaveText('▸ Repérages');
+  await expect(tree.getByRole('button', { name: 'Non rangées' })).toContainText('0');
+  await tree.getByRole('button', { name: 'Dossier Repérages' }).click();
+  await expect(lib.locator('.libcard')).toHaveCount(1);
+  await page.screenshot({ path: 'test-results/34-dossiers-images.png' });
+
+  // Supprimer « Repérages » : aucune image perdue, « Gare » remonte à la racine.
+  await lib.getByRole('button', { name: 'Supprimer le dossier' }).click();
+  await expect(page.getByRole('status')).toContainText('supprimé');
+  await expect(lib.getByRole('heading', { level: 2 })).toHaveText('Non rangées');
+  await expect(lib.locator('.libcard')).toHaveCount(1);
+  await expect(tree.getByRole('button', { name: 'Dossier Quai de gare' })).toBeVisible();
+  await expect(tree.getByRole('button', { name: 'Toutes les images' })).toContainText('2');
+  // ⌘Z : le dossier revient, ses images aussi.
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(tree.getByRole('button', { name: 'Dossier Repérages' })).toBeVisible();
+  await tree.getByRole('button', { name: 'Dossier Repérages' }).click();
+  await expect(lib.locator('.libcard')).toHaveCount(1);
+
+  // Choix pour un plan : on peut n'afficher qu'un dossier.
+  await page.keyboard.press('ControlOrMeta+1');
+  await page.locator('.line [id$="-action"]').nth(1).click();
+  await page.getByRole('region', { name: 'Images' }).getByRole('button', { name: 'Bibliothèque…' }).click();
+  const pick = page.getByRole('dialog', { name: 'Bibliothèque d’images' });
+  await expect(pick.getByRole('option')).toHaveCount(2);
+  await pick.getByRole('button', { name: 'Dossier affiché' }).click();
+  await page.getByRole('option', { name: /Quai de gare/ }).click();
+  await expect(pick.getByRole('option')).toHaveCount(1);
+});

@@ -98,7 +98,7 @@ describe('bibliothèque d’images', () => {
 
   it('fichier incohérent : image en double dans la bibliothèque', () => {
     const d = produce(newProject('X'), (x) => {
-      x.library.push({ id: 'a', file: 'images/a.jpg', originalName: '', caption: '', hash: null }, { id: 'b', file: 'images/a.jpg', originalName: '', caption: '', hash: null });
+      x.library.push({ id: 'a', file: 'images/a.jpg', originalName: '', caption: '', hash: null, folderId: null }, { id: 'b', file: 'images/a.jpg', originalName: '', caption: '', hash: null, folderId: null });
     });
     const r = validateProject(JSON.parse(JSON.stringify(d)));
     expect(r.ok).toBe(false);
