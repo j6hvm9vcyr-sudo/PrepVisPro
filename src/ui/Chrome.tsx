@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { updatePrefs, usePrefs } from '../state/prefs';
+import { filmDuration, formatDuration } from '../model/duration';
 import { useApp } from '../state/appStore';
 import { rangeOf, selectCursor, selectDoc } from '../state/store';
 import { computeNumbers } from '../model/numbering';
 import { locatePlan } from '../model/ops';
 import { itemLabel, verify, type PlanState, type VerifyItem } from '../model/verify';
 import { planLinks } from '../model/links';
-import type { Id } from '../model/types';
+import { DEFAULT_TABLE_COLUMNS, TABLE_COLUMN_IDS, type Id, type TableColumnId } from '../model/types';
 import { stripColors } from './strip';
 import { focusGrid } from './focus';
 import { flushSave, saveAsDialog, useProject } from '../state/project';
@@ -77,6 +77,8 @@ export function ProjectHead() {
   const doc = useApp(selectDoc);
   const st = useApp.getState;
   const plans = doc.sequences.reduce((n, s) => n + s.plans.length, 0);
+  const total = filmDuration(doc);
+  const film = total.counted ? total : null;
   // Non enregistré, ou erreur : l'état demande des mots (et un bouton), sur sa propre ligne.
   const saveNeedsWords = useProject((p) => p.mode === 'unsaved' || (p.mode === 'file' && p.status === 'error'));
   return (
@@ -98,6 +100,13 @@ export function ProjectHead() {
       </div>
       <div className="proj-sub">
         {doc.sequences.length} séquence{doc.sequences.length > 1 ? 's' : ''} · {plans} plan{plans > 1 ? 's' : ''}
+        {film && (
+          <span title={film.missing ? `Durée des plans minutés, sans les reprises ; ${film.missing} plan${film.missing > 1 ? 's' : ''} sans durée` : 'Durée du film, sans les reprises'}>
+            {' '}
+            · {formatDuration(film.seconds)}
+            {film.missing ? ' +' : ''}
+          </span>
+        )}
       </div>
       {saveNeedsWords && (
         <div className="proj-sub">
@@ -109,7 +118,7 @@ export function ProjectHead() {
 }
 
 /** Petit menu déroulant de la barre des vues (« Afficher ▾ »). */
-export function BarMenu({ label, active, className = 'tool-b', title, children }: { label: string; active?: boolean; className?: string; title?: string; children: ReactNode }) {
+export function BarMenu({ label, active, className = 'tool-b', title, keepOpen = false, children }: { label: string; active?: boolean; className?: string; title?: string; keepOpen?: boolean; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -132,11 +141,47 @@ export function BarMenu({ label, active, className = 'tool-b', title, children }
         <span className="lbl">{label}</span> <span className="chev" aria-hidden>▾</span>
       </button>
       {open && (
-        <div className="bar-pop" role="menu" onClick={() => setOpen(false)}>
+        <div className="bar-pop" role="menu" onClick={() => !keepOpen && setOpen(false)}>
           {children}
         </div>
       )}
     </div>
+  );
+}
+
+const COLUMN_LABEL: Record<TableColumnId, string> = { image: 'Image', size: 'Valeur', axis: 'Axe', angle: 'Angle', focal: 'Focale', movement: 'Mouvement', grip: 'Machinerie', duration: 'Durée', notes: 'Notes' };
+
+/**
+ * Colonnes ▾ : colonnes affichées dans le tableau (N°, caméra et action sont toujours là).
+ * Réglage du projet, annulable ; le modèle d'export « Comme le tableau » le reprend.
+ */
+function ColumnsMenu() {
+  const shown = useApp((s) => s.hist.present.doc.settings.tableColumns);
+  const custom = shown.join() !== DEFAULT_TABLE_COLUMNS.join();
+  return (
+    <BarMenu label="Colonnes" active={custom} keepOpen title="Colonnes du tableau (et de l’export « Comme le tableau »)">
+      {TABLE_COLUMN_IDS.map((c) => {
+        const on = shown.includes(c);
+        return (
+          <button
+            key={c}
+            type="button"
+            role="menuitemcheckbox"
+            aria-checked={on}
+            onClick={() => {
+              useApp.getState().updateDoc((d) => void (d.settings.tableColumns = TABLE_COLUMN_IDS.filter((x) => (x === c ? !on : d.settings.tableColumns.includes(x)))), undefined, `Colonne ${COLUMN_LABEL[c]} ${on ? 'masquée' : 'affichée'}`);
+              // Durée et Notes sont au bout du tableau : on les fait voir s'il dépasse.
+              if (!on && (c === 'duration' || c === 'notes')) setTimeout(() => document.querySelector('.table-scroll')?.scrollTo({ left: 1e6 }), 0);
+            }}
+          >
+            <span className="check" aria-hidden>
+              {on ? '✓' : ''}
+            </span>
+            {COLUMN_LABEL[c]}
+          </button>
+        );
+      })}
+    </BarMenu>
   );
 }
 
@@ -145,7 +190,6 @@ export function SpaceBar({ left, children, views = true }: { left?: ReactNode; c
   const view = useApp((s) => s.view);
   const inspector = useApp((s) => s.inspector);
   const onlyIncomplete = useApp((s) => s.onlyIncomplete);
-  const showNotes = usePrefs((s) => s.prefs.table.showNotes);
   const sp = SPACES.find((x) => x.id === SPACE_OF[view])!;
   const st = useApp.getState;
   const decoupage = view === 'table' || view === 'cards';
@@ -164,7 +208,7 @@ export function SpaceBar({ left, children, views = true }: { left?: ReactNode; c
       <span className="spacer" />
       {children}
       {decoupage && (
-        <BarMenu label="Afficher" active={onlyIncomplete || showNotes}>
+        <BarMenu label="Filtrer" active={onlyIncomplete}>
           <button
             type="button"
             role="menuitemcheckbox"
@@ -179,22 +223,9 @@ export function SpaceBar({ left, children, views = true }: { left?: ReactNode; c
             </span>
             Plans à compléter
           </button>
-          {view === 'table' && (
-            <button type="button" role="menuitemcheckbox" aria-checked={showNotes} onClick={() => {
-                const show = !showNotes;
-                updatePrefs((d) => void (d.table.showNotes = show));
-                // La colonne est la dernière : on la fait voir si le tableau dépasse.
-                if (show) setTimeout(() => document.querySelector('.table-scroll')?.scrollTo({ left: 1e6 }), 0);
-              }}
-            >
-              <span className="check" aria-hidden>
-                {showNotes ? '✓' : ''}
-              </span>
-              Colonne Notes
-            </button>
-          )}
         </BarMenu>
       )}
+      {view === 'table' && <ColumnsMenu />}
       {decoupage && !inspector && (
         <button type="button" className="ibtn" aria-label="Détails" title="Afficher les détails du plan (⌘I)" onClick={() => st().toggleInspector()}>
           <IconSidebar />

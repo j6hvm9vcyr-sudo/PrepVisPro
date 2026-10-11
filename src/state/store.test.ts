@@ -262,3 +262,61 @@ describe('numéro de nouvelle séquence', () => {
     expect(suggestSequenceNumber(d2, d2.sequences[0]!.id)).toBe('3B');
   });
 });
+
+describe('0.15 : durée et colonnes du tableau', () => {
+  it('la durée se saisit au clavier, sur la première caméra ; une reprise a celle de son plan', () => {
+    const { st, code, goCol, type } = setup();
+    st().updateDoc((d) => void (d.settings.tableColumns = [...d.settings.tableColumns, 'duration']));
+    goCol('duration');
+    expect(type("1'05")).toBe(true);
+    const pid = selectCursor(st())!.planId;
+    expect(locatePlan(selectDoc(st()), pid)!.plan.durationS).toBe(65);
+    expect(type('abc')).toBe(false);
+    expect(st().editing?.error).toMatch(/non reconnue/);
+    st().cancelEdit();
+    // Fin de ligne : ⇥ sur la durée passe à l'action du plan suivant.
+    st().startEdit('12');
+    st().commitEdit('right');
+    expect(selectCursor(st())!.col).toBe('action');
+    expect(locatePlan(selectDoc(st()), pid)!.plan.durationS).toBe(12);
+    // Une reprise : refusée, avec le plan à minuter.
+    const doc = selectDoc(st());
+    const reprise = doc.sequences.flatMap((s) => s.plans).find((p) => p.repriseOf)!;
+    st().setCursor({ planId: reprise.id, setupId: reprise.cameras[0]!.id, col: 'duration' });
+    st().startEdit();
+    expect(st().editing).toBeNull();
+    expect(st().message?.text).toMatch(/reprise a la durée de \d+\/\d+/);
+    expect(code()).toMatch(/B$/);
+    // ⌘Z
+    st().undo();
+    expect(locatePlan(selectDoc(st()), pid)!.plan.durationS).toBe(65);
+  });
+
+  it('une colonne masquée est sautée au clavier et au collage', () => {
+    const { st, goCol } = setup();
+    st().updateDoc((d) => void (d.settings.tableColumns = ['image', 'axis', 'focal']));
+    goCol('action');
+    st().move(0, 1);
+    expect(selectCursor(st())!.col).toBe('axis');
+    st().move(0, 1);
+    expect(selectCursor(st())!.col).toBe('focal');
+    st().move(0, 1);
+    expect(selectCursor(st())!.col).toBe('focal');
+    st().jump('end');
+    expect(selectCursor(st())!.col).toBe('focal');
+    // Deux valeurs collées côte à côte : axe puis focale (la valeur masquée n'est pas touchée).
+    goCol('axis');
+    const before = selectDoc(st());
+    expect(st().pasteText('Profil\t50')).toBe(true);
+    const c = selectCursor(st())!;
+    const setupNow = locatePlan(selectDoc(st()), c.planId)!.plan.cameras.find((x) => x.id === c.setupId)!;
+    const setupBefore = locatePlan(before, c.planId)!.plan.cameras.find((x) => x.id === c.setupId)!;
+    expect(setupNow.start.axis).toBe('Profil');
+    expect(setupNow.start.focalMm).toBe(50);
+    expect(setupNow.start.size).toBe(setupBefore.start.size);
+    // Curseur sur une colonne qu'on vient de masquer : il revient à l'action.
+    st().updateDoc((d) => void (d.settings.tableColumns = ['image']));
+    st().move(0, 0);
+    expect(selectCursor(st())!.col).toBe('action');
+  });
+});

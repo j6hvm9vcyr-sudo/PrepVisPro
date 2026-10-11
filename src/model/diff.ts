@@ -4,6 +4,7 @@
  * Les plans sont suivis par leur identifiant : un plan renuméroté reste « le même plan ».
  */
 import type { CameraSetup, Plan, ProjectDoc, Sequence } from './types';
+import { formatDuration } from './duration';
 import { notesText } from './notes';
 import { computeNumbers } from './numbering';
 import { displayText } from './entry';
@@ -53,7 +54,7 @@ function setupText(doc: ProjectDoc, s: CameraSetup, multi: boolean): Record<stri
 
 function planFields(doc: ProjectDoc, p: Plan): Record<string, string> {
   const multi = p.cameras.length > 1;
-  const out: Record<string, string> = { Action: p.action, Scénario: p.scriptExcerpt, Notes: notesText(p.notes), Caméras: p.cameras.map((c) => doc.settings.cameras.find((k) => k.id === c.cameraId)?.label ?? '?').join(' + ') };
+  const out: Record<string, string> = { Action: p.action, Scénario: p.scriptExcerpt, Notes: notesText(p.notes), Durée: p.durationS === null ? '' : formatDuration(p.durationS), Caméras: p.cameras.map((c) => doc.settings.cameras.find((k) => k.id === c.cameraId)?.label ?? '?').join(' + ') };
   for (const s of p.cameras) Object.assign(out, setupText(doc, s, multi));
   out.Images = String(p.images.length);
   return out;

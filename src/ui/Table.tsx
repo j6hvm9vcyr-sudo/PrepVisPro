@@ -1,11 +1,11 @@
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import { notesText, openCount } from '../model/notes';
-import { usePrefs } from '../state/prefs';
 import { tableTemplate, type TableColumn } from '../model/prefs';
 import { ColResize, RowResize, useTableLayout } from './tableLayout';
 import { useApp } from '../state/appStore';
 import { anyOverlay, rangeOf, selectCursor, selectDoc } from '../state/store';
-import { COLUMNS } from '../state/lines';
+import { visibleColumns } from '../state/lines';
+import { formatDuration, planDuration, sequenceDuration, totalLabel } from '../model/duration';
 import type { Column } from '../state/lines';
 import type { Plan, ProjectSettings, Sequence } from '../model/types';
 import { computeNumbers } from '../model/numbering';
@@ -40,6 +40,8 @@ const HEAD: { col: TableColumn; label: string }[] = [
   { col: 'cam', label: 'Cam' },
   { col: 'action', label: 'Action' },
   ...TECH,
+  { col: 'duration', label: 'Durée' },
+  { col: 'notes', label: 'Notes' },
 ];
 
 const CATEGORY_OF = { size: 'size', axis: 'axis', angle: 'angle', movement: 'movement', grip: 'grip' } as const;
@@ -67,7 +69,9 @@ export function DecoupageTable() {
   const states = useMemo(() => verify(doc).states, [doc]);
   // Largeurs des colonnes et hauteur des rangées : préférences de ce Mac (jamais l'export).
   const layout = useTableLayout();
-  const template = tableTemplate(layout.widths, layout.showNotes);
+  // Colonnes affichées : réglage du projet (menu Colonnes ▾), repris par l'export « Comme le tableau ».
+  const shown = doc.settings.tableColumns;
+  const template = tableTemplate(layout.widths, shown);
   const gridStyle = { '--cols': template.columns, minWidth: template.minWidth, ...(layout.rowHeight ? { '--row-h': `${layout.rowHeight}px` } : {}) } as CSSProperties;
   // Écarts avec les plans au sol (valeur, axe) : signalés dans les cases concernées.
   const floorDiffs = useMemo(() => (doc.floorPlans.length ? floorMismatches(doc) : EMPTY_DIFFS), [doc]);
@@ -291,7 +295,7 @@ export function DecoupageTable() {
         onKeyDown={onKeyDown}
       >
         <div className="grid-cols grid-head" role="row">
-          {(layout.showNotes ? [...HEAD, { col: 'notes' as const, label: 'Notes' }] : HEAD).map((h) => (
+          {HEAD.filter((h) => h.col === 'code' || h.col === 'cam' || h.col === 'action' || (shown as readonly string[]).includes(h.col)).map((h) => (
             <span key={h.col} role="columnheader">
               {h.label}
               <ColResize col={h.col} label={h.label} />
@@ -313,7 +317,7 @@ export function DecoupageTable() {
               floorDiffs={floorDiffs}
               cursorPlanId={cursor?.planId ?? null}
               cursorSetupId={cursor?.setupId ?? null}
-              cursorCol={cursor?.col ?? null}
+              cursorCol={cursor ? (visibleColumns(doc.settings).includes(cursor.col) ? cursor.col : 'action') : null}
               editing={!!editing && editHost === 'grid'}
               selection={selection?.map ?? null}
               days={doc.shootingDays
@@ -351,6 +355,8 @@ function SequenceBlock(p: BlockProps) {
   const colors = stripColors(seq);
   const st = useApp.getState;
   const plans = p.onlyIncomplete ? seq.plans.filter((x) => missingFields(x, p.settings).length > 0) : seq.plans;
+  // Durée de la séquence (sans les reprises), quand au moins un plan est minuté.
+  const dur = totalLabel(sequenceDuration(seq));
   return (
     <>
       <div className="band" id={`seq-${seq.id}`} role="row">
@@ -370,6 +376,7 @@ function SequenceBlock(p: BlockProps) {
         <span className="cnt">
           {seq.plans.length} plan{seq.plans.length > 1 ? 's' : ''}
           {p.onlyIncomplete ? ` · ${plans.length} à compléter` : ''}
+          {dur ? ` · ${dur}` : ''}
         </span>
         {p.days && (
           <span className="day-chip" title="Jours de tournage de la séquence (vue Jours, ⌘5)">
@@ -399,6 +406,7 @@ function SequenceBlock(p: BlockProps) {
               editing={here && p.editing}
               sel={p.selection?.get(plan.id) ?? null}
               floorNote={floorNoteOf(plan, p.floorDiffs)}
+              repriseDuration={plan.repriseOf ? planDuration(seq, plan) : null}
             />
           );
         })}
@@ -428,6 +436,8 @@ interface RowsProps {
   sel: Record<string, [number, number]> | null;
   /** Écarts avec le plan au sol, sérialisés (valeur stable pour la mémoïsation). */
   floorNote: string;
+  /** Reprise : durée de son plan (affichée, pas modifiable ici). */
+  repriseDuration: number | null;
 }
 
 const EMPTY_DIFFS = new Map<string, FloorMismatch[]>();
@@ -467,8 +477,9 @@ function NotesCell({ plan, setupId, first }: { plan: Plan; setupId: string; firs
   );
 }
 
-const PlanRows = memo(function PlanRows({ plan, settings, code, global, isReprise, state, activeSetupId, activeCol, editing, sel, floorNote }: RowsProps) {
-  const showNotes = usePrefs((s) => s.prefs.table.showNotes);
+const PlanRows = memo(function PlanRows({ plan, settings, code, global, isReprise, state, activeSetupId, activeCol, editing, sel, floorNote, repriseDuration }: RowsProps) {
+  const cols = visibleColumns(settings);
+  const shown = settings.tableColumns as readonly string[];
   const floor = floorNote ? (JSON.parse(floorNote) as Record<string, FloorMismatch[]>) : null;
   const missing = missingFields(plan, settings);
   const multi = plan.cameras.length > 1;
@@ -527,7 +538,7 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
         const label = settings.cameras.find((k) => k.id === setup.cameraId)?.label ?? '?';
         const range = sel?.[setup.id];
         const cls = (col: Column, extra = '') => {
-          const k = COLUMNS.indexOf(col);
+          const k = cols.indexOf(col);
           const inRange = range && k >= range[0] && k <= range[1];
           return `c cell ${extra} ${lineActive && activeCol === col ? 'active' : ''} ${inRange ? 'inrange' : ''}`;
         };
@@ -565,6 +576,7 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
               {first && isReprise && <span className="rep sr-only">reprise</span>}
               {first && <RowResize />}
             </span>
+            {cols.includes('image') && (
             <div
               id={cellId(setup.id, 'image')}
               role="gridcell"
@@ -585,6 +597,7 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
                 </div>
               )}
             </div>
+            )}
             <span className="c cam">
               <span className={`camchip mono ${multi ? 'camtag' : ''}`} title={`Caméra ${label}`}>
                 {label}
@@ -601,7 +614,7 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
               <span className="txt">{first ? plan.action || '—' : `Cam ${label} · même plan`}</span>
               {lineActive && activeCol === 'action' && editing && <CellEditor field="action" />}
             </div>
-            {TECH.map(({ col }) => {
+            {TECH.filter(({ col }) => cols.includes(col)).map(({ col }) => {
               const txt = displayText(col, setup);
               const fd = col === 'size' || col === 'axis' ? floor?.[setup.id]?.find((x) => x.field === col) : undefined;
               const offKit =
@@ -629,7 +642,20 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
                 </div>
               );
             })}
-            {showNotes && <NotesCell plan={plan} setupId={setup.id} first={first} />}
+            {cols.includes('duration') && (
+              <div
+                id={cellId(setup.id, 'duration')}
+                role="gridcell"
+                className={cls('duration', `num ${!first ? 'dim' : plan.repriseOf ? 'dim reprise-d' : plan.durationS === null ? 'empty' : ''}`)}
+                onMouseDown={(e) => select(e, setup.id, 'duration')}
+                onDoubleClick={() => st().startEdit()}
+                title={plan.repriseOf ? 'Une reprise a la durée de son plan' : undefined}
+              >
+                <span className="txt">{!first ? '' : plan.repriseOf ? (repriseDuration !== null ? formatDuration(repriseDuration) : '—') : plan.durationS !== null ? formatDuration(plan.durationS) : '—'}</span>
+                {lineActive && activeCol === 'duration' && editing && <CellEditor field="duration" />}
+              </div>
+            )}
+            {shown.includes('notes') && <NotesCell plan={plan} setupId={setup.id} first={first} />}
           </div>
         );
       })}

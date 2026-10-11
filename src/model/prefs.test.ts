@@ -6,7 +6,7 @@ const none = { size: false, axis: false, angle: false, focal: false, movement: f
 
 describe('préférences de l’app', () => {
   it('par défaut : plan suivant = focale, mouvement, machinerie ; abréviations livrées', () => {
-    expect(defaultPrefs()).toEqual({ version: 1, carryOver: DEFAULT_CARRY, aliases: TERM_ALIASES, table: { widths: {}, rowHeight: null, showNotes: false } });
+    expect(defaultPrefs()).toEqual({ version: 1, carryOver: DEFAULT_CARRY, aliases: TERM_ALIASES, table: { widths: {}, rowHeight: null } });
     expect(defaultPrefs().aliases).not.toBe(TERM_ALIASES);
   });
 
@@ -39,7 +39,7 @@ describe('préférences de l’app', () => {
   it('premières préférences du Mac : celles du premier ancien projet ouvert, telles quelles', () => {
     const legacy = { carryOver: { ...none, size: true }, aliases: { Dolly: ['grué'] } };
     const r = adoptLegacy(defaultPrefs(), legacy, true);
-    expect(r.prefs).toEqual({ version: 1, carryOver: legacy.carryOver, aliases: legacy.aliases, table: { widths: {}, rowHeight: null, showNotes: false } });
+    expect(r.prefs).toEqual({ version: 1, carryOver: legacy.carryOver, aliases: legacy.aliases, table: { widths: {}, rowHeight: null } });
     expect(r.changed).toBe(true);
     expect(adoptLegacy(defaultPrefs(), { carryOver: { ...DEFAULT_CARRY }, aliases: structuredClone(TERM_ALIASES) }, true).changed).toBe(false);
   });
@@ -58,14 +58,14 @@ describe('mise en page du tableau (préférences)', () => {
   it('relit d’anciennes préférences sans « table » : valeurs par défaut ; refuse une largeur absurde', () => {
     const old = { version: 1, carryOver: DEFAULT_CARRY, aliases: {} };
     const r = parsePrefs(old);
-    expect(r.ok && r.prefs.table).toEqual({ widths: {}, rowHeight: null, showNotes: false });
+    expect(r.ok && r.prefs.table).toEqual({ widths: {}, rowHeight: null });
     // Préférences 0.11.1 (table sans colonne Notes) : relues, colonne masquée.
     const r2 = parsePrefs({ ...old, table: { widths: { size: 120 }, rowHeight: 60 } });
-    expect(r2.ok && r2.prefs.table).toEqual({ widths: { size: 120 }, rowHeight: 60, showNotes: false });
+    expect(r2.ok && r2.prefs.table).toEqual({ widths: { size: 120 }, rowHeight: 60 });
     expect(parsePrefs({ ...old, table: { widths: { size: 5 }, rowHeight: null } }).ok).toBe(false);
     expect(parsePrefs({ ...old, table: { widths: { inconnue: 100 }, rowHeight: null } }).ok).toBe(false);
     const ok = parsePrefs({ ...old, table: { widths: { size: 140 }, rowHeight: 72 } });
-    expect(ok.ok && ok.prefs.table).toEqual({ widths: { size: 140 }, rowHeight: 72, showNotes: false });
+    expect(ok.ok && ok.prefs.table).toEqual({ widths: { size: 140 }, rowHeight: 72 });
   });
   it('colonnes de la grille : largeurs choisies, action souple par défaut, largeur minimale', () => {
     const d = tableTemplate({});
@@ -74,9 +74,13 @@ describe('mise en page du tableau (préférences)', () => {
     const c = tableTemplate({ size: 140, action: 300 });
     expect(c.columns).toBe('64px 52px 40px 300px 140px 60px 92px 100px 100px 96px');
     expect(c.minWidth).toBe(1044);
-    // Colonne Notes (0.13) : à la fin, souple elle aussi, sauf largeur choisie.
-    expect(tableTemplate({}, true).columns).toBe('64px 52px 40px minmax(150px, 1fr) 100px 60px 92px 100px 100px 96px minmax(140px, 1fr)');
-    expect(tableTemplate({}, true).minWidth).toBe(994);
-    expect(tableTemplate({ notes: 220 }, true).columns.endsWith(' 96px 220px')).toBe(true);
+    // Colonnes affichées (0.15, réglage du projet) : Durée et Notes à la fin, Notes souple elle aussi.
+    expect(tableTemplate({}, ['image', 'size', 'axis', 'angle', 'focal', 'movement', 'grip', 'duration', 'notes']).columns).toBe('64px 52px 40px minmax(150px, 1fr) 100px 60px 92px 100px 100px 96px 64px minmax(140px, 1fr)');
+    expect(tableTemplate({}, ['size', 'duration']).columns).toBe('64px 40px minmax(150px, 1fr) 100px 64px');
+    expect(tableTemplate({}, ['size', 'duration']).minWidth).toBe(418);
+    expect(tableTemplate({ notes: 220 }, ['notes']).columns.endsWith(' 220px')).toBe(true);
+    // Préférences 0.13–0.14 avec « showNotes » : relues, la clé est ignorée.
+    const old = parsePrefs({ version: 1, carryOver: DEFAULT_CARRY, aliases: {}, table: { widths: {}, rowHeight: null, showNotes: true } });
+    expect(old.ok && old.prefs.table).toEqual({ widths: {}, rowHeight: null });
   });
 });

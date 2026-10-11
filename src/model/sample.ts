@@ -32,12 +32,13 @@ export function sampleProject(): ProjectDoc {
   });
   const now = Date.now();
   const n = (text: string, done = false, daysAgo = 0): Note => ({ id: newId('nt'), text, createdAt: now - daysAgo * 86_400_000, done });
-  const p = (action: string, scriptExcerpt: string, cameras: CameraSetup[], repriseOf: string | null = null, notes: Note[] = []): Plan => ({
+  const p = (action: string, scriptExcerpt: string, cameras: CameraSetup[], repriseOf: string | null = null, notes: Note[] = [], durationS: number | null = null): Plan => ({
     id: newId('pl'),
     repriseOf,
     action,
     scriptExcerpt,
     notes,
+    durationS,
     cameras,
     images: [],
     coverImageId: null,
@@ -57,8 +58,8 @@ export function sampleProject(): ProjectDoc {
     plans,
   });
 
-  const quai = p('Elle attend sur le quai, le train arrive.', 'LÉA (30) attend, seule sur le quai.', [cs(f('Ensemble', 'Face', 'À niveau', null, 32), ['Fixe'], ['Branches'])], null, [n('Autorisation de tournage en gare reçue', true, 3)]);
-  const regard = p('Elle cherche quelqu’un du regard.', 'Elle scrute les fenêtres du train.', [cs(f('Poitrine', '3/4', 'À niveau', null, 75), ['Fixe'], ['Branches'])]);
+  const quai = p('Elle attend sur le quai, le train arrive.', 'LÉA (30) attend, seule sur le quai.', [cs(f('Ensemble', 'Face', 'À niveau', null, 32), ['Fixe'], ['Branches'])], null, [n('Autorisation de tournage en gare reçue', true, 3)], 8);
+  const regard = p('Elle cherche quelqu’un du regard.', 'Elle scrute les fenêtres du train.', [cs(f('Poitrine', '3/4', 'À niveau', null, 75), ['Fixe'], ['Branches'])], null, [], 4);
 
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -71,7 +72,7 @@ export function sampleProject(): ProjectDoc {
         regard,
         p('Le train entre en gare, crash zoom sur la porte.', 'Le train s’immobilise.', [
           cs(f('Général', 'Profil', 'À niveau', null, 75), ['Pan', 'Fixe'], ['Branches'], f('Poitrine', 'Profil', 'À niveau', null, 300)),
-        ], null, [n('Essayer la vitesse du zoom au moteur', false, 1)]),
+        ], null, [n('Essayer la vitesse du zoom au moteur', false, 1)], 6),
         p('Elle cherche quelqu’un du regard.', 'Elle scrute les fenêtres du train.', [cs(f('Poitrine', '3/4', 'À niveau', null, 75), ['Fixe'], ['Branches'])], regard.id),
       ], [n('Demander à la gare les horaires des trains', false, 2)]),
       s('2', 'INT', 'JOUR', 'Wagon', [

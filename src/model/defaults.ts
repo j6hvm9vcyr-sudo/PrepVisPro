@@ -1,5 +1,5 @@
 import type { Breakdown, CameraSetup, Framing, Id, Plan, ProjectCamera, ProjectDoc, ProjectSettings, Sequence, TermCategory } from './types';
-import { SCHEMA_VERSION } from './types';
+import { DEFAULT_TABLE_COLUMNS, SCHEMA_VERSION } from './types';
 
 export const DEFAULT_TERMS: Record<TermCategory, string[]> = {
   size: ['TGP', 'GP', 'Poitrine', 'Taille', 'Américain', 'Italien', 'Moyen', 'Demi-ensemble', 'Ensemble', 'Général', 'Insert'],
@@ -50,6 +50,7 @@ export function newPlan(cameraId: Id): Plan {
     action: '',
     scriptExcerpt: '',
     notes: [],
+    durationS: null,
     cameras: [newCameraSetup(cameraId)],
     images: [],
     coverImageId: null,
@@ -89,6 +90,7 @@ export function defaultSettings(): ProjectSettings {
     shotPresets: [],
     exportPresets: [],
     floorIcons: { camera: null, actor: null, light: null },
+    tableColumns: [...DEFAULT_TABLE_COLUMNS],
     timeZone: null,
   };
 }

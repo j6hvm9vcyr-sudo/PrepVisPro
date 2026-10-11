@@ -323,6 +323,7 @@ function buildDtSheet(wb: ExcelJS.Workbook, m: ExportModel, opts: ExportOptions,
         // Description aérée comme dans un découpage manuel : une ligne vide entre les réglages.
         else if (c.id === 'description') v = descriptionText(p, fields, opts.showCamera, '\n\n');
         else if (c.id === 'notes') v = p.notes;
+        else if (c.id === 'duration') v = p.duration;
         cell.value = v; // texte : « 4/2 » n'est jamais converti en date
         cell.font = { name: DT_FONT, size: 9, bold: c.id === 'code', color: { argb: 'FF000000' } };
         cell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true };

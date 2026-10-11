@@ -87,11 +87,11 @@ test('À vérifier : filtre des plans à compléter, accès direct, et repli de 
   await expect(panel.getByRole('button', { name: '4/1' })).toBeVisible();
   await panel.getByRole('button', { name: /^3\/1 · / }).click();
   await expect(page.locator('.line.sel .c.code b')).toHaveText('3/1');
-  await page.getByRole('button', { name: /^Afficher/ }).click();
+  await page.getByRole('button', { name: /^Filtrer/ }).click();
   await page.getByRole('menuitemcheckbox', { name: 'Plans à compléter' }).click();
   await expect(page.locator('.line.first')).toHaveCount(2);
   await page.screenshot({ path: 'test-results/04-filtre.png' });
-  await page.getByRole('button', { name: /^Afficher/ }).click();
+  await page.getByRole('button', { name: /^Filtrer/ }).click();
   await page.getByRole('menuitemcheckbox', { name: 'Plans à compléter' }).click();
   await page.getByRole('button', { name: 'Replier la séquence 1' }).click();
   await expect(page.locator('.line.first')).toHaveCount(4);
@@ -498,4 +498,52 @@ test('0.11.1 : la carte Caméra se modifie sur place, avec la même saisie que l
   await cell(page, 7, 'grip').click();
   await page.keyboard.press('Enter');
   await expect(page.locator('.grid .editor')).toHaveCount(1);
+});
+
+test('0.15 : colonnes du tableau choisies (et reprises par l’export) ; durée saisie au clavier, totaux', async ({ page }) => {
+  // Durée : masquée par défaut, affichée par le menu Colonnes.
+  await expect(page.getByRole('columnheader', { name: 'Durée' })).toHaveCount(0);
+  await page.getByRole('button', { name: /^Colonnes/ }).click();
+  const menu = page.getByRole('menu');
+  await menu.getByRole('menuitemcheckbox', { name: 'Durée' }).click();
+  // Le menu reste ouvert pour en régler plusieurs.
+  await menu.getByRole('menuitemcheckbox', { name: 'Machinerie' }).click();
+  await menu.getByRole('menuitemcheckbox', { name: 'Image' }).click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('columnheader', { name: 'Durée' })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Machinerie' })).toHaveCount(0);
+  await expect(page.getByRole('columnheader', { name: 'Img' })).toHaveCount(0);
+  await expect(cell(page, 0, 'duration')).toHaveText('8"');
+  // Reprise 1/2B : la durée de 1/2, grisée.
+  await expect(cell(page, 3, 'duration')).toHaveText('4"');
+  await expect(page.locator('.band').first()).toContainText('4 plans · 18"');
+  await expect(page.locator('.proj-sub').first()).toContainText('18" +');
+  // Saisie au clavier : du mouvement, → passe directement à la durée (machinerie masquée).
+  await cell(page, 4, 'movement').click();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.type("1'05");
+  await page.keyboard.press('Enter');
+  await expect(cell(page, 4, 'duration')).toHaveText('1\'05"');
+  await expect(page.locator('.band').nth(1)).toContainText('2 plans · 1\'05" (1 plan sans durée)');
+  // Erreur claire, rien n'est changé.
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('douze');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.editor .err')).toContainText('non reconnue');
+  await page.keyboard.press('Escape');
+  await expect(cell(page, 4, 'duration')).toHaveText('1\'05"');
+  await page.screenshot({ path: 'test-results/35-colonnes-duree.png' });
+  // Export : « Comme le tableau » reprend ces colonnes.
+  await page.getByRole('button', { name: 'Exporter…' }).last().click();
+  const dlg = page.getByRole('dialog', { name: 'Exporter' });
+  await dlg.getByRole('radio', { name: 'Comme le tableau' }).click();
+  await expect(dlg.getByRole('checkbox', { name: 'Durée' })).toBeChecked();
+  await expect(dlg.getByRole('checkbox', { name: 'Machinerie', exact: true })).not.toBeChecked();
+  await expect(dlg.getByRole('checkbox', { name: 'Image', exact: true })).not.toBeChecked();
+  await page.keyboard.press('Escape');
+  // ⌘Z rend les colonnes d'avant.
+  await page.keyboard.press('ControlOrMeta+z');
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(page.getByRole('columnheader', { name: 'Img' })).toBeVisible();
 });

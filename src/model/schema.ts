@@ -6,7 +6,8 @@
  */
 import { z } from 'zod';
 import type { ProjectDoc } from './types';
-import { SCHEMA_VERSION } from './types';
+import { SCHEMA_VERSION, TABLE_COLUMN_IDS } from './types';
+import { MAX_DURATION_S } from './duration';
 
 const id = z.string().min(1);
 const nullableNum = z.number().finite().nullable();
@@ -44,6 +45,7 @@ const plan = z.object({
   action: z.string(),
   scriptExcerpt: z.string(),
   notes: z.array(note),
+  durationS: z.number().int().min(1).max(MAX_DURATION_S).nullable(),
   cameras: z.array(cameraSetup).min(1),
   images: z.array(image),
   coverImageId: id.nullable(),
@@ -185,6 +187,7 @@ const projectSchema = z.object({
     shotPresets: z.array(z.object({ id, start: framing, end: framing.nullable(), movements: z.array(z.string()), grip: z.array(z.string()) })),
     exportPresets: z.array(z.object({ id, name: z.string(), options: z.unknown() })),
     floorIcons: z.object({ camera: figureIcon.nullable(), actor: figureIcon.nullable(), light: figureIcon.nullable() }),
+    tableColumns: z.array(z.enum(TABLE_COLUMN_IDS)).refine((a) => new Set(a).size === a.length, 'colonne en double'),
     timeZone: z.string().min(1).nullable(),
   }),
   sequences: z.array(sequence),

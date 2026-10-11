@@ -253,7 +253,7 @@ function DtPlan({ p, cols, widths, opts, images, fields, tint }: { p: ExportPlan
             </View>
           );
         const v =
-          c.id === 'global' ? String(p.global) : c.id === 'code' ? p.code : c.id === 'camera' ? (p.cameras.length > 1 ? p.cameras.map((k) => k.label).join('/') : '') : c.id === 'action' ? p.action : c.id === 'script' ? p.script : p.notes;
+          c.id === 'global' ? String(p.global) : c.id === 'code' ? p.code : c.id === 'camera' ? (p.cameras.length > 1 ? p.cameras.map((k) => k.label).join('/') : '') : c.id === 'action' ? p.action : c.id === 'script' ? p.script : c.id === 'duration' ? p.duration : p.notes;
         return (
           <View key={c.id} style={cellStyle}>
             <Text style={[dt.text, ...(c.id === 'code' ? [s.code] : c.id === 'global' || c.id === 'camera' ? [s.mono, s.muted] : c.id === 'script' ? [s.script] : [])]}>{v}</Text>

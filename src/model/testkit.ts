@@ -21,6 +21,7 @@ export function plan(camId: string, partial: Partial<Plan> = {}): Plan {
     action: '',
     scriptExcerpt: '',
     notes: [],
+    durationS: null,
     cameras: [setup(camId)],
     images: [],
     coverImageId: null,

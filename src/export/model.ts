@@ -3,6 +3,8 @@
  * l'Excel et le CSV. Ainsi, les trois formats disent exactement la même chose.
  */
 import type { Id, Plan, ProjectDoc, Sequence } from '../model/types';
+import { formatDuration, planDuration } from '../model/duration';
+import { locatePlan } from '../model/ops';
 import { notesText } from '../model/notes';
 import { computeNumbers } from '../model/numbering';
 import { displayText } from '../model/entry';
@@ -16,7 +18,7 @@ import { projectTimeZone } from '../model/sunPlan';
 import { utcToLocal } from '../model/sun';
 import { filmFlow } from '../model/stamps';
 
-export type ColumnId = 'global' | 'code' | 'image' | 'action' | 'script' | 'size' | 'axis' | 'angle' | 'focal' | 'movement' | 'grip' | 'notes';
+export type ColumnId = 'global' | 'code' | 'image' | 'action' | 'script' | 'size' | 'axis' | 'angle' | 'focal' | 'movement' | 'grip' | 'duration' | 'notes';
 
 export interface ColumnDef {
   id: ColumnId;
@@ -41,10 +43,11 @@ export const COLUMN_DEFS: Record<ColumnId, ColumnDef> = {
   focal: { id: 'focal', label: 'Focale', weight: 0.95, xlsWidth: 12, perCamera: true },
   movement: { id: 'movement', label: 'Mouvement', weight: 1.25, xlsWidth: 18, perCamera: true },
   grip: { id: 'grip', label: 'Machinerie', weight: 1.15, xlsWidth: 16, perCamera: true },
+  duration: { id: 'duration', label: 'Durée', weight: 0.55, xlsWidth: 8, perCamera: false },
   notes: { id: 'notes', label: 'Notes', weight: 1.6, xlsWidth: 26, perCamera: false },
 };
 
-export const ALL_COLUMNS: ColumnId[] = ['global', 'code', 'image', 'action', 'script', 'size', 'axis', 'angle', 'focal', 'movement', 'grip', 'notes'];
+export const ALL_COLUMNS: ColumnId[] = ['global', 'code', 'image', 'action', 'script', 'size', 'axis', 'angle', 'focal', 'movement', 'grip', 'duration', 'notes'];
 
 export interface ExportOptions {
   columns: ColumnId[];
@@ -106,6 +109,15 @@ export const BUILTIN_PRESETS: ExportPreset[] = [
   { id: 'liste', name: 'Liste des plans (une colonne par réglage)', options: { ...base, layout: 'columns', coverPage: false, sequenceComments: false, floorPlans: false, columns: ['global', 'code', 'action', 'size', 'axis', 'angle', 'focal', 'movement', 'grip'] } },
 ];
 
+/** Modèle « Comme le tableau » : les colonnes affichées dans le tableau (menu Colonnes ▾), une colonne par réglage. */
+export const TABLE_PRESET_ID = 'tableau';
+
+export function tablePreset(doc: ProjectDoc): ExportPreset {
+  const shown = doc.settings.tableColumns;
+  const columns: ColumnId[] = ['code', ...(shown.includes('image') ? (['image'] as const) : []), 'action', ...shown.filter((c) => c !== 'image')];
+  return { id: TABLE_PRESET_ID, name: 'Comme le tableau', options: { ...base, layout: 'columns', columns } };
+}
+
 interface ExportCameraRow {
   label: string;
   values: Partial<Record<ColumnId, string>>;
@@ -119,6 +131,8 @@ export interface ExportPlan {
   action: string;
   script: string;
   notes: string;
+  /** Durée à l'écran (« 1'05" ») ; celle de son plan pour une reprise ; vide si pas minuté. */
+  duration: string;
   imageFile: string | null;
   missing: string[];
   cameras: ExportCameraRow[];
@@ -226,6 +240,12 @@ function exportDays(doc: ProjectDoc, numbers: ReturnType<typeof computeNumbers>)
   });
 }
 
+function durationOf(doc: ProjectDoc, p: Plan): string {
+  const loc = locatePlan(doc, p.id);
+  const d = loc ? planDuration(loc.seq, p) : p.durationS;
+  return d === null ? '' : formatDuration(d);
+}
+
 function planRow(p: Plan, doc: ProjectDoc, n: { global: number; code: string; repriseLetter: string }): ExportPlan {
   const cover = coverImage(p);
   return {
@@ -236,6 +256,7 @@ function planRow(p: Plan, doc: ProjectDoc, n: { global: number; code: string; re
     action: p.action,
     script: p.scriptExcerpt,
     notes: notesText(p.notes),
+    duration: durationOf(doc, p),
     imageFile: cover?.file ?? null,
     missing: missingFields(p, doc.settings),
     cameras: p.cameras.map((c) => ({
@@ -341,7 +362,7 @@ export function descriptionText(p: ExportPlan, fields: ColumnId[], showCamera: b
 
 const DT_IMG_WIDTH = { small: 30, medium: 40, large: 48 } as const;
 
-export type DtCol = { id: 'global' | 'code' | 'camera' | 'action' | 'script' | 'description' | 'image' | 'notes'; label: string; width: number };
+export type DtCol = { id: 'global' | 'code' | 'camera' | 'action' | 'script' | 'description' | 'image' | 'duration' | 'notes'; label: string; width: number };
 
 /** Colonnes du découpage technique, dans l'ordre choisi ; les réglages techniques forment la Description. */
 export function dtColumns(opts: ExportOptions, multiCamera: boolean): DtCol[] {
@@ -362,6 +383,7 @@ export function dtColumns(opts: ExportOptions, multiCamera: boolean): DtCol[] {
     } else if (c === 'action') out.push({ id: 'action', label: 'ACTION', width: 32 });
     else if (c === 'script') out.push({ id: 'script', label: 'SCÉNARIO', width: 50 });
     else if (c === 'image') out.push({ id: 'image', label: 'RÉFÉRENCE', width: DT_IMG_WIDTH[opts.imageSize] });
+    else if (c === 'duration') out.push({ id: 'duration', label: 'DURÉE', width: 6 });
     else if (c === 'notes') out.push({ id: 'notes', label: 'DIVERS', width: 24 });
   }
   return out;
@@ -391,6 +413,8 @@ export function planValue(p: ExportPlan, col: ColumnId): string {
       return p.script;
     case 'notes':
       return p.notes;
+    case 'duration':
+      return p.duration;
     default:
       return '';
   }

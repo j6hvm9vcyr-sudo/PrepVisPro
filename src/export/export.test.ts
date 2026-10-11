@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import ExcelJS from 'exceljs';
-import { BUILTIN_PRESETS, buildCsv, buildExportModel, exportFileName } from './model';
+import { BUILTIN_PRESETS, buildCsv, buildExportModel, exportFileName, tablePreset } from './model';
 import { buildWorkbook, type PreparedImage } from './excel';
 import { sampleProjectMultiCam as sampleProject } from '../model/sample';
 import { produce } from 'immer';
@@ -66,6 +66,22 @@ describe('CSV', () => {
     expect(csv.startsWith('﻿Séquence;Caméra;N°;Plan;Action')).toBe(true);
     expect(csv).toContain('"Il dit ""non""; puis part"');
     expect(csv.split('\r\n').filter(Boolean)).toHaveLength(1 + 9);
+  });
+
+  it('0.15 : « Comme le tableau » reprend les colonnes affichées, durée comprise (reprise : celle de son plan)', () => {
+    const d = produce(sampleProject(), (x) => void (x.settings.tableColumns = ['size', 'focal', 'duration']));
+    const p = tablePreset(d);
+    expect(p.name).toBe('Comme le tableau');
+    expect(p.options.columns).toEqual(['code', 'action', 'size', 'focal', 'duration']);
+    expect(p.options.layout).toBe('columns');
+    const csv = buildCsv(buildExportModel(d, { sequenceIds: [] }), p.options.columns);
+    const lines = csv.replace('\ufeff', '').split('\r\n');
+    expect(lines[0]).toBe('Séquence;Caméra;Plan;Action;Valeur;Focale;Durée');
+    // Le guillemet des secondes est échappé selon la règle CSV (relu « 8" » par un tableur).
+    expect(lines[1]!.endsWith(';"8"""')).toBe(true);
+    // 1/2B : reprise de 1/2 (4")
+    expect(lines.find((l) => l.includes(';1/2B;'))!.endsWith(';"4"""')).toBe(true);
+    expect(tablePreset(produce(d, (x) => void (x.settings.tableColumns = ['image', 'notes']))).options.columns).toEqual(['code', 'image', 'action', 'notes']);
   });
 });
 

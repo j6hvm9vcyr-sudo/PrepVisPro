@@ -55,6 +55,12 @@ export interface ImageAsset {
   caption: string;
 }
 
+/** Colonnes facultatives du tableau, dans leur ordre. */
+export const TABLE_COLUMN_IDS = ['image', 'size', 'axis', 'angle', 'focal', 'movement', 'grip', 'duration', 'notes'] as const;
+export type TableColumnId = (typeof TABLE_COLUMN_IDS)[number];
+/** Colonnes affichées par défaut (celles d'avant la 0.15). */
+export const DEFAULT_TABLE_COLUMNS: TableColumnId[] = ['image', 'size', 'axis', 'angle', 'focal', 'movement', 'grip'];
+
 /** Note datée, rattachée à une séquence ou à un plan ; cochée quand c'est fait. */
 export interface Note {
   id: Id;
@@ -72,6 +78,11 @@ export interface Plan {
   scriptExcerpt: string;
   /** Notes du plan, dans l'ordre où elles ont été prises (colonne « Divers » des exports). */
   notes: Note[];
+  /**
+   * Durée du plan à l'écran, en secondes ; null = pas encore minutée. Toujours null pour une
+   * reprise : elle a la durée de son plan (duration.ts).
+   */
+  durationS: number | null;
   /** Au moins une caméra. */
   cameras: CameraSetup[];
   images: ImageAsset[];
@@ -192,6 +203,11 @@ export interface ProjectSettings {
   exportPresets: { id: Id; name: string; options: unknown }[];
   /** Icônes des figures du plan au sol (sinon les symboles standard), voir floorIcons.ts. */
   floorIcons: Record<FigureKind, FigureIcon | null>;
+  /**
+   * Colonnes affichées dans le tableau, en plus du N°, de la caméra et de l'action (toujours là),
+   * dans l'ordre du tableau. Le modèle d'export « Comme le tableau » les reprend.
+   */
+  tableColumns: TableColumnId[];
   /** Fuseau horaire des heures du projet (nom IANA, ex. « Europe/Paris ») ; null = celui de cet ordinateur. */
   timeZone: string | null;
 }
@@ -259,7 +275,7 @@ interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 21 as const;
+export const SCHEMA_VERSION = 22 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;

@@ -31,16 +31,16 @@ test('0.13 : notes datées par plan et par séquence, cochées, rassemblées dan
   await expect(t).not.toBeFocused();
   await expect(card.getByRole('textbox', { name: 'Note : Repérer la fenêtre côté quai' })).toBeVisible();
 
-  // Colonne Notes du tableau : les notes à faire ; masquée par défaut, gardée sur ce Mac.
+  // Colonne Notes du tableau : les notes à faire ; masquée par défaut (menu Colonnes, réglage du projet).
   await expect(page.getByRole('columnheader', { name: 'Notes' })).toHaveCount(0);
-  await page.getByRole('button', { name: /^Afficher/ }).click();
-  await page.getByRole('menuitemcheckbox', { name: 'Colonne Notes' }).click();
+  await page.getByRole('button', { name: /^Colonnes/ }).click();
+  await page.getByRole('menuitemcheckbox', { name: 'Notes' }).click();
+  await page.keyboard.press('Escape');
   await expect(page.getByRole('columnheader', { name: 'Notes' })).toBeVisible();
   const notesCells = page.locator('.line.first .notes-c');
   await expect(notesCells.nth(1)).toHaveText('Repérer la fenêtre côté quai');
   await expect(notesCells.nth(0)).toHaveText('✓ 1 faite');
   await expect(notesCells.nth(2)).toHaveText('Essayer la vitesse du zoom au moteur');
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('prepvispro.prefs') ?? '{}').table?.showNotes)).toBe(true);
   // Notes de la séquence sous son bandeau.
   await expect(page.locator('.seq-comments').first()).toContainText('Demander à la gare les horaires des trains');
   await page.screenshot({ path: 'test-results/32-colonne-notes.png' });

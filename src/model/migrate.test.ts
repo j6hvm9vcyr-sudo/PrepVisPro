@@ -95,6 +95,22 @@ describe('mise à niveau des fichiers', () => {
     const r = validateProject(m.raw);
     expect(r.ok && r.doc).toEqual(cur);
   });
+  it('format 21 → 22 : aucune durée, colonnes du tableau d’avant (sans Durée ni Notes), clés dans l’ordre du format', () => {
+    const cur = sampleProjectMultiCam();
+    const { tableColumns: _t, ...settings } = cur.settings;
+    const v21 = JSON.parse(JSON.stringify({ ...cur, schemaVersion: 21, settings, sequences: cur.sequences.map((s) => ({ ...s, plans: s.plans.map(({ durationS: _d, ...p }) => p) })) }));
+    const m = migrate(v21);
+    expect(m.ok).toBe(true);
+    if (!m.ok) return;
+    const r = validateProject(m.raw);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.doc.settings.tableColumns).toEqual(['image', 'size', 'axis', 'angle', 'focal', 'movement', 'grip']);
+    expect(r.doc.sequences.flatMap((s) => s.plans).every((p) => p.durationS === null)).toBe(true);
+    const ref = newProject('X');
+    expect(Object.keys(r.doc.settings)).toEqual(Object.keys(ref.settings));
+    expect(Object.keys(r.doc.sequences[0]!.plans[0]!)).toEqual(Object.keys(ref.sequences[0]!.plans[0]!));
+  });
   it('format 16 → 17 : modèles d’export et icônes des figures dans le projet (aucun)', () => {
     const cur = newProject('X');
     const { exportPresets: _e, floorIcons: _f, ...old } = cur.settings;

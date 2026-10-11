@@ -17,11 +17,11 @@ import { norm } from './text';
 export const PREFS_VERSION = 1 as const;
 
 /** Colonnes du tableau, dans l'ordre. */
-export const TABLE_COLUMNS = ['code', 'image', 'cam', 'action', 'size', 'axis', 'angle', 'focal', 'movement', 'grip', 'notes'] as const;
+export const TABLE_COLUMNS = ['code', 'image', 'cam', 'action', 'size', 'axis', 'angle', 'focal', 'movement', 'grip', 'duration', 'notes'] as const;
 export type TableColumn = (typeof TABLE_COLUMNS)[number];
 
 /** Largeurs par défaut (px) ; null = la colonne partage la place qui reste (action, notes). */
-export const TABLE_DEFAULT_WIDTHS: Record<TableColumn, number | null> = { code: 64, image: 52, cam: 40, action: null, size: 100, axis: 60, angle: 92, focal: 100, movement: 100, grip: 96, notes: null };
+export const TABLE_DEFAULT_WIDTHS: Record<TableColumn, number | null> = { code: 64, image: 52, cam: 40, action: null, size: 100, axis: 60, angle: 92, focal: 100, movement: 100, grip: 96, duration: 64, notes: null };
 export const TABLE_MIN_WIDTH = 36;
 export const TABLE_MAX_WIDTH = 640;
 export const ROW_MIN_HEIGHT = 32;
@@ -35,8 +35,6 @@ export interface TableLayout {
   widths: Partial<Record<TableColumn, number>>;
   /** Hauteur minimale des rangées (px) ; null = hauteur par défaut. */
   rowHeight: number | null;
-  /** Colonne « Notes » (notes à faire de chaque plan) affichée. */
-  showNotes: boolean;
 }
 
 export interface AppPrefs {
@@ -46,10 +44,11 @@ export interface AppPrefs {
   table: TableLayout;
 }
 
-/** Colonnes de la grille CSS et largeur minimale du tableau. */
-export function tableTemplate(widths: Partial<Record<TableColumn, number>>, showNotes = false): { columns: string; minWidth: number } {
+/** Colonnes de la grille CSS et largeur minimale du tableau ; `shown` : colonnes facultatives affichées (projet). */
+export function tableTemplate(widths: Partial<Record<TableColumn, number>>, shown: readonly string[] = ['image', 'size', 'axis', 'angle', 'focal', 'movement', 'grip']): { columns: string; minWidth: number } {
   let min = 0;
-  const parts = TABLE_COLUMNS.filter((c) => showNotes || c !== 'notes').map((c) => {
+  const always: readonly TableColumn[] = ['code', 'cam', 'action'];
+  const parts = TABLE_COLUMNS.filter((c) => always.includes(c) || shown.includes(c)).map((c) => {
     const w = widths[c] ?? TABLE_DEFAULT_WIDTHS[c];
     if (w === null) {
       const m = c === 'notes' ? NOTES_FLEX_MIN : ACTION_FLEX_MIN;
@@ -67,14 +66,13 @@ const aliasesSchema = z.record(z.string(), z.array(z.string()));
 const tableSchema = z.object({
   widths: z.partialRecord(z.enum(TABLE_COLUMNS), z.number().min(TABLE_MIN_WIDTH).max(TABLE_MAX_WIDTH)),
   rowHeight: z.number().min(ROW_MIN_HEIGHT).max(ROW_MAX_HEIGHT).nullable(),
-  // Apparue en 0.13 : absente, la colonne est masquée.
-  showNotes: z.boolean().default(false),
+  // « showNotes » (0.13–0.14) : remplacé par les colonnes du projet (0.15), ignoré à la lecture.
 });
 // `table` est apparu après la première version des préférences : absent, il prend sa valeur par défaut.
-const prefsSchema = z.object({ version: z.literal(PREFS_VERSION), carryOver: carrySchema, aliases: aliasesSchema, table: tableSchema.default({ widths: {}, rowHeight: null, showNotes: false }) });
+const prefsSchema = z.object({ version: z.literal(PREFS_VERSION), carryOver: carrySchema, aliases: aliasesSchema, table: tableSchema.default({ widths: {}, rowHeight: null }) });
 
 export function defaultPrefs(): AppPrefs {
-  return { version: PREFS_VERSION, carryOver: { ...DEFAULT_CARRY }, aliases: structuredClone(TERM_ALIASES), table: { widths: {}, rowHeight: null, showNotes: false } };
+  return { version: PREFS_VERSION, carryOver: { ...DEFAULT_CARRY }, aliases: structuredClone(TERM_ALIASES), table: { widths: {}, rowHeight: null } };
 }
 
 /** Relit le fichier de préférences : refusé en bloc s'il n'est pas valide (jamais à moitié). */

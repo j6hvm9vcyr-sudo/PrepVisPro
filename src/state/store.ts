@@ -15,7 +15,8 @@ import { cleanupDays } from '../model/days';
 import * as stamps from '../model/stamps';
 import * as library from '../model/library';
 import { createHistory, pushHistory, redoHistory, undoHistory, type History } from './history';
-import { allLines, COLUMNS, moveCursor, visibleLines, type Column, type Cursor, type Line } from './lines';
+import { allLines, moveCursor, visibleColumns, visibleLines, type Column, type Cursor, type Line } from './lines';
+import { durationEditText, parseDuration } from '../model/duration';
 import { imageStore } from '../platform/images';
 import { produce, type Draft } from 'immer';
 
@@ -109,7 +110,21 @@ export function linesOf(s: AppState): Line[] {
 }
 
 function fieldOf(col: Column): EditableField | null {
-  return col === 'image' ? null : col;
+  return col === 'image' || col === 'duration' ? null : col;
+}
+
+/** Colonnes affichées du tableau (le curseur ne va que là). */
+export function colsOf(s: AppState): Column[] {
+  return visibleColumns(s.hist.present.doc.settings);
+}
+
+const CELL_LABEL: Record<Column, string> = { ...FIELD_LABEL, image: 'Image', duration: 'Durée' };
+
+/** Code du plan dont une reprise est la reprise (« 4/2 »), pour les messages. */
+function repriseSource(doc: ProjectDoc, planId: Id): string {
+  const loc = ops.locatePlan(doc, planId);
+  const src = loc?.plan.repriseOf;
+  return src ? (computeNumbers(doc).get(src)?.code ?? 'son plan') : 'son plan';
 }
 
 export interface Range {
@@ -157,8 +172,9 @@ export function rangeOf(s: AppState): Range | null {
   if (i < 0) return null;
   const a = s.anchor;
   const j = a ? lines.findIndex((l) => l.planId === a.planId && l.setupId === a.setupId) : -1;
-  const ci = COLUMNS.indexOf(c.col);
-  const cj = a && j >= 0 ? COLUMNS.indexOf(a.col) : ci;
+  const cols = colsOf(s);
+  const ci = Math.max(0, cols.indexOf(c.col));
+  const cj = a && j >= 0 ? Math.max(0, cols.indexOf(a.col)) : ci;
   const jj = j >= 0 ? j : i;
   return { lines, r0: Math.min(i, jj), r1: Math.max(i, jj), c0: Math.min(ci, cj), c1: Math.max(ci, cj) };
 }
@@ -170,6 +186,7 @@ function cellText(doc: ProjectDoc, line: Line, col: Column): string | null {
   const setup = loc?.plan.cameras.find((x) => x.id === line.setupId);
   if (!loc || !setup) return null;
   if (col === 'action') return line.setupIndex === 0 ? loc.plan.action : null;
+  if (col === 'duration') return line.setupIndex === 0 && !loc.plan.repriseOf ? durationEditText(loc.plan.durationS) : null;
   return fieldEditText(col, setup);
 }
 
@@ -187,7 +204,7 @@ function writeCells(doc: ProjectDoc, targets: { line: Line; col: Column; value: 
     if (!rowOf.has(key)) rowOf.set(key, rowOf.size + firstRow);
   });
   for (const t of targets) {
-    const where = `ligne ${(rowOf.get(`${t.line.planId}|${t.line.setupId}`) ?? 0) - firstRow + 1}, ${t.col === 'image' ? 'image' : FIELD_LABEL[t.col].toLowerCase()}`;
+    const where = `ligne ${(rowOf.get(`${t.line.planId}|${t.line.setupId}`) ?? 0) - firstRow + 1}, ${CELL_LABEL[t.col].toLowerCase()}`;
     if (t.col === 'image') {
       if (t.value.trim()) errors.push(`${where} : une image ne se colle pas comme du texte`);
       continue;
@@ -205,6 +222,20 @@ function writeCells(doc: ProjectDoc, targets: { line: Line; col: Column; value: 
           p.action = t.value.trim();
         });
       }
+      count++;
+      continue;
+    }
+    if (t.col === 'duration') {
+      if (t.line.setupIndex > 0 || loc.plan.repriseOf) {
+        if (t.value.trim()) errors.push(`${where} : ${t.line.setupIndex > 0 ? 'la durée se colle sur la ligne de la première caméra' : `une reprise a la durée de ${repriseSource(next, t.line.planId)}`}`);
+        continue;
+      }
+      const d = parseDuration(t.value);
+      if (!d.ok) {
+        errors.push(`${where} : ${d.error}`);
+        continue;
+      }
+      if (loc.plan.durationS !== d.seconds) next = ops.updatePlan(next, t.line.planId, (p) => void (p.durationS = d.seconds));
       count++;
       continue;
     }
@@ -332,12 +363,16 @@ export function createAppStore(doc: ProjectDoc) {
       }));
     };
     const warn = (text: string) => set({ message: { text, kind: 'warn' } });
-    const cur = () => get().cursor;
+    /** Curseur ; sur une colonne masquée entre-temps, il revient à l'action. */
+    const cur = () => {
+      const c = get().cursor;
+      return c && !colsOf(get()).includes(c.col) ? { ...c, col: 'action' as const } : c;
+    };
     const docNow = () => get().hist.present.doc;
     /** Remplace le curseur sans créer d'étape d'annulation. */
     const setCursorOnly = (c: Cursor | null) => set({ cursor: c });
     /** Déplacement sans effacer le message (après une action qui vient d'en afficher un). */
-    const moveQuiet = (dRow: number, dCol: number, wrap = false) => setCursorOnly(moveCursor(linesOf(get()), cur(), dRow, dCol, wrap));
+    const moveQuiet = (dRow: number, dCol: number, wrap = false) => setCursorOnly(moveCursor(linesOf(get()), cur(), dRow, dCol, wrap, colsOf(get())));
 
     return {
       ...initialState(doc),
@@ -359,7 +394,7 @@ export function createAppStore(doc: ProjectDoc) {
       move(dRow, dCol, wrap = false, extend = false) {
         const s = get();
         const anchor = extend ? (s.anchor ?? s.cursor) : null;
-        set({ cursor: moveCursor(linesOf(s), cur(), dRow, dCol, wrap && !extend), anchor, message: null });
+        set({ cursor: moveCursor(linesOf(s), cur(), dRow, dCol, wrap && !extend, colsOf(s)), anchor, message: null });
       },
 
       jump(to, extend = false) {
@@ -370,7 +405,7 @@ export function createAppStore(doc: ProjectDoc) {
         const anchor = extend ? (s.anchor ?? c) : null;
         let next: Cursor = c;
         if (to === 'home') next = { ...c, col: 'image' };
-        if (to === 'end') next = { ...c, col: 'grip' };
+        if (to === 'end') next = { ...c, col: colsOf(s).at(-1)! };
         if (to === 'top') next = { planId: lines[0]!.planId, setupId: lines[0]!.setupId, col: c.col };
         if (to === 'bottom') next = { planId: lines[lines.length - 1]!.planId, setupId: lines[lines.length - 1]!.setupId, col: c.col };
         set({ cursor: next, anchor, message: null });
@@ -390,20 +425,24 @@ export function createAppStore(doc: ProjectDoc) {
           warn('L’action se saisit sur la ligne de la première caméra.');
           return;
         }
+        if (c.col === 'duration' && (setupIndex > 0 || loc.plan.repriseOf)) {
+          warn(setupIndex > 0 ? 'La durée se saisit sur la ligne de la première caméra.' : `Une reprise a la durée de ${repriseSource(docNow(), c.planId)} : c’est elle qu’il faut minuter.`);
+          return;
+        }
         const setup = loc.plan.cameras[setupIndex];
         if (!setup) return;
-        const text = initial ?? (c.col === 'action' ? loc.plan.action : fieldEditText(c.col, setup));
+        const text = initial ?? (c.col === 'action' ? loc.plan.action : c.col === 'duration' ? durationEditText(loc.plan.durationS) : fieldEditText(c.col, setup));
         // Plusieurs lignes sélectionnées dans une même colonne : la valeur saisie ira à toutes.
         const r = rangeOf(get());
         let batch: Line[] | undefined;
         // (Sélection sur plusieurs colonnes : c'est la colonne de la cellule active qui est remplie.)
         if (r && r.r1 > r.r0) {
-          batch = r.lines.slice(r.r0, r.r1 + 1).filter((l) => !(l.planId === c.planId && l.setupId === c.setupId) && !(c.col === 'action' && l.setupIndex > 0));
+          batch = r.lines.slice(r.r0, r.r1 + 1).filter((l) => !(l.planId === c.planId && l.setupId === c.setupId) && !((c.col === 'action' || c.col === 'duration') && l.setupIndex > 0));
           if (!batch.length) batch = undefined;
         }
         let browse: string[] | undefined;
         let pick = 0;
-        if (initial === undefined && c.col !== 'action' && text.trim() && !/[>,]/.test(text)) {
+        if (initial === undefined && c.col !== 'action' && c.col !== 'duration' && text.trim() && !/[>,]/.test(text)) {
           const settings = docNow().settings;
           const list = c.col === 'focal' ? kitFocals(settings.lenses).map(formatNumber) : c.col === 'angle' && /\d/.test(text) ? [] : settings.terms[categoryOf(c.col as TermField)];
           const value = c.col === 'focal' ? text.replace(/\s*mm$/i, '').trim().replace('.', ',') : text.trim();
@@ -432,6 +471,30 @@ export function createAppStore(doc: ProjectDoc) {
         const s = get();
         const c = cur();
         if (!s.editing || !c) return false;
+        if (c.col === 'duration') {
+          const d = parseDuration(s.editing.text);
+          if (!d.ok) {
+            set({ editing: { ...s.editing, error: d.error } });
+            return false;
+          }
+          const doc = docNow();
+          let next = ops.updatePlan(doc, c.planId, (p) => void (p.durationS = d.seconds));
+          const batch = s.editing.batch;
+          if (batch?.length) {
+            const res = writeCells(next, batch.map((l) => ({ line: l, col: 'duration' as const, value: durationEditText(d.seconds) })), 0);
+            if (!res.ok) {
+              set({ editing: { ...s.editing, error: res.errors[0] ?? 'Saisie groupée impossible' } });
+              return false;
+            }
+            next = res.doc;
+          }
+          set({ editing: null, anchor: batch ? null : s.anchor });
+          if (JSON.stringify(next) !== JSON.stringify(doc)) commit(next, c, batch?.length ? `${batch.length + 1} cellules remplies` : null);
+          if (then === 'down') moveQuiet(1, 0);
+          if (then === 'right') moveQuiet(0, 1, true);
+          if (then === 'left') moveQuiet(0, -1, true);
+          return true;
+        }
         const field = fieldOf(c.col);
         if (!field) return false;
         const doc = docNow();
@@ -496,16 +559,17 @@ export function createAppStore(doc: ProjectDoc) {
         const s = get();
         const r = rangeOf(s);
         if (!r) return null;
+        const cols = colsOf(s);
         const doc = docNow();
         const rows: string[] = [];
         for (let i = r.r0; i <= r.r1; i++) {
           const line = r.lines[i]!;
           const vals: string[] = [];
-          for (let k = r.c0; k <= r.c1; k++) vals.push(cellText(doc, line, COLUMNS[k]!) ?? '');
+          for (let k = r.c0; k <= r.c1; k++) vals.push(cellText(doc, line, cols[k]!) ?? '');
           rows.push(vals.join('\t'));
         }
         const out = rows.join('\n');
-        return r.r0 === r.r1 && r.c0 === r.c1 && COLUMNS[r.c0] === 'image' ? null : out;
+        return r.r0 === r.r1 && r.c0 === r.c1 && cols[r.c0] === 'image' ? null : out;
       },
 
       pasteText(text) {
@@ -513,23 +577,24 @@ export function createAppStore(doc: ProjectDoc) {
         const c = cur();
         const r = rangeOf(s);
         if (!c || !r) return false;
+        const cols = colsOf(s);
         const rows = text.replace(/\r\n?/g, '\n').replace(/\n+$/, '').split('\n').map((x) => x.split('\t'));
         const single = rows.length === 1 && rows[0]!.length === 1;
         // Une seule valeur et plusieurs cellules sélectionnées : la valeur remplit toute la sélection.
         const targets: { line: Line; col: Column; value: string }[] = [];
         if (single && (r.r1 > r.r0 || r.c1 > r.c0)) {
-          for (let i = r.r0; i <= r.r1; i++) for (let k = r.c0; k <= r.c1; k++) targets.push({ line: r.lines[i]!, col: COLUMNS[k]!, value: rows[0]![0]! });
+          for (let i = r.r0; i <= r.r1; i++) for (let k = r.c0; k <= r.c1; k++) targets.push({ line: r.lines[i]!, col: cols[k]!, value: rows[0]![0]! });
         } else {
           const width = Math.max(...rows.map((x) => x.length));
           if (r.r0 + rows.length > r.lines.length) {
             warn(`Collage impossible : ${rows.length} lignes à coller, mais seulement ${r.lines.length - r.r0} plans à partir d’ici. Créez d’abord les plans manquants (⌘↩).`);
             return false;
           }
-          if (r.c0 + width > COLUMNS.length) {
-            warn(`Collage impossible : ${width} colonnes à coller, le tableau n’en a que ${COLUMNS.length - r.c0} à partir d’ici.`);
+          if (r.c0 + width > cols.length) {
+            warn(`Collage impossible : ${width} colonnes à coller, le tableau n’en a que ${cols.length - r.c0} à partir d’ici.`);
             return false;
           }
-          rows.forEach((row, i) => row.forEach((value, k) => targets.push({ line: r.lines[r.r0 + i]!, col: COLUMNS[r.c0 + k]!, value })));
+          rows.forEach((row, i) => row.forEach((value, k) => targets.push({ line: r.lines[r.r0 + i]!, col: cols[r.c0 + k]!, value })));
         }
         const res = writeCells(docNow(), targets, r.r0);
         if (!res.ok) {
@@ -559,7 +624,7 @@ export function createAppStore(doc: ProjectDoc) {
           from = r.r0;
         }
         for (let k = r.c0; k <= r.c1; k++) {
-          const col = COLUMNS[k]!;
+          const col = colsOf(s)[k]!;
           if (col === 'image') continue;
           const v = cellText(doc, r.lines[src]!, col);
           if (v === null) continue;
@@ -586,15 +651,15 @@ export function createAppStore(doc: ProjectDoc) {
         const targets: { line: Line; col: Column; value: string }[] = [];
         for (let i = r.r0; i <= r.r1; i++)
           for (let k = r.c0; k <= r.c1; k++) {
-            const col = COLUMNS[k]!;
-            if (col === 'image' || (col === 'action' && r.lines[i]!.setupIndex > 0)) continue;
+            const col = colsOf(s)[k]!;
+            if (col === 'image' || ((col === 'action' || col === 'duration') && r.lines[i]!.setupIndex > 0)) continue;
             targets.push({ line: r.lines[i]!, col, value: '' });
           }
         if (!targets.length) return;
         const res = writeCells(docNow(), targets, r.r0);
         if (!res.ok || res.doc === docNow()) return;
         const one = targets.length === 1;
-        commit(res.doc, c, one ? `${FIELD_LABEL[targets[0]!.col as EditableField]} effacé` : `${targets.length} cellules effacées`);
+        commit(res.doc, c, one ? `${CELL_LABEL[targets[0]!.col]} effacé${targets[0]!.col === 'duration' ? 'e' : ''}` : `${targets.length} cellules effacées`);
       },
 
       newPlan(reprise) {

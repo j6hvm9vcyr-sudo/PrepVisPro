@@ -7,7 +7,11 @@ import { kitFocals } from '../model/lenses';
 import { formatNumber } from '../model/text';
 import { focusGrid } from './focus';
 
-const HINTS: Record<EditableField, string> = {
+/** Champs saisis dans une case : ceux du découpage, et la durée du plan. */
+type CellField = EditableField | 'duration';
+
+const HINTS: Record<CellField, string> = {
+  duration: 'secondes (12) ou minutes (1\'05) · ↩ valider · esc annuler',
   action: '↩ valider · ⇥ suivant · esc annuler',
   size: '↑↓ choisir · ↩ valider · « > » plan évolutif',
   axis: '↑↓ choisir · ↩ valider · « > » plan évolutif',
@@ -40,19 +44,19 @@ export function editFromCard(planId: string, setupId: string, col: CardField) {
   if (!useApp.getState().editing) useEditHost.setState({ host: 'grid' });
 }
 
-export function CellEditor({ field }: { field: EditableField }) {
+export function CellEditor({ field }: { field: CellField }) {
   const editing = useApp((s) => s.editing);
   const lenses = useApp((s) => s.hist.present.doc.settings.lenses);
-  const termList = useApp((s) => (field === 'action' || field === 'focal' ? null : s.hist.present.doc.settings.terms[categoryOf(field as TermField)]));
+  const termList = useApp((s) => (field === 'action' || field === 'focal' || field === 'duration' ? null : s.hist.present.doc.settings.terms[categoryOf(field as TermField)]));
   // Focale : les focales des optiques du projet servent de propositions.
   const terms = useMemo(() => (field === 'focal' ? (lenses.length ? kitFocals(lenses).map(formatNumber) : null) : termList), [field, lenses, termList]);
   const doc = useApp((s) => s.hist.present.doc);
   const aliases = usePrefs((s) => s.prefs.aliases);
   // Abréviations (préférences), et ordre d'emploi : le même contexte que la validation (store.commitEdit).
-  const ctx = useMemo(() => termCtx(doc, field, aliases), [doc, field, aliases]);
+  const ctx = useMemo(() => termCtx(doc, field === 'duration' ? 'action' : field, aliases), [doc, field, aliases]);
   const text = editing?.text ?? '';
   const browse = editing?.browse;
-  const sugs = useMemo(() => (browse ? browse.map((term) => ({ term, create: false })) : terms ? suggest(field, text, terms, ctx) : []), [browse, field, text, terms, ctx]);
+  const sugs = useMemo(() => (browse ? browse.map((term) => ({ term, create: false })) : terms && field !== 'duration' ? suggest(field, text, terms, ctx) : []), [browse, field, text, terms, ctx]);
   // Touche de validation reçue pendant une composition (accent, texte prédictif de macOS) :
   // exécutée dès que la composition se termine, sur le texte final.
   const input = useRef<HTMLInputElement>(null);
@@ -182,7 +186,7 @@ export function CellEditor({ field }: { field: EditableField }) {
           else e.target.setSelectionRange(v.length, v.length);
         }}
       />
-      {field !== 'action' && (field !== 'focal' || terms || editing.error) && (
+      {field !== 'action' && ((field !== 'focal' && field !== 'duration') || terms || editing.error) && (
         <div className="pop" role="listbox" aria-label="Suggestions">
           {sugs.slice(0, 9).map((sg, i) => (
             <button

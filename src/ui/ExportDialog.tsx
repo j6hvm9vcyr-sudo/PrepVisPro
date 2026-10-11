@@ -3,7 +3,7 @@ import { plural } from '../model/text';
 import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
-import { ALL_COLUMNS, BUILTIN_PRESETS, COLUMN_DEFS, type ColumnId, type ExportOptions } from '../export/model';
+import { ALL_COLUMNS, BUILTIN_PRESETS, COLUMN_DEFS, TABLE_PRESET_ID, tablePreset, type ColumnId, type ExportOptions } from '../export/model';
 import { deleteProjectPreset, lastUsed, projectPresets, rememberLast, sameOptions, saveProjectPreset } from '../export/presets';
 import { buildExport, floorPlansFor, saveExport, type ExportFormat } from '../export/service';
 import { getBackend } from '../platform/backend';
@@ -14,10 +14,14 @@ type Done = { path: string; format: ExportFormat; failedImages: number; failedFl
 
 export function ExportDialog({ onClose }: { onClose: () => void }) {
   const doc = useApp(selectDoc);
-  const [initial] = useState(lastUsed);
+  // « Comme le tableau » suit les colonnes du tableau telles qu'elles sont maintenant.
+  const [initial] = useState(() => {
+    const last = lastUsed();
+    return last.presetId === TABLE_PRESET_ID ? { presetId: TABLE_PRESET_ID, options: structuredClone(tablePreset(doc).options) } : last;
+  });
   const [presetId, setPresetId] = useState(initial.presetId);
   const [opts, setOpts] = useState<ExportOptions>(initial.options);
-  const presets = [...BUILTIN_PRESETS, ...projectPresets(doc.settings.exportPresets)];
+  const presets = [tablePreset(doc), ...BUILTIN_PRESETS, ...projectPresets(doc.settings.exportPresets)];
   const [busy, setBusy] = useState<Busy>(null);
   const [done, setDone] = useState<Done>(null);
   const [error, setError] = useState<string | null>(null);
@@ -108,7 +112,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
               <div className="preset-list" role="radiogroup" aria-label="Modèle d’export">
                 {presets.map((p) => {
                   const on = p.id === presetId && !modified;
-                  const builtin = BUILTIN_PRESETS.some((b) => b.id === p.id);
+                  const builtin = p.id === TABLE_PRESET_ID || BUILTIN_PRESETS.some((b) => b.id === p.id);
                   return (
                     <div key={p.id} className="preset-row">
                       <button type="button" role="radio" aria-checked={on} className={`preset ${on ? 'on' : ''}`} onClick={() => choosePreset(p.id)}>

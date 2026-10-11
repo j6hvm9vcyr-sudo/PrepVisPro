@@ -3,7 +3,7 @@
  * Chaque évolution du format ajoute une étape ici (et un test), sans jamais
  * modifier le fichier d'origine sur disque avant validation complète.
  */
-import { SCHEMA_VERSION } from './types';
+import { DEFAULT_TABLE_COLUMNS, SCHEMA_VERSION } from './types';
 import { TERM_ALIASES } from './defaults';
 
 export type MigrateResult = { ok: true; raw: unknown } | { ok: false; error: string };
@@ -37,6 +37,7 @@ export function migrate(raw: unknown): MigrateResult {
   if (v <= 18) doc = from18to19(doc);
   if (v <= 19) doc = from19to20(doc);
   if (v <= 20) doc = from20to21(doc);
+  if (v <= 21) doc = from21to22(doc);
   return { ok: true, raw: doc };
 }
 
@@ -298,4 +299,30 @@ function from20to21(doc: Record<string, unknown>): Record<string, unknown> {
   }
   out.schemaVersion = 21;
   return out;
+}
+
+/**
+ * Format 21 → 22 : durée des plans (aucune encore) ; colonnes du tableau dans le projet
+ * (celles qui étaient affichées jusqu'ici).
+ */
+function from21to22(doc: Record<string, unknown>): Record<string, unknown> {
+  const seqs = Array.isArray(doc.sequences) ? doc.sequences : [];
+  const settings = doc.settings && typeof doc.settings === 'object' ? (doc.settings as Record<string, unknown>) : {};
+  // Même ordre de clés que defaults.ts.
+  const { timeZone, ...rest } = settings;
+  const withDuration = (p: unknown) => {
+    if (!p || typeof p !== 'object') return p;
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(p as Record<string, unknown>)) {
+      out[k] = v;
+      if (k === 'notes') out.durationS = null;
+    }
+    return out;
+  };
+  return {
+    ...doc,
+    schemaVersion: 22,
+    settings: { ...rest, tableColumns: [...DEFAULT_TABLE_COLUMNS], timeZone },
+    sequences: seqs.map((s) => (s && typeof s === 'object' && Array.isArray((s as { plans?: unknown }).plans) ? { ...(s as object), plans: (s as { plans: unknown[] }).plans.map(withDuration) } : s)),
+  };
 }
