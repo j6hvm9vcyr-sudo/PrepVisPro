@@ -1,15 +1,15 @@
 import { DaysBar, DaysView } from './DaysView';
-import { ScriptView } from './ScriptView';
-import { TimerDialog } from './Timer';
-import { NotesView } from './NotesView';
+import { ScenePanel } from './ScenePanel';
+import { NotesPanel } from './NotesPanel';
 import { useEffect } from 'react';
 import { useApp } from '../state/appStore';
 import { anyOverlay, selectCursor } from '../state/store';
 import { DecoupageTable } from './Table';
 import { CardsView } from './Cards';
 import { Inspector } from './Inspector';
-import { FilmTree, PageBar, SpaceBar, StatusBar, VerifyPanel } from './Chrome';
-import { isGridView, useVerifyPanel } from './spaces';
+import { FilmTree, InterfaceBar, PageBar, SpaceBar, StatusBar, VerifyPanel } from './Chrome';
+import { isGridView, openSpace, SPACE_OF, useVerifyPanel } from './spaces';
+import { openDecoupagePanel, togglePanel, usePanelOpen } from './panels';
 import { DropChoice, Preview, SequenceDialog, Shortcuts, StampDialog } from './Overlays';
 import { SettingsDialog } from './Settings';
 import { PrefsDialog } from './Preferences';
@@ -25,7 +25,7 @@ import { isMenuShortcut, isTauri } from '../platform/menu';
 import { ErrorBoundary } from './ErrorBoundary';
 import { VersionsDialog } from './VersionsDialog';
 import { ShootingView, useShootingUi } from './ShootingView';
-import { LibraryPicker, LibraryView } from './Library';
+import { ImagesDrawer, LibraryPicker } from './Library';
 
 /** Raccourcis valables partout dans la fenêtre (hors saisie de texte). */
 function useGlobalShortcuts(settingsOpen: boolean) {
@@ -128,49 +128,28 @@ function useGlobalShortcuts(settingsOpen: boolean) {
         else st.setShowPrefs(true);
         return;
       }
-      if (meta && e.code === 'Digit1') {
+      // ⌘1 ⌘2 ⌘3 : les pages ; ⌥⌘1 à ⌥⌘4 : les panneaux du Découpage ; ⌥⌘L : liste / fiches.
+      if (meta && !e.altKey && !e.shiftKey && (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3')) {
         e.preventDefault();
-        st.setView('table');
+        openSpace(e.code === 'Digit1' ? 'decoupage' : e.code === 'Digit2' ? 'sol' : 'tournage');
         return;
       }
-      if (meta && e.code === 'Digit2') {
+      if (meta && e.altKey && !e.shiftKey && /^Digit[1-4]$/.test(e.code)) {
         e.preventDefault();
-        st.setView('cards');
+        const id = (['film', 'scenario', 'images', 'notes'] as const)[Number(e.code.slice(5)) - 1]!;
+        if (id === 'film' && SPACE_OF[st.view] !== 'decoupage') togglePanel('film');
+        else if (SPACE_OF[st.view] === 'decoupage') togglePanel(id);
+        else openDecoupagePanel(id);
         return;
       }
-      if (meta && e.code === 'Digit3') {
+      if (meta && e.altKey && e.code === 'KeyL') {
         e.preventDefault();
-        st.setView('floor');
-        return;
-      }
-      if (meta && e.code === 'Digit4') {
-        e.preventDefault();
-        st.setView('shooting');
-        return;
-      }
-      if (meta && e.code === 'Digit5') {
-        e.preventDefault();
-        st.setView('days');
-        return;
-      }
-      if (meta && e.code === 'Digit6') {
-        e.preventDefault();
-        st.setView('library');
-        return;
-      }
-      if (meta && e.code === 'Digit8') {
-        e.preventDefault();
-        st.setView('script');
-        return;
-      }
-      if (meta && e.code === 'Digit7') {
-        e.preventDefault();
-        st.setView('notes');
+        st.setView(st.view === 'cards' ? 'table' : 'cards');
         return;
       }
       if (meta && e.key.toLowerCase() === 'i' && !e.shiftKey) {
         e.preventDefault();
-        st.toggleInspector();
+        togglePanel('details');
         return;
       }
       if (typing) return;
@@ -181,7 +160,7 @@ function useGlobalShortcuts(settingsOpen: boolean) {
         return;
       }
       // En vue Plans au sol, ces touches agissent sur le plan au sol, jamais sur le découpage caché.
-      if ((st.view === 'floor' || st.view === 'shooting' || st.view === 'days' || st.view === 'library' || st.view === 'notes') && (e.key === 'Backspace' || e.altKey || (meta && e.shiftKey))) return;
+      if ((st.view === 'floor' || st.view === 'shooting' || st.view === 'days') && (e.key === 'Backspace' || e.altKey || (meta && e.shiftKey))) return;
       if (meta && e.key === 'Backspace') {
         e.preventDefault();
         st.deletePlan();
@@ -253,13 +232,18 @@ function chooseInTournage(planId: string) {
   if (seq) useShootingUi.getState().set(seq.id);
 }
 
-const VIEW_LABEL = { floor: 'plans au sol', days: 'jours de tournage', library: 'bibliothèque d’images', shooting: 'installations', table: 'tableau', script: 'scénario', cards: 'fiches', notes: 'notes' } as const;
+const VIEW_LABEL = { floor: 'plans au sol', days: 'jours de tournage', shooting: 'installations', table: 'tableau', cards: 'fiches' } as const;
 
 function Workspace() {
   useWindowTitle();
   const view = useApp((s) => s.view);
-  const inspector = useApp((s) => s.inspector);
+  const space = SPACE_OF[view];
   const verifying = useVerifyPanel((s) => s.open);
+  const film = usePanelOpen('film');
+  const scenario = usePanelOpen('scenario');
+  const images = usePanelOpen('images');
+  const notes = usePanelOpen('notes');
+  const details = usePanelOpen('details');
   const settings = useApp((s) => s.showSettings);
   const prefs = useApp((s) => s.showPrefs);
   const exporting = useApp((s) => s.showExport);
@@ -290,40 +274,61 @@ function Workspace() {
 
   return (
     <div className="app">
+      <InterfaceBar />
       <div className="app-body">
         {view === 'floor' ? (
           <ErrorBoundary label="plans au sol" key="floor">
             <FloorView />
           </ErrorBoundary>
+        ) : space === 'decoupage' ? (
+          <div className={`dec-layout ${images ? 'with-drawer' : ''}`}>
+            <div className="dec-row">
+              {film && <FilmTree />}
+              {scenario && (
+                <ErrorBoundary label="scénario">
+                  <ScenePanel />
+                </ErrorBoundary>
+              )}
+              <main className="center">
+                <SpaceBar />
+                <ErrorBoundary label={VIEW_LABEL[view]} key={view}>
+                  {view === 'cards' ? <CardsView /> : <DecoupageTable />}
+                </ErrorBoundary>
+              </main>
+              {notes && (
+                <ErrorBoundary label="notes">
+                  <NotesPanel />
+                </ErrorBoundary>
+              )}
+              {details && (
+                <ErrorBoundary label="détails">
+                  <Inspector />
+                </ErrorBoundary>
+              )}
+              {verifying && (
+                <ErrorBoundary label="à vérifier">
+                  <VerifyPanel />
+                </ErrorBoundary>
+              )}
+            </div>
+            {images && (
+              <ErrorBoundary label="images">
+                <ImagesDrawer />
+              </ErrorBoundary>
+            )}
+          </div>
         ) : (
           <>
-            <FilmTree onPlan={view === 'days' || view === 'shooting' ? chooseInTournage : undefined} />
+            {film && <FilmTree onPlan={chooseInTournage} />}
             <main className="center">
               <SpaceBar>{view === 'days' && <DaysBar />}</SpaceBar>
               <ErrorBoundary label={VIEW_LABEL[view]} key={view}>
-                {view === 'script' ? (
-                  <ScriptView />
-                ) : view === 'table' ? (
-                  <DecoupageTable />
-                ) : view === 'cards' ? (
-                  <CardsView />
-                ) : view === 'library' ? (
-                  <LibraryView />
-                ) : view === 'notes' ? (
-                  <NotesView />
-                ) : (
-                  <div className="space-main">{view === 'days' ? <DaysView /> : <ShootingView />}</div>
-                )}
+                <div className="space-main">{view === 'days' ? <DaysView /> : <ShootingView />}</div>
               </ErrorBoundary>
             </main>
-            {(view === 'table' || view === 'script' || view === 'cards') && inspector && !verifying && (
-              <ErrorBoundary label="détails">
-                <Inspector />
-              </ErrorBoundary>
-            )}
           </>
         )}
-        {verifying && (
+        {verifying && space !== 'decoupage' && (
           <ErrorBoundary label="à vérifier">
             <VerifyPanel />
           </ErrorBoundary>
@@ -335,7 +340,6 @@ function Workspace() {
       <Shortcuts />
       <DropChoice />
       <SequenceDialog />
-      <TimerDialog />
       <StampDialog />
       <LibraryPicker />
       <ErrorBoundary label="fenêtre">

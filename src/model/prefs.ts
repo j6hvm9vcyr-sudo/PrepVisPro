@@ -37,11 +37,34 @@ export interface TableLayout {
   rowHeight: number | null;
 }
 
+/**
+ * Disposition des panneaux (0.18), gardée sur ce Mac : chaque page garde ses panneaux ouverts.
+ * Découpage : Le film et Scénario à gauche, Images en bas, Notes à droite (à la place des Détails),
+ * Tournage : Le film.
+ */
+export interface PanelLayout {
+  film: boolean;
+  scenario: boolean;
+  images: boolean;
+  notes: boolean;
+  /** Hauteur du tiroir Images (px). */
+  imagesHeight: number;
+  tournageFilm: boolean;
+}
+
+export const IMAGES_MIN_HEIGHT = 150;
+export const IMAGES_MAX_HEIGHT = 600;
+
+export function defaultLayout(): PanelLayout {
+  return { film: true, scenario: false, images: false, notes: false, imagesHeight: 300, tournageFilm: true };
+}
+
 export interface AppPrefs {
   version: typeof PREFS_VERSION;
   carryOver: Record<CarryField, boolean>;
   aliases: Record<string, string[]>;
   table: TableLayout;
+  layout: PanelLayout;
 }
 
 /** Colonnes de la grille CSS et largeur minimale du tableau ; `shown` : colonnes facultatives affichées (projet). */
@@ -68,11 +91,19 @@ const tableSchema = z.object({
   rowHeight: z.number().min(ROW_MIN_HEIGHT).max(ROW_MAX_HEIGHT).nullable(),
   // « showNotes » (0.13–0.14) : remplacé par les colonnes du projet (0.15), ignoré à la lecture.
 });
-// `table` est apparu après la première version des préférences : absent, il prend sa valeur par défaut.
-const prefsSchema = z.object({ version: z.literal(PREFS_VERSION), carryOver: carrySchema, aliases: aliasesSchema, table: tableSchema.default({ widths: {}, rowHeight: null }) });
+const layoutSchema = z.object({
+  film: z.boolean(),
+  scenario: z.boolean(),
+  images: z.boolean(),
+  notes: z.boolean(),
+  imagesHeight: z.number().min(IMAGES_MIN_HEIGHT).max(IMAGES_MAX_HEIGHT),
+  tournageFilm: z.boolean(),
+});
+// `table` (0.11.1) et `layout` (0.18) sont apparus après la première version des préférences : absents, ils prennent leur valeur par défaut.
+const prefsSchema = z.object({ version: z.literal(PREFS_VERSION), carryOver: carrySchema, aliases: aliasesSchema, table: tableSchema.default({ widths: {}, rowHeight: null }), layout: layoutSchema.default(defaultLayout) });
 
 export function defaultPrefs(): AppPrefs {
-  return { version: PREFS_VERSION, carryOver: { ...DEFAULT_CARRY }, aliases: structuredClone(TERM_ALIASES), table: { widths: {}, rowHeight: null } };
+  return { version: PREFS_VERSION, carryOver: { ...DEFAULT_CARRY }, aliases: structuredClone(TERM_ALIASES), table: { widths: {}, rowHeight: null }, layout: defaultLayout() };
 }
 
 /** Relit le fichier de préférences : refusé en bloc s'il n'est pas valide (jamais à moitié). */
@@ -145,6 +176,7 @@ export function adoptLegacy(prefs: AppPrefs, legacy: LegacyPrefs, first: boolean
       carryOver: legacy.carryOver ? { ...legacy.carryOver } : { ...prefs.carryOver },
       aliases: legacy.aliases ? structuredClone(legacy.aliases) : structuredClone(prefs.aliases),
       table: prefs.table,
+      layout: prefs.layout,
     };
     return { prefs: next, changed: JSON.stringify(next) !== JSON.stringify(prefs) };
   }

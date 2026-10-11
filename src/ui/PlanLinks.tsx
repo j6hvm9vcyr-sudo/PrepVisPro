@@ -8,6 +8,7 @@ import { useShootingUi } from './ShootingView';
 import { useDaysUi } from './DaysView';
 import { locatePlan } from '../model/ops';
 import { Info } from './Info';
+import { openDecoupagePanel } from './panels';
 import type { Id } from '../model/types';
 
 /** Une pastille « Lié à » : texte court, phrase complète au survol et pour l'accessibilité. */
@@ -100,7 +101,7 @@ export function PlanLinksSection({ planId }: { planId: Id }) {
           {links.days.length ? links.days.join(', ') : 'Jour'}
         </Chip>
         {links.sharedWith.length > 0 && (
-          <Chip full={`Images partagées avec ${links.sharedWith.join(', ')}`} onClick={() => st().setView('library')}>
+          <Chip full={`Images partagées avec ${links.sharedWith.join(', ')}`} onClick={() => openDecoupagePanel('images')}>
             Images · {links.sharedWith.join(', ')}
           </Chip>
         )}

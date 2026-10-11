@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { adoptLegacy, defaultPrefs, legacyPrefsOf, mergeAliases, parsePrefs, tableTemplate } from './prefs';
+import { adoptLegacy, defaultLayout, defaultPrefs, legacyPrefsOf, mergeAliases, parsePrefs, tableTemplate } from './prefs';
 import { DEFAULT_CARRY, TERM_ALIASES } from './defaults';
 
 const none = { size: false, axis: false, angle: false, focal: false, movement: false, grip: false };
 
 describe('préférences de l’app', () => {
   it('par défaut : plan suivant = focale, mouvement, machinerie ; abréviations livrées', () => {
-    expect(defaultPrefs()).toEqual({ version: 1, carryOver: DEFAULT_CARRY, aliases: TERM_ALIASES, table: { widths: {}, rowHeight: null } });
+    expect(defaultPrefs()).toEqual({ version: 1, carryOver: DEFAULT_CARRY, aliases: TERM_ALIASES, table: { widths: {}, rowHeight: null }, layout: defaultLayout() });
     expect(defaultPrefs().aliases).not.toBe(TERM_ALIASES);
   });
 
@@ -39,7 +39,7 @@ describe('préférences de l’app', () => {
   it('premières préférences du Mac : celles du premier ancien projet ouvert, telles quelles', () => {
     const legacy = { carryOver: { ...none, size: true }, aliases: { Dolly: ['grué'] } };
     const r = adoptLegacy(defaultPrefs(), legacy, true);
-    expect(r.prefs).toEqual({ version: 1, carryOver: legacy.carryOver, aliases: legacy.aliases, table: { widths: {}, rowHeight: null } });
+    expect(r.prefs).toEqual({ version: 1, carryOver: legacy.carryOver, aliases: legacy.aliases, table: { widths: {}, rowHeight: null }, layout: defaultLayout() });
     expect(r.changed).toBe(true);
     expect(adoptLegacy(defaultPrefs(), { carryOver: { ...DEFAULT_CARRY }, aliases: structuredClone(TERM_ALIASES) }, true).changed).toBe(false);
   });
@@ -82,5 +82,10 @@ describe('mise en page du tableau (préférences)', () => {
     // Préférences 0.13–0.14 avec « showNotes » : relues, la clé est ignorée.
     const old = parsePrefs({ version: 1, carryOver: DEFAULT_CARRY, aliases: {}, table: { widths: {}, rowHeight: null, showNotes: true } });
     expect(old.ok && old.prefs.table).toEqual({ widths: {}, rowHeight: null });
+    // Préférences d'avant la 0.18 : disposition des panneaux par défaut ; une valeur absurde est refusée.
+    expect(old.ok && old.prefs.layout).toEqual(defaultLayout());
+    const lay = parsePrefs({ version: 1, carryOver: DEFAULT_CARRY, aliases: {}, layout: { ...defaultLayout(), scenario: true, imagesHeight: 320 } });
+    expect(lay.ok && lay.prefs.layout.scenario && lay.prefs.layout.imagesHeight).toBe(320);
+    expect(parsePrefs({ version: 1, carryOver: DEFAULT_CARRY, aliases: {}, layout: { ...defaultLayout(), imagesHeight: 5 } }).ok).toBe(false);
   });
 });

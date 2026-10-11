@@ -12,7 +12,7 @@ import { useFloor, type FloorTool } from './floorStore';
 import { FloorCanvas } from './FloorCanvas';
 import { FloorInspector } from './FloorInspector';
 import { withDefaultFigures } from './icons';
-import { BarMenu, ProjectHead, SpaceBar } from '../ui/Chrome';
+import { BarMenu, PanelHead, SpaceBar } from '../ui/Chrome';
 import { filmFlow } from '../model/stamps';
 import { stripColors } from '../ui/strip';
 import { ToolIcons } from '../ui/Icons';
@@ -218,7 +218,7 @@ function FloorTree({ current, onCreate }: { current: FloorPlan | null; onCreate:
   };
   return (
     <nav className="tree glass-panel" aria-label="Le film">
-      <ProjectHead />
+      <PanelHead label="Le film" />
       {filmFlow(doc).map((it) => {
         if (it.kind === 'stamp')
           return (

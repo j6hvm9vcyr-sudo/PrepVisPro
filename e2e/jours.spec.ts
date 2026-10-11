@@ -16,7 +16,7 @@ test('jours de tournage : séquences du jour, ordre, soleil à la date du jour, 
   await dlg.getByLabel('Coordonnées GPS').fill('48.8566, 2.3522');
   await dlg.getByRole('button', { name: 'Terminé' }).click();
 
-  await page.keyboard.press('ControlOrMeta+5');
+  await page.keyboard.press('ControlOrMeta+3');
   // Aucun jour : une ligne, un bouton. Le matériel de tout le tournage est à un clic.
   await expect(page.getByText('Aucun jour de tournage')).toBeVisible();
   await page.getByRole('button', { name: 'Matériel du tournage' }).click();
@@ -66,7 +66,7 @@ test('jours de tournage : séquences du jour, ordre, soleil à la date du jour, 
   await expect(page.locator('.band .day-chip')).toHaveText(['J1', 'J1, J2']);
 
   // Export : l'option est proposée et cochée.
-  await page.keyboard.press('ControlOrMeta+5');
+  await page.keyboard.press('ControlOrMeta+3');
   await page.getByRole('button', { name: 'Exporter…' }).first().click();
   await expect(page.getByLabel(/Jours de tournage et matériel/)).toBeChecked();
 });

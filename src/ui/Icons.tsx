@@ -151,3 +151,51 @@ export const IconExport = () => (
     <path d="M5 12.5v6a2 2 0 002 2h10a2 2 0 002-2v-6" />
   </Svg>
 );
+
+/** Panneaux (0.18). */
+export const PanelIcons = {
+  film: () => (
+    <Svg>
+      <path d="M4 6h16M4 12h10M4 18h13" />
+      <circle cx="18" cy="12" r="1.2" />
+    </Svg>
+  ),
+  scenario: () => (
+    <Svg>
+      <path d="M6 3.5h9l3.5 3.5v13.5H6z" />
+      <path d="M15 3.5V7h3.5M9 11h6.5M9 14.5h6.5M9 18h4" />
+    </Svg>
+  ),
+  images: () => (
+    <Svg>
+      <rect x="3.5" y="5" width="17" height="14" rx="2" />
+      <circle cx="9" cy="10" r="1.6" />
+      <path d="M4 17l5-5 4 4 2.5-2.5 5 5" />
+    </Svg>
+  ),
+  notes: () => (
+    <Svg>
+      <path d="M5 4h14v11l-5 5H5z" />
+      <path d="M14 20v-5h5M8.5 9h7M8.5 12.5h5" />
+    </Svg>
+  ),
+  details: () => (
+    <Svg>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+      <path d="M14.5 4.5v15" />
+    </Svg>
+  ),
+};
+export const IconList = () => (
+  <Svg>
+    <path d="M4 6.5h16M4 12h16M4 17.5h16" />
+  </Svg>
+);
+export const IconGrid = () => (
+  <Svg>
+    <rect x="4" y="4.5" width="7" height="6.5" rx="1.2" />
+    <rect x="13" y="4.5" width="7" height="6.5" rx="1.2" />
+    <rect x="4" y="13" width="7" height="6.5" rx="1.2" />
+    <rect x="13" y="13" width="7" height="6.5" rx="1.2" />
+  </Svg>
+);

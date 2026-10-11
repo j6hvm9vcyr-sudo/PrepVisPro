@@ -30,9 +30,9 @@ test('audit', async ({ page }) => {
   await page.getByRole('region', { name: 'Caméra A' }).getByRole('button', { name: /^Axe : / }).click();
   await shot(page, '04b-carte-camera-edition');
   await page.keyboard.press('Escape');
-  await page.keyboard.press('ControlOrMeta+8');
+  await page.keyboard.press('ControlOrMeta+Alt+2');
   await shot(page, '04c-scenario');
-  await page.keyboard.press('ControlOrMeta+1');
+  await page.keyboard.press('ControlOrMeta+Alt+2');
   await page.keyboard.press('Shift+ArrowDown');
   await page.keyboard.press('Shift+ArrowDown');
   await shot(page, '05-tableau-selection');
@@ -46,20 +46,21 @@ test('audit', async ({ page }) => {
   await page.getByRole('button', { name: 'Modifier la séquence 1' }).click();
   await shot(page, '08-fiche-sequence');
   await page.getByRole('dialog', { name: /Séquence/ }).getByRole('button', { name: 'Terminé' }).click();
-  await page.keyboard.press('ControlOrMeta+2');
-  await page.keyboard.press('ControlOrMeta+1');
   await page.getByRole('button', { name: 'Minuter la séquence 1' }).click();
   await page.keyboard.press('Space');
   await page.keyboard.press('Space');
   await shot(page, '08b-minuter');
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Fermer sans enregistrer' }).click();
-  await page.keyboard.press('ControlOrMeta+2');
+  await page.keyboard.press('ControlOrMeta+Alt+2');
+  await page.keyboard.press('ControlOrMeta+Alt+l');
   await shot(page, '09-fiches');
-  await page.keyboard.press('ControlOrMeta+7');
+  await page.keyboard.press('ControlOrMeta+Alt+4');
   await shot(page, '09b-notes');
   await page.getByRole('button', { name: 'Toutes' }).click();
   await shot(page, '09c-notes-toutes');
+  await page.keyboard.press('ControlOrMeta+Alt+4');
+  await page.keyboard.press('ControlOrMeta+Alt+l');
   // Réglages
   await page.getByRole('button', { name: 'Réglages' }).click();
   for (const tab of ['Projet', 'Caméras', 'Optiques', 'Listes de termes', 'Saisie des plans', 'Matériel']) {
@@ -75,7 +76,7 @@ test('audit', async ({ page }) => {
   }
   await page.getByRole('button', { name: 'Terminé' }).click();
   // Plans au sol
-  await page.keyboard.press('ControlOrMeta+3');
+  await page.keyboard.press('ControlOrMeta+2');
   await shot(page, '11-plans-au-sol-vide');
   await pick(page, 'Créer un plan au sol pour la séquence', 0);
   await shot(page, '12-plan-sans-fond');
@@ -115,12 +116,13 @@ test('audit', async ({ page }) => {
   await shot(page, '18b-plan-lumiere');
   await page.getByRole('tab', { name: 'Plan' }).click();
   // Tournage
-  await page.keyboard.press('ControlOrMeta+4');
+  await page.keyboard.press('ControlOrMeta+3');
+  await page.getByRole('button', { name: 'Installations', exact: true }).click();
   await shot(page, '19-tournage-vide');
   await page.getByRole('button', { name: 'Proposer un ordre' }).click();
   await shot(page, '20-tournage-propose');
   // Jours
-  await page.keyboard.press('ControlOrMeta+5');
+  await page.getByRole('button', { name: 'Jours', exact: true }).click();
   await shot(page, '21-jours-vide');
   await page.getByRole('button', { name: '+ Jour', exact: true }).first().click();
   await pick(page, 'Ajouter une séquence au jour', 0);
@@ -131,9 +133,10 @@ test('audit', async ({ page }) => {
   await page.getByRole('button', { name: '← Tous les jours' }).click();
   await shot(page, '22a-jours-tableau');
   // Images, tampons
-  await page.keyboard.press('ControlOrMeta+6');
-  await shot(page, '22b-images');
   await page.keyboard.press('ControlOrMeta+1');
+  await page.keyboard.press('ControlOrMeta+Alt+3');
+  await shot(page, '22b-images');
+  await page.keyboard.press('ControlOrMeta+Alt+3');
   await page.getByRole('navigation', { name: 'Le film' }).getByRole('button', { name: '+ Tampon' }).click();
   await shot(page, '22c-tampon');
   await page.getByRole('dialog', { name: 'Tampon' }).getByRole('button', { name: 'TITRE', exact: true }).click();
@@ -146,7 +149,11 @@ test('audit', async ({ page }) => {
   await page.getByRole('button', { name: 'Fermer À vérifier' }).click();
   await page.getByRole('button', { name: 'Fermer les détails' }).click();
   await shot(page, '22f-tableau-sans-details');
-  await page.getByRole('button', { name: 'Détails' }).click();
+  await page.getByRole('button', { name: 'Détails', exact: true }).click();
+  // Tous les panneaux du Découpage ouverts (0.18)
+  for (const k of ['2', '3']) await page.keyboard.press(`ControlOrMeta+Alt+${k}`);
+  await shot(page, '22g-tous-les-panneaux');
+  for (const k of ['2', '3']) await page.keyboard.press(`ControlOrMeta+Alt+${k}`);
   // Dialogues
   await page.getByRole('button', { name: 'Exporter…' }).last().click();
   await shot(page, '23-export');
@@ -161,6 +168,6 @@ test('audit', async ({ page }) => {
   await page.setViewportSize({ width: 1180, height: 760 });
   await page.keyboard.press('ControlOrMeta+1');
   await shot(page, '26-petite-fenetre-tableau');
-  await page.keyboard.press('ControlOrMeta+3');
+  await page.keyboard.press('ControlOrMeta+2');
   await shot(page, '27-petite-fenetre-plan');
 });

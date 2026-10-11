@@ -11,7 +11,7 @@ test('documents liés : un plan modifié se retrouve partout, « ce plan ailleur
   await expect(links.getByRole('button', { name: 'Pas encore dans un jour de tournage' })).toBeVisible();
 
   // Plan au sol de la séquence 1.
-  await page.keyboard.press('ControlOrMeta+3');
+  await page.keyboard.press('ControlOrMeta+2');
   await pick(page, 'Créer un plan au sol pour la séquence', '1 — Quai de gare');
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Importer un fond…' }).click();

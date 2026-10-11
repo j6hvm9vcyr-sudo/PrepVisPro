@@ -2,8 +2,9 @@
  * Bibliothèque d'images du projet : chaque image n'est importée qu'une fois, puis réutilisée
  * dans les plans (repérage, références) et comme fond de plan au sol.
  */
-import { useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { create } from 'zustand';
+import { createPortal } from 'react-dom';
 import { useApp } from '../state/appStore';
 import { selectCursor, selectDoc, type AppState } from '../state/store';
 import { imageStore } from '../platform/images';
@@ -16,6 +17,11 @@ import { backgroundFromLibrary } from '../floor/background';
 import { useFloor } from '../floor/floorStore';
 import { addFolder, childFolders, deleteFolder, folderLabel, imageCount, isInside, moveFolder, moveImages, renameFolder, type FolderResult } from '../model/imageFolders';
 import { Picker, type PickItem } from './Picker';
+import { Info } from './Info';
+import { IconClose } from './Icons';
+import { setLayout, setPanel } from './panels';
+import { usePrefs } from '../state/prefs';
+import { defaultLayout, IMAGES_MAX_HEIGHT, IMAGES_MIN_HEIGHT } from '../model/prefs';
 
 type Filter = 'all' | 'used' | 'unused';
 
@@ -24,7 +30,8 @@ type Place = 'all' | null | string;
 /** Dossier ouvert et dossier en cours de nommage (le temps de la session). */
 export const useLibFolder = create<{ place: Place; naming: string | null }>(() => ({ place: 'all', naming: null }));
 
-const DRAG_IMAGE = 'application/x-topshot-image';
+/** Glisser une image de la bibliothèque (vers un dossier, ou sur un plan du tableau). */
+export const DRAG_IMAGE = 'application/x-topshot-image';
 const DRAG_FOLDER = 'application/x-topshot-folder';
 
 function applyFolder(r: FolderResult, message?: string): boolean {
@@ -245,7 +252,63 @@ function ImportButton({ label = 'Importer des images…', primary = false, folde
   );
 }
 
-export function LibraryView() {
+/** Panneau Images (0.18), en bas du Découpage : hauteur réglable, gardée sur ce Mac. */
+export function ImagesDrawer() {
+  const saved = usePrefs((s) => s.prefs.layout.imagesHeight);
+  const [live, setLive] = useState<number | null>(null);
+  const h = live ?? saved;
+  const save = (v: number) => setLayout((d) => void (d.layout.imagesHeight = Math.round(clampH(v))));
+  const onPointerDown = (e: ReactPointerEvent<HTMLSpanElement>) => {
+    e.preventDefault();
+    const y0 = e.clientY;
+    const start = h;
+    const el = e.currentTarget;
+    el.setPointerCapture(e.pointerId);
+    document.body.classList.add('resizing-row');
+    let last = start;
+    const move = (ev: PointerEvent) => {
+      last = clampH(start + y0 - ev.clientY);
+      setLive(last);
+    };
+    const up = () => {
+      el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerup', up);
+      el.removeEventListener('pointercancel', up);
+      document.body.classList.remove('resizing-row');
+      setLive(null);
+      save(last);
+    };
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+  };
+  return (
+    <section className="images-drawer glass-panel" style={{ height: h }} aria-label="Panneau Images">
+      <span
+        className="drawer-resize"
+        role="separator"
+        aria-orientation="horizontal"
+        aria-label="Hauteur du panneau Images"
+        tabIndex={0}
+        title="Glisser pour changer la hauteur · double-clic : hauteur par défaut"
+        onPointerDown={onPointerDown}
+        onDoubleClick={() => save(defaultLayout().imagesHeight)}
+        onKeyDown={(e) => {
+          if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+          e.preventDefault();
+          save(h + (e.key === 'ArrowUp' ? 20 : -20));
+        }}
+      />
+      <LibraryView />
+    </section>
+  );
+}
+
+function clampH(v: number): number {
+  return Math.min(IMAGES_MAX_HEIGHT, Math.max(IMAGES_MIN_HEIGHT, v));
+}
+
+function LibraryView() {
   const raw = useApp(selectDoc);
   const doc = useMemo(() => syncLibrary(raw), [raw]);
   const cursor = useApp(selectCursor);
@@ -266,15 +329,18 @@ export function LibraryView() {
   const fileTo = (id: string) => (id === '__root' ? null : id);
 
   return (
-    <div className={`library ${drop.over ? 'over' : ''}`} {...drop.props} aria-label="Bibliothèque d’images" role="region">
+    <div className={`library in-drawer ${drop.over ? 'over' : ''}`} {...drop.props} aria-label="Bibliothèque d’images" role="region">
       <FolderTree />
       <div className="lib-main">
       <div className="library-head">
         <div>
-          <h2>{place === 'all' ? 'Images du projet' : place === null ? 'Non rangées' : folderLabel(doc, place)}</h2>
-          <p className="note">
-            Importées une seule fois, réutilisables dans tous les plans et comme fond de plan au sol. Une même image importée deux fois n’est jamais dupliquée.
-          </p>
+          <div className="lib-title">
+            <h2>{place === 'all' ? 'Images du projet' : place === null ? 'Non rangées' : folderLabel(doc, place)}</h2>
+            <Info title="Images">
+              <span>Importées une seule fois, réutilisables dans tous les plans et comme fond de plan au sol. Une même image importée deux fois n’est jamais dupliquée.</span>
+              <span>Glissez une image sur un plan du tableau pour l’y ajouter (repérage ou référence), ou sur un dossier pour l’y ranger.</span>
+            </Info>
+          </div>
           {folder && (
             <div className="folder-acts">
               <button type="button" className="linkbtn" onClick={() => useLibFolder.setState({ naming: folder.id })}>
@@ -315,6 +381,9 @@ export function LibraryView() {
           </button>
         </div>
         <ImportButton primary folderId={into} />
+        <button type="button" className="ibtn small" aria-label="Fermer Images" onClick={() => setPanel('images', false)}>
+          <IconClose />
+        </button>
       </div>
       {here.length === 0 && place !== 'all' ? (
         <div className="library-empty">
@@ -341,7 +410,8 @@ export function LibraryView() {
                 draggable
                 onDragStart={(e) => {
                   e.dataTransfer.setData(DRAG_IMAGE, l.id);
-                  e.dataTransfer.effectAllowed = 'move';
+                  // Rangée dans un dossier (déplacer) ou ajoutée à un plan (copier).
+                  e.dataTransfer.effectAllowed = 'copyMove';
                 }}
               >
                 <button type="button" className="pic" onClick={() => setZoom(l)} aria-label={`Agrandir ${l.originalName || 'l’image'}`}>
@@ -394,21 +464,19 @@ export function LibraryView() {
           })}
         </ul>
       )}
-      {cursor && code && doc.library.length > 0 && (
-        <p className="note library-foot">
-          « + {code} » ajoute l’image au plan sélectionné dans le tableau. Pour un autre plan : « Bibliothèque… » dans ses détails.
-        </p>
-      )}
       </div>
       {drop.over && <div className="library-drop">{into === null ? 'Déposez pour ajouter à la bibliothèque' : `Déposez pour ajouter à « ${folderLabel(doc, into)} »`}</div>}
-      {zoom && (
+      {zoom &&
+        // Le panneau en verre deviendrait le repère de l'aperçu : il passe par un portail.
+        createPortal(
         <div className="overlay dark" role="dialog" aria-modal="true" aria-label="Aperçu de l’image" onClick={() => setZoom(null)} onKeyDown={(e) => (e.key === 'Escape' || e.key === ' ') && setZoom(null)} tabIndex={-1}>
           <Thumb file={zoom.file} alt={zoom.originalName} />
           <div className="preview-cap">
             <span>{zoom.caption || zoom.originalName}</span>
           </div>
-        </div>
-      )}
+        </div>,
+          document.body,
+        )}
     </div>
   );
 }

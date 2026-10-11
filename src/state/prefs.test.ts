@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { adoptFromProject, getPrefs, loadPrefs, prefsWritten, resetPrefs, updatePrefs, usePrefs } from './prefs';
-import { defaultPrefs } from '../model/prefs';
+import { defaultLayout, defaultPrefs } from '../model/prefs';
 import { parseProject } from './project';
 import { newProject } from '../model/defaults';
 
@@ -52,11 +52,11 @@ describe('préférences enregistrées sur le Mac', () => {
     const old = (carryOver: object, aliases: object) => JSON.stringify({ ...p, schemaVersion: 18, settings: { ...rest, carryOver, aliases, timeZone } });
     expect(parseProject(old({ ...none, axis: true }, { Dolly: ['grué'] })).ok).toBe(true);
     await prefsWritten();
-    expect(getPrefs()).toEqual({ version: 1, carryOver: { ...none, axis: true }, aliases: { Dolly: ['grué'] }, table: { widths: {}, rowHeight: null } });
+    expect(getPrefs()).toEqual({ version: 1, carryOver: { ...none, axis: true }, aliases: { Dolly: ['grué'] }, table: { widths: {}, rowHeight: null }, layout: defaultLayout() });
     expect(stored()).toEqual(getPrefs());
     expect(parseProject(old({ ...none, size: true }, { Dolly: ['chariot'], Steadicam: ['grué'] })).ok).toBe(true);
     await prefsWritten();
-    expect(getPrefs()).toEqual({ version: 1, carryOver: { ...none, axis: true }, aliases: { Dolly: ['grué', 'chariot'] }, table: { widths: {}, rowHeight: null } });
+    expect(getPrefs()).toEqual({ version: 1, carryOver: { ...none, axis: true }, aliases: { Dolly: ['grué', 'chariot'] }, table: { widths: {}, rowHeight: null }, layout: defaultLayout() });
     expect(stored()).toEqual(getPrefs());
   });
 

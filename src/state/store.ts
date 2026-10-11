@@ -49,14 +49,15 @@ export interface AppState {
   /** Début d'une sélection de plusieurs cellules (⇧ + flèches, ⇧ + clic). */
   anchor: Cursor | null;
   editing: EditState | null;
-  view: 'table' | 'script' | 'cards' | 'notes' | 'floor' | 'shooting' | 'days' | 'library';
+  view: 'table' | 'cards' | 'floor' | 'shooting' | 'days';
   inspector: boolean;
   collapsed: Record<Id, boolean>;
   onlyIncomplete: boolean;
   message: { text: string; kind: MessageKind } | null;
   preview: { planId: Id; index: number } | null;
   showShortcuts: boolean;
-  pendingDrop: { planId: Id; files: File[] } | null;
+  /** Images déposées sur un plan : fichiers du Finder, ou images de la bibliothèque (`libraryIds`). */
+  pendingDrop: { planId: Id; files: File[]; libraryIds: Id[] } | null;
   editingSequenceId: Id | null;
   /** Tampon ouvert en modification (TITRE, GÉNÉRIQUE…). */
   editingStampId: Id | null;
@@ -163,7 +164,7 @@ export function suggestSequenceNumber(doc: ProjectDoc, afterSeqId: Id | null): s
 
 /** Une fenêtre superposée a la main sur le clavier (le tableau ne doit pas réagir). */
 export function anyOverlay(s: AppState): boolean {
-  return !!(s.preview || s.showShortcuts || s.pendingDrop || s.editingSequenceId || s.editingStampId || s.timingSeqId || s.libraryPick || s.showSettings || s.showPrefs || s.showExport || s.showVersions || s.importing || s.contextMenu);
+  return !!(s.preview || s.showShortcuts || s.pendingDrop || s.editingSequenceId || s.editingStampId || s.libraryPick || s.showSettings || s.showPrefs || s.showExport || s.showVersions || s.importing || s.contextMenu);
 }
 
 /** Rectangle sélectionné (une seule cellule s'il n'y a pas de sélection étendue). */
@@ -318,7 +319,7 @@ interface Actions {
   /** Sélectionne un plan (arbre du film, À vérifier) : déplie sa séquence et lève le filtre s'il le cache. */
   goToPlan(planId: Id): void;
   toggleOnlyIncomplete(): void;
-  setView(v: 'table' | 'script' | 'cards' | 'notes' | 'floor' | 'shooting' | 'days' | 'library'): void;
+  setView(v: 'table' | 'cards' | 'floor' | 'shooting' | 'days'): void;
   /** Enregistre une nouvelle version du document (plan au sol…), annulable. */
   applyDoc(next: ProjectDoc, message?: string, mergeKey?: string): void;
   toggleInspector(): void;
@@ -328,9 +329,10 @@ interface Actions {
   previewStep(dImage: number, dPlan: number): void;
   setShowShortcuts(v: boolean): void;
   requestDrop(planId: Id, files: File[]): void;
+  requestLibraryDrop(planId: Id, libraryIds: Id[]): void;
   resolveDrop(kind: ImageKind | null): void;
   setEditingSequence(id: Id | null): void;
-  /** Ouvre (ou ferme) la fenêtre Minuter pour une séquence. */
+  /** Ouvre (ou ferme) le minuteur d'une séquence (panneau Scénario). */
   setTiming(seqId: Id | null): void;
   setShowSettings(v: boolean): void;
   setShowPrefs(v: boolean): void;
@@ -1006,13 +1008,20 @@ export function createAppStore(doc: ProjectDoc) {
 
       requestDrop(planId, files) {
         if (!files.length) return;
-        set({ pendingDrop: { planId, files } });
+        set({ pendingDrop: { planId, files, libraryIds: [] } });
+      },
+
+      requestLibraryDrop(planId, libraryIds) {
+        if (!libraryIds.length) return;
+        set({ pendingDrop: { planId, files: [], libraryIds } });
       },
 
       resolveDrop(kind) {
         const p = get().pendingDrop;
         set({ pendingDrop: null });
-        if (p && kind) void get().addImages(p.planId, kind, p.files);
+        if (!p || !kind) return;
+        if (p.libraryIds.length) get().addFromLibrary(p.planId, p.libraryIds, kind);
+        if (p.files.length) void get().addImages(p.planId, kind, p.files);
       },
 
       setEditingSequence(id) {

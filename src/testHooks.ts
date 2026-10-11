@@ -46,6 +46,11 @@ export async function install() {
     pending: () => [...inflight.values()].map((x) => `${x.cmd} (${Math.round(performance.now() - x.t0)} ms)`),
     errors,
     openSample,
+    /** Ouvre ou ferme un panneau (0.18). */
+    async panel(id: 'film' | 'scenario' | 'images' | 'notes' | 'details', on: boolean) {
+      const { setPanel } = await import('./ui/panels');
+      setPanel(id, on);
+    },
     /** Adresse d'une image du projet, telle que l'interface l'affiche. */
     imageUrl: (dir: string, file: string) => b.imageUrl(dir, file),
     async exportTo(path: string, format: 'pdf' | 'xlsx' | 'csv') {

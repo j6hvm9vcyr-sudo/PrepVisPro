@@ -268,12 +268,13 @@ try {
     ok((await call(`window.__prepvis.openPath(${JSON.stringify(projectDir)})`, 'retour au projet')) === true, 'retour au projet');
   }
 
-  // Scénario + tableau (0.17) : sélection d'un passage dans le texte de la scène, sous WebKit.
+  // Panneau Scénario (0.17–0.18) : sélection d'un passage dans le texte de la scène, sous WebKit.
   {
     const r = await exec(`
       const st = window.__prepvis.app();
       st.updateDoc((d) => { d.sequences[0].scriptText = 'Le quai est désert.\\n\\nLÉA attend, seule sur le quai.'; d.sequences[0].plans[0].scriptExcerpt = 'LÉA attend, seule sur le quai.'; });
-      st.setView('script');
+      st.setView('table');
+      await window.__prepvis.panel('scenario', true);
       await new Promise((res) => setTimeout(res, 300));
       const root = document.querySelector('.scene-doc');
       if (!root) return { error: 'pas de texte de scène affiché' };
@@ -292,13 +293,29 @@ try {
       const pick = document.querySelector('.scene-pick .pick-txt')?.textContent;
       const userSelect = getComputedStyle(root).webkitUserSelect || getComputedStyle(root).userSelect;
       sel.removeAllRanges();
-      st.setView('table');
+      await window.__prepvis.panel('scenario', false);
       st.undo();
       return { linked, uncovered, pick, userSelect };
     `);
     ok(r && !r.error && r.linked === 'LÉA attend, seule sur le quai.', `scénario : extrait relié au passage (${JSON.stringify(r)})`);
     ok(/1 passage non couvert/.test(r?.uncovered ?? ''), 'scénario : passage non couvert signalé');
     ok(r?.pick === '« Le quai est désert. »' && r?.userSelect === 'text', `scénario : passage sélectionnable sous WebKit (${r?.pick}, ${r?.userSelect})`);
+  }
+
+  // Panneaux (0.18) sous WebKit : barre du haut, minuteur logé dans le panneau Scénario, espace au clavier.
+  {
+    ok(await exec('return !!document.querySelector("header.ibar [data-tauri-drag-region]") && !!document.querySelector(".ibar-proj .proj-menu");'), 'barre du haut : projet au centre, fenêtre déplaçable');
+    await exec(`const st = window.__prepvis.app(); window.__savedCursor = st.cursor; st.setView('table'); const s = window.__prepvis.doc().sequences.find((x) => x.plans.some((p) => !p.repriseOf)); st.goToPlan(s.plans[0].id); st.setTiming(s.id); await window.__prepvis.panel('scenario', true); return true;`);
+    ok(await waitFor(async () => (await exec('return !!document.querySelector(".scene-panel .timer-dock");')) === true, 3000), 'minuteur dans le panneau Scénario');
+    await exec('document.querySelector("[role=grid]").focus(); return true;');
+    await keys(' ');
+    const started = await waitFor(async () => /^Plan /.test(String(await exec('return document.querySelector(".tm-status")?.textContent;'))), 3000);
+    ok(started, `minuteur : espace démarre, même le clavier sur le tableau (${await exec('return document.querySelector(".tm-status")?.textContent;')})`);
+    await keys('\uE00C');
+    await keys('\uE00C');
+    const closed = await waitFor(async () => (await exec('return !document.querySelector(".timer-dock");')) === true, 3000);
+    ok(closed, 'minuteur fermé (échap), rien enregistré');
+    await exec(`await window.__prepvis.panel('scenario', false); window.__prepvis.app().setCursor(window.__savedCursor); return true;`);
   }
 
   // Modification faite ailleurs (synchronisation) : copie de sécurité, rien n'est écrasé en silence.

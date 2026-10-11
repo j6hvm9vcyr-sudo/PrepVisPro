@@ -1,5 +1,6 @@
 /**
- * Découpage › Scénario (⌘8, 0.17) : le texte de la scène à côté du tableau de la même séquence.
+ * Panneau Scénario (0.17 ; panneau ⌥⌘2 depuis 0.18) : le texte de la scène du plan sélectionné, à côté du tableau.
+ * Pendant qu'on minute une séquence, le minuteur s'y loge, au-dessus de la scène.
  * Chaque plan est relié au passage que reprend son extrait (scriptLink.ts) ; les passages qu'aucun
  * plan ne couvre sont signalés. Sélectionner un passage permet de le relier au plan sélectionné,
  * ou d'en faire un nouveau plan, à sa place dans l'ordre du texte.
@@ -9,8 +10,10 @@ import { useApp } from '../state/appStore';
 import { selectCursor, selectDoc } from '../state/store';
 import { computeNumbers } from '../model/numbering';
 import { addPlanForPassage, linkScene, sceneSegments } from '../model/scriptLink';
-import { DecoupageTable } from './Table';
 import { Info } from './Info';
+import { PanelHead } from './Chrome';
+import { startTiming, togglePanel } from './panels';
+import { TimerBlock } from './Timer';
 import { sequenceTitle, stripColors } from './strip';
 import { focusGrid } from './focus';
 import { startScriptImport } from '../import/flow';
@@ -29,10 +32,12 @@ function offsetsIn(container: HTMLElement): { start: number; end: number } | nul
   return end > start ? { start, end } : null;
 }
 
-export function ScriptView() {
+export function ScenePanel() {
   const doc = useApp(selectDoc);
   const cursor = useApp(selectCursor);
-  const seq = doc.sequences.find((s) => s.plans.some((p) => p.id === cursor?.planId)) ?? doc.sequences[0];
+  const timingId = useApp((s) => s.timingSeqId);
+  const timed = doc.sequences.find((s) => s.id === timingId) ?? null;
+  const seq = timed ?? doc.sequences.find((s) => s.plans.some((p) => p.id === cursor?.planId)) ?? doc.sequences[0];
   const numbers = useMemo(() => computeNumbers(doc), [doc]);
   const links = useMemo(() => (seq ? linkScene(seq) : null), [seq]);
   const segments = useMemo(() => (seq && links ? sceneSegments(seq.scriptText, links.links) : []), [seq, links]);
@@ -46,7 +51,12 @@ export function ScriptView() {
   useEffect(() => {
     docRef.current?.querySelector('.lk.on')?.scrollIntoView({ block: 'nearest' });
   }, [here, seq?.id]);
-  if (!seq || !links) return null;
+  if (!seq || !links)
+    return (
+      <aside className="side-panel left scene-panel" aria-label="Scénario">
+        <PanelHead label="Scénario" onClose={() => togglePanel('scenario')} />
+      </aside>
+    );
   const pick = picked && picked.seqId === seq.id ? picked : null;
   const select = () => {
     const o = docRef.current ? offsetsIn(docRef.current) : null;
@@ -93,17 +103,30 @@ export function ScriptView() {
   };
 
   return (
-    <div className="script-view">
+    <aside className="side-panel left scene-panel" aria-label="Scénario">
+      <PanelHead
+        label="Scénario"
+        info={
+          <Info title="Scénario">
+            <span>La scène du plan sélectionné. Chaque plan est relié au passage que reprend son extrait (Détails › Scénario) : un clic sur un passage sélectionne son plan.</span>
+            <span>Sélectionnez un passage pour le relier au plan sélectionné, ou en faire un nouveau plan, placé dans l’ordre du texte.</span>
+            <span>Un extrait est relié s’il se retrouve tel quel dans la scène (les retours à la ligne comptent comme des espaces). Non couvert : le texte qu’aucun extrait ne reprend, sauf les noms de personnage seuls sur leur ligne.</span>
+          </Info>
+        }
+        onClose={() => togglePanel('scenario')}
+      >
+        {!timed && seq.plans.length > 0 && (
+          <button type="button" className="linkbtn" title="Minuter à la lecture : espace à chaque changement de plan" onClick={() => startTiming(seq.id)}>
+            Minuter
+          </button>
+        )}
+      </PanelHead>
+      {timed && <TimerBlock seq={timed} />}
       <section className="scene-pane" aria-label="Texte de la scène">
         <div className="scene-head">
           <span className="strip" style={{ background: colors.fill, borderColor: colors.edge }} aria-hidden />
           <span className="mono scene-num">SÉQ. {seq.number || '?'}</span>
           <span className="scene-ttl">{sequenceTitle(seq)}</span>
-          <Info title="Scénario">
-            <span>Chaque plan est relié au passage que reprend son extrait (Détails › Scénario) : un clic sur un passage sélectionne son plan.</span>
-            <span>Sélectionnez un passage pour le relier au plan sélectionné, ou en faire un nouveau plan, placé dans l’ordre du texte.</span>
-            <span>Un extrait est relié s’il se retrouve tel quel dans la scène (les retours à la ligne comptent comme des espaces). Non couvert : le texte qu’aucun extrait ne reprend, sauf les noms de personnage seuls sur leur ligne.</span>
-          </Info>
         </div>
         {text.trim() && (
           <div className="scene-state">
@@ -126,7 +149,18 @@ export function ScriptView() {
             )}
           </div>
         )}
-        {!text.trim() ? (
+        {!text.trim() && timed && seq.plans.some((p) => p.scriptExcerpt.trim()) ? (
+          // Sans texte de scène importé : les extraits du scénario de chaque plan, dans l'ordre, pour lire.
+          <ol className="scene-doc tm-excerpts" aria-label="Extraits du scénario des plans">
+            {seq.plans
+              .filter((p) => !p.repriseOf)
+              .map((p) => (
+                <li key={p.id} className={p.id === here ? 'on' : ''}>
+                  <b className="mono">{code(p.id)}</b> {p.scriptExcerpt.trim() || '—'}
+                </li>
+              ))}
+          </ol>
+        ) : !text.trim() ? (
           <div className="scene-empty">
             <span>Pas de texte pour cette scène.</span>
             <button type="button" className="btn" onClick={() => void startScriptImport()}>
@@ -181,9 +215,6 @@ export function ScriptView() {
           </div>
         )}
       </section>
-      <div className="script-table">
-        <DecoupageTable onlySeqId={seq.id} />
-      </div>
-    </div>
+    </aside>
   );
 }

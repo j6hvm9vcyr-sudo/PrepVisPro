@@ -7,7 +7,8 @@ import { locatePlan } from '../model/ops';
 import { anyOverlay, selectCursor } from '../state/store';
 import { isTypingTarget } from '../ui/focus';
 import { startScriptImport } from '../import/flow';
-import { useVerifyPanel } from '../ui/spaces';
+import { openSpace, SPACE_OF, useVerifyPanel } from '../ui/spaces';
+import { openDecoupagePanel, startTiming, togglePanel } from '../ui/panels';
 
 export { isTauri } from './env';
 import { isTauri } from './env';
@@ -15,11 +16,12 @@ import { closeProject, newProjectDialog, newProjectFromOther, openDialog, openPa
 
 /** Raccourcis portés par le menu natif (voir src-tauri/src/lib.rs). */
 export function isMenuShortcut(e: Pick<KeyboardEvent, 'key' | 'code' | 'shiftKey' | 'altKey'>): boolean {
-  if (e.altKey) return false;
   const k = e.key.toLowerCase();
+  // ⌥⌘1–4 (panneaux) et ⌥⌘L (liste / fiches).
+  if (e.altKey) return e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3' || e.code === 'Digit4' || e.code === 'KeyL';
   // ⌘, (préférences) et ⇧⌘, (réglages du projet) : la virgule, quelle que soit la disposition du clavier.
   const comma = k === ',' || k === '<' || e.code === 'Comma';
-  return comma || k === 'z' || e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3' || e.code === 'Digit4' || e.code === 'Digit5' || e.code === 'Digit6' || e.code === 'Digit7' || e.code === 'Digit8' || k === 'i' || k === 'enter' || (e.shiftKey && (k === 'c' || k === 'i' || k === 's')) || k === 's' || k === 'o' || k === 'n' || k === 'q' || k === 'e';
+  return comma || k === 'z' || e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3' || k === 'i' || k === 'enter' || (e.shiftKey && (k === 'c' || k === 'i' || k === 's')) || k === 's' || k === 'o' || k === 'n' || k === 'q' || k === 'e';
 }
 
 /** Exécute une commande de menu. Exporté pour les tests. */
@@ -65,32 +67,31 @@ function runMenuCommand(id: string) {
       if (typing) document.execCommand('redo');
       else st.redo();
       return;
-    case 'view_table':
-      st.setView('table');
+    case 'view_decoupage':
+      openSpace('decoupage');
+      return;
+    case 'view_sol':
+      openSpace('sol');
+      return;
+    case 'view_tournage':
+      openSpace('tournage');
       return;
     case 'view_cards':
-      st.setView('cards');
+      st.setView(st.view === 'cards' ? 'table' : 'cards');
       return;
-    case 'view_floor':
-      st.setView('floor');
+    case 'panel_film':
+      togglePanel('film');
       return;
-    case 'view_shooting':
-      st.setView('shooting');
+    case 'panel_scenario':
+    case 'panel_images':
+    case 'panel_notes': {
+      const p = id === 'panel_scenario' ? 'scenario' : id === 'panel_images' ? 'images' : 'notes';
+      if (SPACE_OF[st.view] === 'decoupage') togglePanel(p);
+      else openDecoupagePanel(p);
       return;
-    case 'view_days':
-      st.setView('days');
-      return;
-    case 'view_library':
-      st.setView('library');
-      return;
-    case 'view_script':
-      st.setView('script');
-      return;
-    case 'view_notes':
-      st.setView('notes');
-      return;
+    }
     case 'view_inspector':
-      st.toggleInspector();
+      togglePanel('details');
       return;
     case 'view_verify':
       useVerifyPanel.getState().set(!useVerifyPanel.getState().open);
@@ -119,18 +120,18 @@ function runMenuCommand(id: string) {
   }
   if (typing || overlay || st.editing) return;
   // Commandes du découpage invisibles depuis les plans au sol : elles ne s'appliquent pas en aveugle.
-  if ((st.view === 'floor' || st.view === 'shooting' || st.view === 'days' || st.view === 'library' || st.view === 'notes') && (id === 'plan_camera' || id === 'plan_up' || id === 'plan_down' || id === 'plan_delete')) {
-    st.setMessage('Commande du découpage : passez en vue Tableau (⌘1)', 'warn');
+  if (SPACE_OF[st.view] !== 'decoupage' && (id === 'plan_camera' || id === 'plan_up' || id === 'plan_down' || id === 'plan_delete')) {
+    st.setMessage('Commande du découpage : passez au Découpage (⌘1)', 'warn');
     return;
   }
   const c = selectCursor(st);
   switch (id) {
     case 'plan_new':
-      st.setView('table');
+      if (SPACE_OF[st.view] !== 'decoupage') st.setView('table');
       st.newPlan(false);
       return;
     case 'plan_reprise':
-      st.setView('table');
+      if (SPACE_OF[st.view] !== 'decoupage') st.setView('table');
       st.newPlan(true);
       return;
     case 'plan_camera':
@@ -140,8 +141,7 @@ function runMenuCommand(id: string) {
       const c = st.cursor;
       const loc = c ? locatePlan(st.hist.present.doc, c.planId) : null;
       if (loc) {
-        if (st.view !== 'table' && st.view !== 'script') st.setView('table');
-        st.setTiming(loc.seq.id);
+        startTiming(loc.seq.id);
       }
       return;
     }

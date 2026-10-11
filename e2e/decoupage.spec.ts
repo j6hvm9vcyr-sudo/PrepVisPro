@@ -126,10 +126,11 @@ test('multicaméra et évolutif visibles, vue fiches', async ({ page }) => {
   await page.keyboard.press('ControlOrMeta+Shift+c');
   await expect(page.locator('.camtag', { hasText: 'B' })).toHaveCount(1);
   await page.keyboard.press('ControlOrMeta+z');
-  await page.keyboard.press('Meta+2');
+  await page.keyboard.press('ControlOrMeta+Alt+l');
   await expect(page.locator('.card')).toHaveCount(8);
   await page.screenshot({ path: 'test-results/05-fiches.png' });
-  await page.keyboard.press('Meta+1');
+  await page.keyboard.press('ControlOrMeta+Alt+l');
+  await expect(page.locator('.card')).toHaveCount(0);
 });
 
 test('modifier une séquence', async ({ page }) => {
@@ -396,14 +397,14 @@ test('↩ sur une case remplie : toute la liste est proposée, les flèches chan
 test('0.9 : trois espaces, arbre du film, détails refermables, aide ⌘/', async ({ page }) => {
   const spaces = page.getByRole('navigation', { name: 'Espaces' });
   // Un espace rouvre la dernière vue utilisée dans cet espace.
-  await page.getByRole('group', { name: 'Vues de l’espace Découpage' }).getByRole('button', { name: 'Fiches' }).click();
+  await page.getByRole('group', { name: 'Affichage du découpage' }).getByRole('button', { name: 'Fiches' }).click();
   await spaces.getByRole('button', { name: 'Tournage' }).click();
   await expect(page.getByRole('group', { name: 'Vues de l’espace Tournage' }).getByRole('button', { name: 'Jours' })).toHaveAttribute('aria-pressed', 'true');
   await spaces.getByRole('button', { name: 'Plans au sol' }).click();
   await expect(page.getByRole('application', { name: 'Plan au sol' }).or(page.getByText('Aucun plan au sol'))).toBeVisible();
   await spaces.getByRole('button', { name: 'Découpage' }).click();
   await expect(page.locator('.cards')).toBeVisible();
-  await page.keyboard.press('ControlOrMeta+1');
+  await page.getByRole('group', { name: 'Affichage du découpage' }).getByRole('button', { name: 'Liste' }).click();
   // Arbre : déplier la séquence 2, choisir 2/2 : le tableau et les détails suivent.
   const tree = page.getByRole('navigation', { name: 'Le film' });
   await tree.getByRole('button', { name: '2 · Wagon' }).click();
@@ -415,7 +416,7 @@ test('0.9 : trois espaces, arbre du film, détails refermables, aide ⌘/', asyn
   await tree.getByRole('button', { name: '1 · Quai de gare' }).click();
   await tree.getByRole('button', { name: 'Plan 1/3' }).click();
   await expect(page.locator('.line.sel [id$="-size"]')).toHaveText('Général → Poitrine');
-  // Détails : × ferme, le bouton de la barre des vues rouvre.
+  // Détails : × ferme, le bouton de la barre du haut rouvre.
   await page.getByRole('button', { name: 'Fermer les détails' }).click();
   await expect(page.getByRole('complementary', { name: 'Détails du plan' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Détails', exact: true }).click();

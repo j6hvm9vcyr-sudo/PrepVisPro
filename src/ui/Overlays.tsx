@@ -50,9 +50,9 @@ const SHORTCUTS: { title: string; items: [string, string][] }[] = [
       ['Premier / dernier plan', '⌘↑ / ⌘↓'],
       ['Début / fin de ligne', '⌘← / ⌘→'],
       ['Sélectionner plusieurs cellules', '⇧ + flèches, ⇧ + clic'],
-      ['Découpage : Tableau / Scénario / Fiches / Notes / Images', '⌘1 / ⌘8 / ⌘2 / ⌘7 / ⌘6'],
-      ['Plans au sol', '⌘3'],
-      ['Tournage : Jours / Installations', '⌘5 / ⌘4'],
+      ['Découpage / Plans au sol / Tournage', '⌘1 / ⌘2 / ⌘3'],
+      ['Découpage en liste / en fiches', '⌥⌘L'],
+      ['Panneaux : Le film / Scénario / Images / Notes', '⌥⌘1 / ⌥⌘2 / ⌥⌘3 / ⌥⌘4'],
       ['Afficher / masquer Détails', '⌘I'],
     ],
   },
@@ -176,7 +176,7 @@ export function DropChoice() {
     st().resolveDrop(k);
     focusGrid();
   };
-  const n = pending.files.length;
+  const n = pending.files.length + pending.libraryIds.length;
   return (
     <div
       ref={dlg}

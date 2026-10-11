@@ -49,9 +49,9 @@ test('0.13 : notes datées par plan et par séquence, cochées, rassemblées dan
   await expect(page.getByLabel('Nouvelle note du plan')).toBeFocused();
   await page.keyboard.press('Escape');
 
-  // Vue Notes (⌘7) : tout le film, séquence par séquence.
-  await page.keyboard.press('ControlOrMeta+7');
-  const view = page.locator('.notes-view');
+  // Panneau Notes (⌥⌘4) : tout le film, séquence par séquence.
+  await page.keyboard.press('ControlOrMeta+Alt+4');
+  const view = page.locator('.notes-panel');
   await expect(view.getByRole('group', { name: 'Notes affichées' }).getByRole('button', { name: 'À faire' })).toHaveAttribute('aria-pressed', 'true');
   const seq1 = view.getByRole('region', { name: 'Notes de la séquence 1' });
   await expect(seq1).toContainText('Demander à la gare les horaires des trains');
@@ -79,5 +79,5 @@ test('0.13 : notes datées par plan et par séquence, cochées, rassemblées dan
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeVisible();
   await expect(page.locator('.line.sel .c.code b')).toHaveText('1/3');
   await page.getByRole('button', { name: 'Modifier la séquence 3' }).click();
-  await expect(page.getByRole('region', { name: 'Notes de la séquence' }).getByRole('textbox', { name: 'Note : Lampe de jeu : 60 W, à vérifier' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Séquence' }).getByRole('region', { name: 'Notes de la séquence' }).getByRole('textbox', { name: 'Note : Lampe de jeu : 60 W, à vérifier' })).toBeVisible();
 });

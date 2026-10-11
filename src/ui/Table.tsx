@@ -24,6 +24,8 @@ import { inKit } from '../model/lenses';
 import { sequenceTitle, stripColors } from './strip';
 import { filmFlow } from '../model/stamps';
 import { StampBand } from './StampBand';
+import { DRAG_IMAGE } from './Library';
+import { startTiming } from './panels';
 
 const TECH: { col: Exclude<EditableField, 'action'>; label: string }[] = [
   { col: 'size', label: 'Valeur' },
@@ -58,8 +60,7 @@ function isCustom(col: Exclude<EditableField, 'action'>, plan: Plan, setupIndex:
 
 const cellId = (setupId: string, col: Column) => `cell-${setupId}-${col}`;
 
-/** `onlySeqId` : une seule séquence (vue Scénario), sans les tampons. */
-export function DecoupageTable({ onlySeqId = null }: { onlySeqId?: string | null } = {}) {
+export function DecoupageTable() {
   const doc = useApp(selectDoc);
   const cursor = useApp(selectCursor);
   const editing = useApp((s) => s.editing);
@@ -304,9 +305,7 @@ export function DecoupageTable({ onlySeqId = null }: { onlySeqId?: string | null
             </span>
           ))}
         </div>
-        {filmFlow(doc)
-          .filter((it) => onlySeqId === null || (it.kind === 'seq' && it.seq.id === onlySeqId))
-          .map((it) =>
+        {filmFlow(doc).map((it) =>
           it.kind === 'stamp' ? (
             <StampBand key={it.stamp.id} stamp={it.stamp} />
           ) : (
@@ -383,13 +382,13 @@ function SequenceBlock(p: BlockProps) {
           {dur ? ` · ${dur}` : ''}
         </span>
         {p.days && (
-          <span className="day-chip" title="Jours de tournage de la séquence (vue Jours, ⌘5)">
+          <span className="day-chip" title="Jours de tournage de la séquence (Tournage › Jours, ⌘3)">
             {p.days}
           </span>
         )}
         <span className="spacer" />
         {seq.plans.some((x) => !x.repriseOf) && (
-          <button type="button" className="linkbtn" tabIndex={-1} aria-label={`Minuter la séquence ${seq.number}`} title="Minuter à la lecture : espace à chaque changement de plan" onClick={() => st().setTiming(seq.id)}>
+          <button type="button" className="linkbtn" tabIndex={-1} aria-label={`Minuter la séquence ${seq.number}`} title="Minuter à la lecture : espace à chaque changement de plan" onClick={() => startTiming(seq.id)}>
             Minuter
           </button>
         )}
@@ -531,12 +530,30 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
     s.setCursor({ planId: plan.id, setupId, col });
   };
 
-  const onDrop = (e: DragEvent) => {
-    e.preventDefault();
-    setDropOver(false);
-    const files = Array.from(e.dataTransfer.files);
-    st().setCursor({ planId: plan.id, setupId: plan.cameras[0]!.id, col: 'image' });
-    st().requestDrop(plan.id, files);
+  // Images du Finder ou de la bibliothèque (panneau Images), déposées n'importe où sur le plan.
+  const accepts = (e: DragEvent) => e.dataTransfer.types.includes('Files') || e.dataTransfer.types.includes(DRAG_IMAGE);
+  const dropProps = {
+    onDragOver: (e: DragEvent) => {
+      if (!accepts(e)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      setDropOver(true);
+    },
+    onDragLeave: (e: DragEvent) => {
+      if (!(e.currentTarget as Node).contains(e.relatedTarget as Node)) setDropOver(false);
+    },
+    onDrop: (e: DragEvent) => {
+      if (!accepts(e)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setDropOver(false);
+      const s = st();
+      if (s.editing) return;
+      const lib = e.dataTransfer.getData(DRAG_IMAGE);
+      s.setCursor({ planId: plan.id, setupId: plan.cameras[0]!.id, col: cols.includes('image') ? 'image' : 'action' });
+      if (lib) s.requestLibraryDrop(plan.id, [lib]);
+      else s.requestDrop(plan.id, Array.from(e.dataTransfer.files));
+    },
   };
 
   return (
@@ -564,6 +581,7 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
             key={setup.id}
             role="row"
             aria-selected={lineActive}
+            {...dropProps}
             onContextMenu={(e) => {
               e.preventDefault();
               const s = st();
@@ -572,7 +590,7 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
               s.setCursor({ planId: plan.id, setupId: setup.id, col });
               s.setContextMenu({ x: e.clientX, y: e.clientY, planId: plan.id, setupId: setup.id });
             }}
-            className={`grid-cols line ${first ? 'first' : 'cont'} ${lineActive ? 'sel' : ''} ${i < plan.cameras.length - 1 ? 'joined' : ''}`}
+            className={`grid-cols line ${first ? 'first' : 'cont'} ${lineActive ? 'sel' : ''} ${dropOver ? 'dropping' : ''} ${i < plan.cameras.length - 1 ? 'joined' : ''}`}
           >
             <span className="c code" title={first ? `Plan n° ${global}` : undefined}>
               {first && (
@@ -592,12 +610,6 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
               className={cls('image', 'img')}
               onMouseDown={(e) => select(e, setup.id, 'image')}
               onDoubleClick={() => st().openPreview(plan.id)}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDropOver(true);
-              }}
-              onDragLeave={() => setDropOver(false)}
-              onDrop={onDrop}
             >
               {first && (
                 <div className={`thumb ${coverUrl ? 'has' : ''} ${dropOver ? 'drop' : ''}`}>

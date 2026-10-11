@@ -1,6 +1,7 @@
 /**
- * Découpage › Notes (⌘7) : toutes les notes du film, séquence par séquence, pour les relire d'un coup.
- * « À faire » cache les notes cochées. Un clic sur un numéro de plan l'ouvre dans le tableau.
+ * Panneau Notes (0.13 ; panneau ⌥⌘4 à droite depuis 0.18) : toutes les notes du film, séquence par
+ * séquence, pour les relire d'un coup. « À faire » cache les notes cochées. Un clic sur un numéro de
+ * plan le sélectionne dans le tableau.
  */
 import { useMemo, useState } from 'react';
 import { useApp } from '../state/appStore';
@@ -10,8 +11,11 @@ import { openCount } from '../model/notes';
 import { sequenceTitle, stripColors } from './strip';
 import { NotesList } from './Notes';
 import { Info } from './Info';
+import { PanelHead } from './Chrome';
+import { setPanel } from './panels';
+import { isGridView } from './spaces';
 
-export function NotesView() {
+export function NotesPanel() {
   const doc = useApp(selectDoc);
   const numbers = useMemo(() => computeNumbers(doc), [doc]);
   const [onlyOpen, setOnlyOpen] = useState(true);
@@ -27,11 +31,21 @@ export function NotesView() {
     }
   }
   const goTo = (planId: string) => {
-    st().setView('table');
+    if (!isGridView(st().view) && st().view !== 'cards') st().setView('table');
     st().goToPlan(planId);
   };
   return (
-    <div className="space-main notes-view">
+    <aside className="side-panel notes-panel" aria-label="Notes">
+      <PanelHead
+        label="Notes"
+        info={
+          <Info title="Notes">
+            <span>Notes datées, rattachées à une séquence ou à un plan. Cochées quand c’est fait.</span>
+            <span>Notes d’un plan : aussi dans ses détails et dans la colonne Notes du tableau (Colonnes ▾). Les exports les reprennent : Divers (plan) et Commentaires (séquence), ✓ devant celles qui sont faites.</span>
+          </Info>
+        }
+        onClose={() => setPanel('notes', false)}
+      />
       <div className="nv-head">
         <div className="seg" role="group" aria-label="Notes affichées">
           <button type="button" aria-pressed={onlyOpen} onClick={() => setOnlyOpen(true)}>
@@ -44,11 +58,8 @@ export function NotesView() {
         <span className="nv-count">
           {open} à faire · {all} en tout
         </span>
-        <Info title="Notes">
-          <span>Notes datées, rattachées à une séquence ou à un plan. Cochées quand c’est fait.</span>
-          <span>Notes d’un plan : aussi dans ses détails et dans la colonne Notes du tableau (Afficher ▾). Les exports les reprennent : Divers (plan) et Commentaires (séquence), ✓ devant celles qui sont faites.</span>
-        </Info>
       </div>
+      <div className="side-body nv-body">
       {doc.sequences.map((s) => {
         const c = stripColors(s);
         const plans = s.plans.filter((p) => (onlyOpen ? openCount(p.notes) > 0 : p.notes.length > 0));
@@ -76,6 +87,7 @@ export function NotesView() {
           </section>
         );
       })}
-    </div>
+      </div>
+    </aside>
   );
 }

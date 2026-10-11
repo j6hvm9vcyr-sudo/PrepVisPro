@@ -13,7 +13,7 @@ test('plan au sol : fond, mise à l’échelle, caméra du découpage avec son c
   await page.getByLabel('Largeur capteur').first().fill('24,89');
   await page.getByRole('button', { name: 'Terminé' }).click();
 
-  await page.keyboard.press('ControlOrMeta+3');
+  await page.keyboard.press('ControlOrMeta+2');
   await expect(page.getByText('Aucun plan au sol', { exact: true })).toBeVisible();
   await pick(page, 'Créer un plan au sol pour la séquence', '1 — Quai de gare');
   await expect(page.getByRole('application', { name: 'Plan au sol' })).toBeVisible();
@@ -63,12 +63,12 @@ test('plan au sol : fond, mise à l’échelle, caméra du découpage avec son c
   await expect(page.locator('.cell.floor-diff')).toHaveCount(1);
   await expect(page.locator('.cell.floor-diff')).toHaveAttribute('title', /Plan au sol « Séq\. 1 — Quai de gare » : Américain \(ici : Ensemble\)/);
   await expect(page.locator('.floor-note')).toContainText('valeur Américain');
-  await page.keyboard.press('ControlOrMeta+3');
+  await page.keyboard.press('ControlOrMeta+2');
   await suggest.locator('.suggest-row', { hasText: 'Valeur' }).getByRole('button', { name: 'Reporter' }).click();
   await expect(suggest.locator('.suggest-row', { hasText: 'Valeur' }).locator('.suggest-ok')).toBeVisible();
   await page.keyboard.press('ControlOrMeta+1');
   await expect(page.locator('.cell.floor-diff')).toHaveCount(0);
-  await page.keyboard.press('ControlOrMeta+3');
+  await page.keyboard.press('ControlOrMeta+2');
   // Retirer le personnage pour la suite du test.
   await page.mouse.click(who.x, who.y);
   await canvas.press('Backspace');
@@ -92,7 +92,7 @@ test('plan au sol : fond, mise à l’échelle, caméra du découpage avec son c
   await page.keyboard.press('Escape');
   await page.keyboard.press('ArrowUp');
   await page.keyboard.press('Alt+ArrowDown');
-  await page.keyboard.press('ControlOrMeta+3');
+  await page.keyboard.press('ControlOrMeta+2');
   await expect(page.locator('.floor-canvas text', { hasText: '1/2' })).toBeVisible();
 
   // Export du plan : image PNG haute définition, puis PDF avec légende.
@@ -137,7 +137,7 @@ test('plan au sol : fond, mise à l’échelle, caméra du découpage avec son c
 test('plan au sol : fond PDF (plan d’architecte), texte saisi au clavier, champs décimaux à la française', async ({ page }) => {
   await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
-  await page.keyboard.press('ControlOrMeta+3');
+  await page.keyboard.press('ControlOrMeta+2');
   await pick(page, 'Créer un plan au sol pour la séquence', '1 — Quai de gare');
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Importer un fond…' }).click();
@@ -172,7 +172,7 @@ test('plan au sol : fond PDF (plan d’architecte), texte saisi au clavier, cham
 test('bibliothèque d’icônes : import d’un dossier, recherche, pose sur le plan, export', async ({ page }) => {
   await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
-  await page.keyboard.press('ControlOrMeta+3');
+  await page.keyboard.press('ControlOrMeta+2');
   await pick(page, 'Créer un plan au sol pour la séquence', '1 — Quai de gare');
   // Les icônes livrées avec l'app (PF_ICONES) sont là sans rien importer.
   const lib = page.getByRole('region', { name: 'Bibliothèque d’icônes' });
@@ -235,7 +235,7 @@ test('bibliothèque d’icônes : import d’un dossier, recherche, pose sur le 
 test('figures : icônes livrées par défaut, icônes importées pour le projet, et une icône différente par figure (deux personnages, deux sources)', async ({ page }) => {
   await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
-  await page.keyboard.press('ControlOrMeta+3');
+  await page.keyboard.press('ControlOrMeta+2');
   await pick(page, 'Créer un plan au sol pour la séquence', '1 — Quai de gare');
   // Premier plan au sol : caméras, personnages et projecteurs prennent les icônes livrées.
   const figures = page.getByRole('region', { name: 'Figures du plan' });
@@ -289,7 +289,7 @@ test('figures : icônes livrées par défaut, icônes importées pour le projet,
 test('tournage : installations proposées d’après le plan au sol, réorganisées à la main', async ({ page }) => {
   await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
-  await page.keyboard.press('ControlOrMeta+3');
+  await page.keyboard.press('ControlOrMeta+2');
   await pick(page, 'Créer un plan au sol pour la séquence', '1 — Quai de gare');
   const canvas = page.getByRole('application', { name: 'Plan au sol' });
   const box = (await page.locator('.floor-canvas svg').boundingBox())!;
@@ -305,7 +305,8 @@ test('tournage : installations proposées d’après le plan au sol, réorganis�
   await page.keyboard.press('Enter');
   await canvas.press('Escape');
 
-  await page.keyboard.press('ControlOrMeta+4');
+  await page.keyboard.press('ControlOrMeta+3');
+  await page.getByRole('button', { name: 'Installations', exact: true }).click();
   await page.getByRole('button', { name: 'Proposer un ordre' }).click();
   const installs = page.locator('.install:not(.loose)');
   await expect(installs).toHaveCount(3);
@@ -333,7 +334,8 @@ test('tournage : installations proposées d’après le plan au sol, réorganis�
   await page.keyboard.press('ControlOrMeta+1');
   await page.keyboard.press('ControlOrMeta+Enter');
   await page.keyboard.press('Escape');
-  await page.keyboard.press('ControlOrMeta+4');
+  await page.keyboard.press('ControlOrMeta+3');
+  await page.getByRole('button', { name: 'Installations', exact: true }).click();
   await expect(page.locator('.install.loose .shot-row')).toHaveCount(1);
   await page.screenshot({ path: 'test-results/19-tournage.png' });
   // L'ordre de tournage part dans l'Excel.
@@ -353,7 +355,7 @@ test('tournage : installations proposées d’après le plan au sol, réorganis�
 test('plan feux : projecteur créé et renseigné sur le plan, éclairement et diaph sur le personnage, puissance', async ({ page }) => {
   await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
-await page.keyboard.press('ControlOrMeta+3');
+await page.keyboard.press('ControlOrMeta+2');
   await pick(page, 'Créer un plan au sol pour la séquence', '2 — Wagon');
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Importer un fond…' }).click();
@@ -482,7 +484,7 @@ test('soleil : position GPS du décor, nord du plan, heure simulée, rapport ave
   await expect(gps).toHaveValue('48.85661, 2.35219');
   await dlg.getByRole('button', { name: 'Terminé' }).click();
 
-  await page.keyboard.press('ControlOrMeta+3');
+  await page.keyboard.press('ControlOrMeta+2');
   await pick(page, 'Créer un plan au sol pour la séquence', '2 — Wagon');
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Importer un fond…' }).click();
@@ -527,7 +529,7 @@ test('soleil : position GPS du décor, nord du plan, heure simulée, rapport ave
 test('positions : début, intermédiaire et fin d’un personnage, orientation, déplacement, lumière à chaque position', async ({ page }) => {
   await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
-  await page.keyboard.press('ControlOrMeta+3');
+  await page.keyboard.press('ControlOrMeta+2');
   await pick(page, 'Créer un plan au sol pour la séquence', '2 — Wagon');
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Importer un fond…' }).click();

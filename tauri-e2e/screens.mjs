@@ -54,11 +54,14 @@ try {
   await key('i', [CTRL]);
   await shot('03-details');
   await key('i', [CTRL]);
-  await key('2', [CTRL]);
+  // Les raccourcis des pages et des panneaux passent par le menu natif, hors de portée du pilote : on change de vue directement.
+  await exec('window.__prepvis.app().setView("cards"); return true;');
   await shot('04-fiches');
-  await key('3', [CTRL]);
+  await exec('window.__prepvis.app().setView("floor"); return true;');
   await shot('05-plans-au-sol');
-  await key('1', [CTRL]);
+  await exec('window.__prepvis.app().setView("table"); await window.__prepvis.panel("scenario", true); await window.__prepvis.panel("images", true); return true;');
+  await shot('05b-panneaux');
+  await exec('await window.__prepvis.panel("scenario", false); await window.__prepvis.panel("images", false); return true;');
   await exec('document.querySelector("[role=grid]").focus(); return true;');
   await key('?');
   await shot('06-aide');

@@ -12,7 +12,8 @@ import { focusGrid } from './focus';
 import { flushSave, saveAsDialog, useProject } from '../state/project';
 import { filmFlow } from '../model/stamps';
 import { useFloor } from '../floor/floorStore';
-import { IconClose, IconExport, IconGear, IconSidebar, SpaceIcons } from './Icons';
+import { IconClose, IconExport, IconGear, IconGrid, IconList, PanelIcons, SpaceIcons } from './Icons';
+import { PANEL_KEY, PANEL_LABEL, togglePanel, usePanelOpen, type PanelId } from './panels';
 import { isGridView, openSpace, SPACE_OF, SPACES, useVerifyPanel, type Space } from './spaces';
 import { Info } from './Info';
 
@@ -22,7 +23,7 @@ export function useVerification() {
   return useMemo(() => verify(doc), [doc]);
 }
 
-const KEY_OF: Record<Space, string> = { decoupage: '⌘1', sol: '⌘3', tournage: '⌘5' };
+const KEY_OF: Record<Space, string> = { decoupage: '⌘1', sol: '⌘2', tournage: '⌘3' };
 
 /** Barre des espaces, en bas de la fenêtre (comme les pages de Resolve). */
 export function PageBar() {
@@ -72,19 +73,41 @@ export function PageBar() {
   );
 }
 
-/** En haut de la colonne de gauche : le projet (menu), son état d'enregistrement et sa taille. */
-export function ProjectHead() {
+/** Panneaux qu'on ouvre ou ferme dans chaque page (0.18 ; Plans au sol en 0.19). */
+const PANELS_OF: Record<Space, PanelId[]> = { decoupage: ['film', 'scenario', 'images', 'notes'], sol: [], tournage: ['film'] };
+
+function PanelToggle({ id }: { id: PanelId }) {
+  const on = usePanelOpen(id);
+  const I = PanelIcons[id];
+  return (
+    <button type="button" className={`tog ${on ? 'on' : ''}`} aria-pressed={on} aria-label={PANEL_LABEL[id]} title={`${on ? 'Masquer' : 'Afficher'} ${PANEL_LABEL[id]} (${PANEL_KEY[id]})`} onMouseDown={(e) => e.preventDefault()} onClick={() => togglePanel(id)}>
+      <I />
+      <span>{PANEL_LABEL[id]}</span>
+    </button>
+  );
+}
+
+/**
+ * Barre du haut (0.18, comme celle de Resolve) : les panneaux de la page à gauche, le projet au centre
+ * (menu, enregistrement, taille du film), Détails à droite.
+ */
+export function InterfaceBar() {
   const doc = useApp(selectDoc);
+  const view = useApp((s) => s.view);
+  const space = SPACE_OF[view];
   const st = useApp.getState;
   const plans = doc.sequences.reduce((n, s) => n + s.plans.length, 0);
   const total = filmDuration(doc);
   const film = total.counted ? total : null;
-  // Non enregistré, ou erreur : l'état demande des mots (et un bouton), sur sa propre ligne.
-  const saveNeedsWords = useProject((p) => p.mode === 'unsaved' || (p.mode === 'file' && p.status === 'error'));
   return (
-    <div className="proj-head">
-      <div className="titlebar-space" data-tauri-drag-region aria-hidden />
-      <div className="proj-row">
+    <header className="ibar glass" data-tauri-drag-region aria-label="Panneaux">
+      <div className="ibar-side" data-tauri-drag-region>
+        <span className="lights-space" data-tauri-drag-region aria-hidden />
+        {PANELS_OF[space].map((id) => (
+          <PanelToggle key={id} id={id} />
+        ))}
+      </div>
+      <div className="ibar-proj" data-tauri-drag-region>
         <BarMenu label={doc.meta.title || 'Sans titre'} className="proj-menu" title="Projet">
           <button type="button" role="menuitem" onClick={() => st().setShowSettings(true)}>
             Réglages du projet…
@@ -96,22 +119,38 @@ export function ProjectHead() {
             Exporter…
           </button>
         </BarMenu>
-        {!saveNeedsWords && <SaveIndicator />}
+        <SaveIndicator />
+        <span className="proj-sub" data-tauri-drag-region>
+          {doc.sequences.length} séquence{doc.sequences.length > 1 ? 's' : ''} · {plans} plan{plans > 1 ? 's' : ''}
+          {film && (
+            <span title={film.missing ? `Durée des plans minutés, sans les reprises ; ${film.missing} plan${film.missing > 1 ? 's' : ''} sans durée` : 'Durée du film, sans les reprises'}>
+              {' '}
+              · {formatDuration(film.seconds)}
+              {film.missing ? ' +' : ''}
+            </span>
+          )}
+        </span>
       </div>
-      <div className="proj-sub">
-        {doc.sequences.length} séquence{doc.sequences.length > 1 ? 's' : ''} · {plans} plan{plans > 1 ? 's' : ''}
-        {film && (
-          <span title={film.missing ? `Durée des plans minutés, sans les reprises ; ${film.missing} plan${film.missing > 1 ? 's' : ''} sans durée` : 'Durée du film, sans les reprises'}>
-            {' '}
-            · {formatDuration(film.seconds)}
-            {film.missing ? ' +' : ''}
-          </span>
-        )}
+      <div className="ibar-side right" data-tauri-drag-region>
+        {space === 'decoupage' && <PanelToggle id="details" />}
       </div>
-      {saveNeedsWords && (
-        <div className="proj-sub">
-          <SaveIndicator />
-        </div>
+    </header>
+  );
+}
+
+/** En-tête d'un panneau : son nom, son ⓘ, et de quoi le fermer. */
+export function PanelHead({ label, count, info, onClose, children }: { label: string; count?: ReactNode; info?: ReactNode; onClose?: () => void; children?: ReactNode }) {
+  return (
+    <div className="panel-head">
+      <span className="panel-h">{label}</span>
+      {count !== undefined && <span className="count">{count}</span>}
+      {info}
+      <span className="spacer" />
+      {children}
+      {onClose && (
+        <button type="button" className="ibtn small" aria-label={`Fermer ${label}`} onClick={onClose}>
+          <IconClose />
+        </button>
       )}
     </div>
   );
@@ -185,20 +224,28 @@ function ColumnsMenu() {
   );
 }
 
-/** Vues de l'espace en cours (Tableau · Fiches · Images ; Jours · Installations), et ses réglages à droite. */
+/** Barre de la surface : Liste / Fiches, Filtrer, Colonnes (Découpage) ; Jours / Installations (Tournage). */
 export function SpaceBar({ left, children, views = true }: { left?: ReactNode; children?: ReactNode; views?: boolean }) {
   const view = useApp((s) => s.view);
-  const inspector = useApp((s) => s.inspector);
   const onlyIncomplete = useApp((s) => s.onlyIncomplete);
   const sp = SPACES.find((x) => x.id === SPACE_OF[view])!;
   const st = useApp.getState;
-  const decoupage = view === 'table' || view === 'script' || view === 'cards';
+  const decoupage = sp.id === 'decoupage';
   return (
     <div className="space-bar">
-      {views && sp.views.length > 1 && (
+      {views && decoupage && (
+        <div className="seg ico-seg" role="group" aria-label="Affichage du découpage">
+          {sp.views.map((v) => (
+            <button key={v.view} type="button" aria-pressed={view === v.view} aria-label={v.label} onClick={() => st().setView(v.view)} title={`${v.title} (${v.key})`}>
+              {v.view === 'cards' ? <IconGrid /> : <IconList />}
+            </button>
+          ))}
+        </div>
+      )}
+      {views && !decoupage && sp.views.length > 1 && (
         <div className="seg" role="group" aria-label={`Vues de l’espace ${sp.label}`}>
           {sp.views.map((v) => (
-            <button key={v.view} type="button" aria-pressed={view === v.view} onClick={() => st().setView(v.view)} title={`${v.title} (${v.key})`}>
+            <button key={v.view} type="button" aria-pressed={view === v.view} onClick={() => st().setView(v.view)} title={v.key ? `${v.title} (${v.key})` : v.title}>
               {v.label}
             </button>
           ))}
@@ -226,11 +273,6 @@ export function SpaceBar({ left, children, views = true }: { left?: ReactNode; c
         </BarMenu>
       )}
       {isGridView(view) && <ColumnsMenu />}
-      {decoupage && !inspector && (
-        <button type="button" className="ibtn" aria-label="Détails" title="Afficher les détails du plan (⌘I)" onClick={() => st().toggleInspector()}>
-          <IconSidebar />
-        </button>
-      )}
     </div>
   );
 }
@@ -259,7 +301,7 @@ export function FilmTree({ onPlan, head }: { onPlan?: (planId: Id) => void; head
   });
   return (
     <nav className="tree glass-panel" aria-label="Le film">
-      <ProjectHead />
+      <PanelHead label="Le film" onClose={() => togglePanel('film')} />
       {head}
       {filmFlow(doc).map((it) => {
         if (it.kind === 'stamp')
@@ -347,18 +389,17 @@ export function VerifyPanel() {
   const close = () => useVerifyPanel.getState().set(false);
   return (
     <aside className="side-panel verify" aria-label="À vérifier">
-      <div className="side-head">
-        <strong>À vérifier</strong>
-        <span className="count">{items.length}</span>
-        <Info title="À vérifier">
-          <span>Cases du découpage vides, caméras absentes du plan au sol de leur séquence, séquences sans jour.</span>
-          <span>Le plan au sol et les jours ne sont vérifiés qu’une fois commencés.</span>
-        </Info>
-        <span className="spacer" />
-        <button type="button" className="ibtn small" aria-label="Fermer À vérifier" onClick={close}>
-          <IconClose />
-        </button>
-      </div>
+      <PanelHead
+        label="À vérifier"
+        count={items.length}
+        info={
+          <Info title="À vérifier">
+            <span>Cases du découpage vides, caméras absentes du plan au sol de leur séquence, séquences sans jour.</span>
+            <span>Le plan au sol et les jours ne sont vérifiés qu’une fois commencés.</span>
+          </Info>
+        }
+        onClose={close}
+      />
       <div className="side-body">
         {items.length === 0 && <div className="empty-line">Rien à vérifier</div>}
         {items.map((it) => (

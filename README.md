@@ -4,14 +4,14 @@ Application Mac de préparation image pour chef opérateur. Le découpage techni
 
 ## Ce qu'elle fait
 
-Trois espaces qui partagent la même sélection : **Découpage** (tableau, scénario à côté du tableau, fiches, notes, images rangées en dossiers), **Plans au sol** (plans au sol, lumière, soleil), **Tournage** (jours, installations). Un seul « À vérifier » relève ce qui manque dans tout le projet.
+Trois pages qui partagent la même sélection : **Découpage** (le tableau, en liste ou en fiches), **Plans au sol** (plans au sol, lumière, soleil), **Tournage** (jours, installations). Autour de chaque page, des panneaux qu'on ouvre ou ferme depuis la barre du haut, comme dans Resolve : Le film, Scénario (avec le minuteur), Images rangées en dossiers, Notes, Détails ; leur disposition est gardée. Un seul « À vérifier » relève ce qui manque dans tout le projet.
 
-- **Découpage** au clavier : valeur, axe, angle, focale, mouvement, machinerie ; plans évolutifs, multicaméra, reprises, numérotation automatique ; tampons entre séquences (TITRE, GÉNÉRIQUE DE FIN…) ; notes datées par séquence et par plan, à cocher, toutes relues dans la vue Notes ; durée des plans (saisie, ou minutée à la lecture de la séquence) et totaux par séquence ; colonnes du tableau au choix, reprises par l’export.
+- **Découpage** au clavier : valeur, axe, angle, focale, mouvement, machinerie ; plans évolutifs, multicaméra, reprises, numérotation automatique ; tampons entre séquences (TITRE, GÉNÉRIQUE DE FIN…) ; notes datées par séquence et par plan, à cocher, toutes relues dans le panneau Notes ; durée des plans (saisie, ou minutée à la lecture de la séquence) et totaux par séquence ; colonnes du tableau au choix, reprises par l’export.
 - **Import de scénario** : Final Draft, Fountain, Word, PDF, texte.
 - **Plans au sol** : fond (plan d'architecte PDF ou vue satellite), mise à l'échelle, caméras du découpage avec leur champ réel, personnages, positions de début et de fin.
 - **Lumière** : projecteurs d'après les fiches des fabricants, gélatines LEE, réflecteurs à taux de réflexion publiés, éclairement et diaph sur les personnages, puissance par circuit ; soleil du décor (position GPS, date, heure).
 - **Tournage** : installations, ordre de tournage, jours de tournage et matériel déduit.
-- **Images** : bibliothèque du projet, chaque image importée une seule fois et réutilisable partout.
+- **Images** : bibliothèque du projet, chaque image importée une seule fois et réutilisable partout ; glissée du panneau Images sur un plan du tableau.
 - **Travailler vite** : matériel du projet repris d’un autre projet, nouveau projet avec les réglages d’un autre, plans types ; dans les préférences de l’app (⌘,, pour tous les projets) : réglages repris par le plan suivant, abréviations ; figures du plan au sol dessinées avec les icônes PF_ICONES livrées avec l’app, ou vos propres icônes ; colonnes et rangées du tableau ajustables ; carte Caméra modifiable sur place.
 - **Exports** : découpage technique PDF et Excel, plans au sol, ordre de tournage, jours et matériel.
 

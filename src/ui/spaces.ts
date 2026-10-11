@@ -1,6 +1,7 @@
 /**
- * Les trois espaces de travail (0.9), nommés d'après les documents qu'on y fait : Découpage, Plans au sol, Tournage.
- * Chaque vue existante appartient à un espace ; un espace rouvre la dernière vue qu'on y a utilisée.
+ * Les trois pages (0.9 ; panneaux 0.18), nommées d'après les documents qu'on y fait : Découpage, Plans au sol, Tournage.
+ * Le Découpage a une seule surface, le tableau, en liste ou en fiches ; le reste est en panneaux (panels.ts).
+ * Une page rouvre la dernière vue qu'on y a utilisée.
  */
 import { create } from 'zustand';
 import { useApp } from '../state/appStore';
@@ -9,27 +10,24 @@ import type { AppState } from '../state/store';
 export type View = AppState['view'];
 export type Space = 'decoupage' | 'sol' | 'tournage';
 
-export const SPACE_OF: Record<View, Space> = { table: 'decoupage', script: 'decoupage', cards: 'decoupage', notes: 'decoupage', library: 'decoupage', floor: 'sol', days: 'tournage', shooting: 'tournage' };
+export const SPACE_OF: Record<View, Space> = { table: 'decoupage', cards: 'decoupage', floor: 'sol', days: 'tournage', shooting: 'tournage' };
 
 export const SPACES: { id: Space; label: string; views: { view: View; label: string; key: string; title: string }[] }[] = [
   {
     id: 'decoupage',
     label: 'Découpage',
     views: [
-      { view: 'table', label: 'Tableau', key: '⌘1', title: 'Le découpage, tel qu’il est exporté' },
-      { view: 'script', label: 'Scénario', key: '⌘8', title: 'Le texte de la scène à côté du tableau, passages reliés aux plans' },
-      { view: 'cards', label: 'Fiches', key: '⌘2', title: 'Un plan par fiche, avec son image' },
-      { view: 'notes', label: 'Notes', key: '⌘7', title: 'Toutes les notes du film, séquence par séquence' },
-      { view: 'library', label: 'Images', key: '⌘6', title: 'Bibliothèque d’images du projet' },
+      { view: 'table', label: 'Liste', key: '⌥⌘L', title: 'Le découpage en liste, tel qu’il est exporté' },
+      { view: 'cards', label: 'Fiches', key: '⌥⌘L', title: 'Un plan par fiche, avec son image' },
     ],
   },
-  { id: 'sol', label: 'Plans au sol', views: [{ view: 'floor', label: 'Plans au sol', key: '⌘3', title: 'Plans au sol, lumière, soleil' }] },
+  { id: 'sol', label: 'Plans au sol', views: [{ view: 'floor', label: 'Plans au sol', key: '⌘2', title: 'Plans au sol, lumière, soleil' }] },
   {
     id: 'tournage',
     label: 'Tournage',
     views: [
-      { view: 'days', label: 'Jours', key: '⌘5', title: 'Jours de tournage et matériel' },
-      { view: 'shooting', label: 'Installations', key: '⌘4', title: 'Installations et ordre de tournage, séquence par séquence' },
+      { view: 'days', label: 'Jours', key: '', title: 'Jours de tournage et matériel' },
+      { view: 'shooting', label: 'Installations', key: '', title: 'Installations et ordre de tournage, séquence par séquence' },
     ],
   },
 ];
@@ -43,7 +41,7 @@ useApp.subscribe((s, prev) => {
 
 /** Vues où le tableau du découpage est affiché (et a la main sur le clavier). */
 export function isGridView(v: View): boolean {
-  return v === 'table' || v === 'script';
+  return v === 'table';
 }
 
 export function openSpace(space: Space) {

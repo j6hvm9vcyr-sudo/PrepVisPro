@@ -27,15 +27,16 @@ async function selectPassage(page: Page, text: string) {
   }, text);
 }
 
-test('0.17 : scénario + tableau — passages reliés aux plans, non couverts signalés, nouveau plan depuis un passage', async ({ page }) => {
+test('0.17–0.18 : panneau Scénario à côté du tableau — passages reliés aux plans, non couverts signalés, nouveau plan depuis un passage', async ({ page }) => {
   await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
-  await page.keyboard.press('ControlOrMeta+8');
+  await page.keyboard.press('ControlOrMeta+Alt+2');
+  await expect(page.getByRole('button', { name: 'Scénario', exact: true })).toHaveAttribute('aria-pressed', 'true');
   const pane = page.getByRole('region', { name: 'Texte de la scène' });
   await expect(pane).toContainText('SÉQ. 1');
   await expect(pane.locator('.scene-state')).toContainText('3 passages non couverts');
-  // Le tableau de la même séquence, à côté.
-  await expect(page.locator('.line.first')).toHaveCount(4);
+  // Le tableau entier reste à côté.
+  await expect(page.locator('.line.first')).toHaveCount(8);
   // Le passage du plan sélectionné (1/1) est mis en avant.
   await expect(pane.locator('.lk.on')).toHaveText('LÉA (30) attend, seule sur le quai.');
   await expect(pane.locator('.unc').first()).toContainText('Un quai de gare');
@@ -78,4 +79,14 @@ test('0.17 : scénario + tableau — passages reliés aux plans, non couverts si
   await expect(pane).toContainText('SÉQ. 2');
   await expect(pane).toContainText('Pas de texte pour cette scène.');
   await expect(pane.getByRole('button', { name: 'Importer un scénario…' })).toBeVisible();
+  // Refermé (×), il le reste : la disposition des panneaux est gardée sur ce Mac.
+  await page.getByRole('button', { name: 'Fermer Scénario' }).click();
+  await expect(pane).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
+  await expect(page.getByRole('region', { name: 'Texte de la scène' })).toHaveCount(0);
+  await page.keyboard.press('ControlOrMeta+Alt+2');
+  await expect(page.getByRole('region', { name: 'Texte de la scène' })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('region', { name: 'Texte de la scène' })).toBeVisible();
 });
