@@ -121,8 +121,23 @@ describe('mise à niveau des fichiers', () => {
     expect(Object.keys(m.raw as object)).toEqual(Object.keys(cur));
     const r = validateProject(m.raw);
     expect(r.ok && r.doc).toEqual(cur);
-    expect(r.ok && r.doc.settings.publish).toEqual({ files: ['pdf', 'xlsx', 'floors'], presetId: 'tableau', baseName: null });
+    expect(r.ok && r.doc.settings.publish).toEqual({ files: ['pdf', 'xlsx', 'html', 'floors'], presetId: 'tableau', baseName: null });
     expect(Object.keys((m.raw as { settings: object }).settings)).toEqual(Object.keys(newProject('X').settings));
+  });
+  it('format 23 → 24 : retours reçus (aucun), relu à l’identique', () => {
+    const cur = sampleProjectMultiCam();
+    const { feedback: _f, ...rest } = cur;
+    const m = migrate(JSON.parse(JSON.stringify({ ...rest, schemaVersion: 23 })));
+    expect(m.ok).toBe(true);
+    if (!m.ok) return;
+    expect(Object.keys(m.raw as object)).toEqual(Object.keys(cur));
+    const r = validateProject(m.raw);
+    expect(r.ok && r.doc).toEqual(cur);
+    // Un projet déjà publié en 0.20 : le découpage interactif rejoint ses fichiers.
+    const old = JSON.parse(JSON.stringify({ ...rest, schemaVersion: 23, settings: { ...cur.settings, publish: { files: ['pdf', 'csv'], presetId: 'tableau', baseName: 'X' } } }));
+    const m2 = migrate(old);
+    const r2 = m2.ok ? validateProject(m2.raw) : null;
+    expect(r2?.ok && r2.doc.settings.publish.files).toEqual(['pdf', 'csv', 'html']);
   });
   it('format 16 → 17 : modèles d’export et icônes des figures dans le projet (aucun)', () => {
     const cur = newProject('X');

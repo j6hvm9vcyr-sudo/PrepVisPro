@@ -25,6 +25,8 @@ import { sequenceTitle, stripColors } from './strip';
 import { filmFlow } from '../model/stamps';
 import { StampBand } from './StampBand';
 import { DRAG_IMAGE } from './Library';
+import { useChangesSincePublication } from './PublishDialog';
+import { usePublish } from '../state/publish';
 import { startTiming } from './panels';
 
 const TECH: { col: Exclude<EditableField, 'action'>; label: string }[] = [
@@ -78,6 +80,10 @@ export function DecoupageTable() {
   const gridStyle = { '--cols': template.columns, minWidth: template.minWidth, ...(layout.rowHeight ? { '--row-h': `${layout.rowHeight}px` } : {}) } as CSSProperties;
   // Écarts avec les plans au sol (valeur, axe) : signalés dans les cases concernées.
   const floorDiffs = useMemo(() => (doc.floorPlans.length ? floorMismatches(doc) : EMPTY_DIFFS), [doc]);
+  // Plans ajoutés ou modifiés depuis la dernière publication : « * » devant leur numéro (0.21).
+  const changes = useChangesSincePublication();
+  const lastPub = usePublish((s) => s.last?.n ?? null);
+  const revised = useMemo(() => new Set(changes ? changes.sequences.flatMap((s) => s.plans.filter((p) => p.status !== 'removed').map((p) => p.id)) : []), [changes]);
   const anchor = useApp((s) => s.anchor);
   // Sélection de plusieurs cellules : pour chaque plan concerné, colonnes sélectionnées par caméra.
   const selection = useMemo(() => {
@@ -318,6 +324,8 @@ export function DecoupageTable() {
               numbers={numbers}
               states={states}
               floorDiffs={floorDiffs}
+              revised={revised}
+              lastPub={lastPub}
               cursorPlanId={cursor?.planId ?? null}
               cursorSetupId={cursor?.setupId ?? null}
               cursorCol={cursor ? (visibleColumns(doc.settings).includes(cursor.col) ? cursor.col : 'action') : null}
@@ -344,6 +352,8 @@ interface BlockProps {
   numbers: ReturnType<typeof computeNumbers>;
   states: Map<string, PlanState>;
   floorDiffs: Map<string, FloorMismatch[]>;
+  revised: ReadonlySet<string>;
+  lastPub: number | null;
   cursorPlanId: string | null;
   cursorSetupId: string | null;
   cursorCol: Column | null;
@@ -414,6 +424,7 @@ function SequenceBlock(p: BlockProps) {
               editing={here && p.editing}
               sel={p.selection?.get(plan.id) ?? null}
               floorNote={floorNoteOf(plan, p.floorDiffs)}
+              revisedSince={p.revised.has(plan.id) ? p.lastPub : null}
               repriseDuration={plan.repriseOf ? planDuration(seq, plan) : null}
             />
           );
@@ -446,6 +457,8 @@ interface RowsProps {
   floorNote: string;
   /** Reprise : durée de son plan (affichée, pas modifiable ici). */
   repriseDuration: number | null;
+  /** Ajouté ou modifié depuis cette publication (sinon null). */
+  revisedSince: number | null;
 }
 
 const EMPTY_DIFFS = new Map<string, FloorMismatch[]>();
@@ -485,7 +498,7 @@ function NotesCell({ plan, setupId, first }: { plan: Plan; setupId: string; firs
   );
 }
 
-const PlanRows = memo(function PlanRows({ plan, settings, code, global, isReprise, state, activeSetupId, activeCol, editing, sel, floorNote, repriseDuration }: RowsProps) {
+const PlanRows = memo(function PlanRows({ plan, settings, code, global, isReprise, state, activeSetupId, activeCol, editing, sel, floorNote, repriseDuration, revisedSince }: RowsProps) {
   const cols = visibleColumns(settings);
   const shown = settings.tableColumns as readonly string[];
   const floor = floorNote ? (JSON.parse(floorNote) as Record<string, FloorMismatch[]>) : null;
@@ -598,6 +611,11 @@ const PlanRows = memo(function PlanRows({ plan, settings, code, global, isRepris
                   className={`st st-${state}`}
                   title={state === 'none' ? 'Pas encore commencé' : missing.length ? `À compléter : ${missing.join(', ')}` : state === 'warn' ? 'À vérifier : caméra pas sur le plan au sol' : 'Complet'}
                 />
+              )}
+              {first && revisedSince !== null && (
+                <span className="rev-mark" title={`Modifié depuis la publication ${revisedSince}`} aria-label={`modifié depuis la publication ${revisedSince}`}>
+                  *
+                </span>
               )}
               {first && <b className="mono">{code}</b>}
               {first && isReprise && <span className="rep sr-only">reprise</span>}

@@ -47,5 +47,6 @@ export function doc(build: (camId: string) => Sequence[]): ProjectDoc {
     imageFolders: [],
     floorPlans: [],
     shootingDays: [],
+    feedback: [],
   };
 }

@@ -9,6 +9,7 @@ import { chooseFolder, loadLastPublication, presetOf, publish, publishPresets, u
 import { baseNameOf, filesToPublish, PUBLISH_FILE_LABEL, publishFileName } from '../model/publish';
 import { PUBLISH_FILES, type PublishFile } from '../model/types';
 import { compareDocs } from '../model/diff';
+import { revisionColor, revisionName } from '../model/revisions';
 import { getBackend } from '../platform/backend';
 import { focusGrid, useDialogFocus } from './focus';
 import { Info } from './Info';
@@ -117,7 +118,13 @@ export function PublishDialog({ onClose }: { onClose: () => void }) {
         </section>
 
         <section className="sec" aria-label="Fichiers tenus à jour">
-          <div className="sec-h">Fichiers tenus à jour</div>
+          <div className="sec-h">
+            Fichiers tenus à jour
+            <Info title="Découpage interactif">
+              <span>Un seul fichier .html : il s’ouvre dans n’importe quel navigateur (à télécharger depuis le drive : son aperçu ne le lance pas). Chacun choisit son métier ; les plans ajoutés ou modifiés depuis la publication précédente sont marqués « * », avec l’avant.</span>
+              <span>Chacun peut annoter les plans et enregistrer ses retours dans un fichier, à déposer dans « Retours » (créé à côté) ou à envoyer par mail. Les notes du découpage ne sont pas partagées.</span>
+            </Info>
+          </div>
           {PUBLISH_FILES.map((f) => {
             const on = settings.files.includes(f);
             const noFloor = f === 'floors' && doc.floorPlans.length === 0;
@@ -144,7 +151,16 @@ export function PublishDialog({ onClose }: { onClose: () => void }) {
         </section>
 
         <section className="sec" aria-label="Depuis la dernière publication">
-          <div className="sec-h">{last ? `Depuis la publication ${last.n} (${when(last.at)})` : 'Pas encore publié'}</div>
+          <div className="sec-h">
+            {last ? (
+              <>
+                <span className="pub-rev" style={{ background: revisionColor(last.n).hex }} aria-hidden />
+                {`Depuis la publication ${last.n} (${revisionName(last.n)}, ${when(last.at)})`}
+              </>
+            ) : (
+              'Pas encore publié'
+            )}
+          </div>
           {last && !last.doc && <p className="note" style={{ margin: 0 }}>La version de la publication {last.n} est illisible : changements inconnus.</p>}
           {changes && !changes.any && <p className="note" style={{ margin: 0 }}>Rien n’a changé.</p>}
           {changes?.any && (
@@ -179,7 +195,7 @@ export function PublishDialog({ onClose }: { onClose: () => void }) {
           <span className="spacer" />
           {busy && <span className="note">{step}</span>}
           <button type="button" className="btn primary" disabled={busy || !folder || !files.length} onClick={() => void run()}>
-            {busy ? 'Publication…' : `Publier (publication ${next})`}
+            {busy ? 'Publication…' : `Publier (publication ${next} · ${revisionColor(next).name})`}
           </button>
         </div>
       </div>

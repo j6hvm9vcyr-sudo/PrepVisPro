@@ -14,8 +14,10 @@ import { filmFlow } from '../model/stamps';
 import { useFloor } from '../floor/floorStore';
 import { IconClose, IconExport, IconGear, IconGrid, IconList, IconPublish, PanelIcons, SpaceIcons } from './Icons';
 import { useChangesSincePublication } from './PublishDialog';
-import { usePublish } from '../state/publish';
-import { PANEL_KEY, PANEL_LABEL, PANELS_OF, togglePanel, usePanelOpen, type PanelId } from './panels';
+import { usePublish, usePublishFolder } from '../state/publish';
+import { PANEL_KEY, PANEL_LABEL, PANELS_OF, togglePanel, usePanelOpen, useRetoursPanel, type PanelId } from './panels';
+import { useRetoursCount } from './RetoursPanel';
+import { importRetoursFile } from '../state/retours';
 import { isGridView, openSpace, SPACE_OF, SPACES, useVerifyPanel, type Space } from './spaces';
 import { Info } from './Info';
 import { useTournage } from './TournageView';
@@ -121,6 +123,9 @@ export function InterfaceBar() {
           <button type="button" role="menuitem" onClick={() => st().setShowPublish(true)}>
             Publier…
           </button>
+          <button type="button" role="menuitem" onClick={() => void importRetoursFile().then((ok) => ok && useRetoursPanel.getState().set(true))}>
+            Importer des retours…
+          </button>
         </BarMenu>
         <SaveIndicator />
         <span className="proj-sub" data-tauri-drag-region>
@@ -135,6 +140,7 @@ export function InterfaceBar() {
         </span>
       </div>
       <div className="ibar-side right" data-tauri-drag-region>
+        {space === 'decoupage' && <RetoursToggle />}
         <PublishButton />
         <PanelToggle id="details" />
       </div>
@@ -153,6 +159,23 @@ function PublishButton() {
       {changed && <span className="pub-dot" aria-hidden />}
       <IconPublish />
       <span>Publier</span>
+    </button>
+  );
+}
+
+/** Retours (0.21) : visible dès que le découpage interactif est publié, ou qu'il y a des retours. */
+function RetoursToggle() {
+  const n = useRetoursCount();
+  const any = useApp((s) => selectDoc(s).feedback.length > 0);
+  const html = useApp((s) => selectDoc(s).settings.publish.files.includes('html'));
+  const folder = usePublishFolder();
+  const open = useRetoursPanel((s) => s.open);
+  if (!any && !n && !open && !(html && folder)) return null;
+  return (
+    <button type="button" className={`tog ${open ? 'on' : ''}`} aria-pressed={open} aria-label={n ? `Retours : ${n}` : 'Retours'} title={`${open ? 'Masquer' : 'Afficher'} les retours`} onMouseDown={(e) => e.preventDefault()} onClick={() => useRetoursPanel.getState().set(!open)}>
+      <PanelIcons.notes />
+      <span>Retours</span>
+      {n > 0 && <span className="tog-count">{n}</span>}
     </button>
   );
 }

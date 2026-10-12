@@ -263,7 +263,7 @@ pub fn write_export(path: &Path, bytes: &[u8]) -> Result<()> {
 /// dernière version. Le contenu est vérifié après écriture.
 pub fn write_in_place(path: &Path, bytes: &[u8]) -> Result<()> {
     let ext = path.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
-    if !["pdf", "xlsx", "csv"].contains(&ext.as_str()) {
+    if !["pdf", "xlsx", "csv", "html"].contains(&ext.as_str()) {
         return Err(format!("Type de fichier refusé : « {} »", path.display()));
     }
     if path.parent().map(|p| !p.is_dir()).unwrap_or(true) {
@@ -287,6 +287,59 @@ pub fn write_in_place(path: &Path, bytes: &[u8]) -> Result<()> {
         return Err(format!("Le fichier « {} » n'a pas été écrit en entier", path.display()));
     }
     Ok(())
+}
+
+/// Retours (0.21) : sous-dossier où l'équipe dépose ses fichiers de retours, à côté des fichiers publiés.
+pub const RETOURS_DIR: &str = "Retours";
+pub const RETOURS_EXT: &str = "topshot-retours";
+const RETOURS_MAX: u64 = 2 * 1024 * 1024;
+
+/// Crée « Retours » dans le dossier de diffusion s'il manque (le dossier lui-même doit exister).
+pub fn retours_dir(folder: &Path) -> Result<()> {
+    if !folder.is_dir() {
+        return Err("Le dossier de diffusion est introuvable (déplacé, renommé, ou drive déconnecté ?)".into());
+    }
+    let d = folder.join(RETOURS_DIR);
+    if d.is_dir() {
+        return Ok(());
+    }
+    fs::create_dir(&d).map_err(err("Création du dossier « Retours » impossible"))
+}
+
+/// Lit un fichier de retours (taille limitée, texte UTF-8).
+pub fn read_retours(path: &Path) -> Result<String> {
+    let ext = path.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
+    if ext != RETOURS_EXT {
+        return Err("Ce n'est pas un fichier de retours Topshot".into());
+    }
+    let meta = fs::metadata(path).map_err(err("Fichier de retours introuvable"))?;
+    if meta.len() > RETOURS_MAX {
+        return Err("Fichier trop lourd pour des retours".into());
+    }
+    let bytes = fs::read(path).map_err(err("Lecture du fichier de retours impossible"))?;
+    String::from_utf8(bytes).map_err(|_| "Fichier de retours illisible (pas du texte)".to_string())
+}
+
+/// Fichiers de retours déposés dans « Retours » (nom, contenu), dans l'ordre des noms ; les
+/// fichiers illisibles sont passés (un drive peut montrer un fichier pas encore téléchargé).
+pub fn list_retours(folder: &Path) -> Result<Vec<(String, String)>> {
+    let d = folder.join(RETOURS_DIR);
+    if !d.is_dir() {
+        return Ok(vec![]);
+    }
+    let mut out = vec![];
+    for e in fs::read_dir(&d).map_err(err("Lecture du dossier « Retours » impossible"))?.flatten() {
+        let p = e.path();
+        let name = e.file_name().to_string_lossy().into_owned();
+        if name.starts_with('.') || !p.is_file() {
+            continue;
+        }
+        if let Ok(text) = read_retours(&p) {
+            out.push((name, text));
+        }
+    }
+    out.sort_by(|a, b| a.0.cmp(&b.0));
+    Ok(out)
 }
 
 /// Formats de scénario acceptés à l'import.
@@ -369,6 +422,25 @@ mod tests {
         }
         assert!(write_in_place(&d.join("x.json"), b"{}").is_err());
         assert!(write_in_place(&d.join("absent").join("a.pdf"), b"x").is_err());
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn retours_deposes() {
+        let d = tmpdir("retours");
+        fs::create_dir_all(&d).unwrap();
+        assert!(list_retours(&d).unwrap().is_empty());
+        retours_dir(&d).unwrap();
+        retours_dir(&d).unwrap();
+        let r = d.join(RETOURS_DIR);
+        fs::write(r.join("Margaux.topshot-retours"), "{\"a\":1}").unwrap();
+        fs::write(r.join("autre.txt"), "x").unwrap();
+        fs::write(r.join(".cache.topshot-retours"), "x").unwrap();
+        fs::write(r.join("binaire.topshot-retours"), [0xff, 0xfe, 0x00]).unwrap();
+        let l = list_retours(&d).unwrap();
+        assert_eq!(l, vec![("Margaux.topshot-retours".to_string(), "{\"a\":1}".to_string())]);
+        assert!(read_retours(&r.join("autre.txt")).is_err());
+        assert!(retours_dir(&d.join("absent")).is_err());
         let _ = fs::remove_dir_all(&d);
     }
 

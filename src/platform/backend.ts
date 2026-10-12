@@ -36,6 +36,12 @@ export interface Backend {
   pickFolder(title: string): Promise<string | null>;
   /** Publier : réécrit un fichier du dossier de diffusion sur place (le lien partagé reste bon). */
   publishWrite(path: string, bytes: Uint8Array): Promise<void>;
+  /** Retours (0.21) : crée le sous-dossier « Retours » du dossier de diffusion s'il manque. */
+  publishRetoursDir(folder: string): Promise<void>;
+  /** Fichiers de retours déposés dans « Retours » (nom et contenu). */
+  listRetours(folder: string): Promise<{ name: string; text: string }[]>;
+  /** Choisit et lit un fichier de retours ; null si annulé. */
+  pickRetours(): Promise<{ name: string; text: string } | null>;
   openFile(path: string): Promise<void>;
   /** Choisit et lit un scénario (Final Draft, Fountain, texte, Word, PDF) ; null si annulé. */
   pickScript(): Promise<ScriptFile | null>;
@@ -179,6 +185,26 @@ class TauriBackend implements Backend {
   async publishWrite(path: string, bytes: Uint8Array) {
     const { invoke } = await this.core();
     await invoke('publish_write', bytes, { headers: { 'x-prepvis-path': encodeURIComponent(path) } });
+  }
+
+  async publishRetoursDir(folder: string) {
+    const { invoke } = await this.core();
+    await invoke('retours_dir', { folder });
+  }
+
+  async listRetours(folder: string) {
+    const { invoke } = await this.core();
+    const list = await invoke<[string, string][]>('retours_list', { folder });
+    return list.map(([name, text]) => ({ name, text }));
+  }
+
+  async pickRetours() {
+    const { open } = await this.dialog();
+    const p = await open({ title: 'Importer des retours', multiple: false, directory: false, filters: [{ name: 'Retours Topshot', extensions: ['topshot-retours'] }] });
+    if (typeof p !== 'string') return null;
+    const { invoke } = await this.core();
+    const text = await invoke<string>('retours_read', { path: p });
+    return { name: p.split(/[\\/]/).pop() ?? p, text };
   }
 
   async openFile(path: string) {
@@ -346,6 +372,18 @@ export class MemoryBackend implements Backend {
   async publishWrite(path: string, bytes: Uint8Array) {
     if (this.missingFolders.has(path.slice(0, path.lastIndexOf('/')))) throw new Error('Le dossier de diffusion est introuvable (déplacé, renommé, ou drive déconnecté ?)');
     this.published.set(path, { bytes, writes: (this.published.get(path)?.writes ?? 0) + 1 });
+  }
+  /** Retours déposés (dossier → fichiers), et le prochain fichier « choisi ». */
+  retours = new Map<string, { name: string; text: string }[]>();
+  nextRetours: { name: string; text: string } | null = null;
+  async publishRetoursDir(folder: string) {
+    if (!this.retours.has(folder)) this.retours.set(folder, []);
+  }
+  async listRetours(folder: string) {
+    return [...(this.retours.get(folder) ?? [])];
+  }
+  async pickRetours() {
+    return this.nextRetours;
   }
   async writeExport(path: string, bytes: Uint8Array) {
     this.exports.set(path, bytes);

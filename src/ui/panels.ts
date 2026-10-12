@@ -9,7 +9,17 @@ import { produce, type Draft } from 'immer';
 import { useApp } from '../state/appStore';
 import { getPrefs, updatePrefs, usePrefs } from '../state/prefs';
 import type { AppPrefs, PanelLayout } from '../model/prefs';
+import { create } from 'zustand';
 import { SPACE_OF, useVerifyPanel, type Space } from './spaces';
+
+/** Panneau Retours (0.21), à droite du Découpage, le temps de la session : il passe devant Notes et Détails. */
+export const useRetoursPanel = create<{ open: boolean; set(v: boolean): void }>()((set) => ({
+  open: false,
+  set: (open) => {
+    if (open) useVerifyPanel.getState().set(false);
+    set({ open });
+  },
+}));
 
 export type PanelId = 'film' | 'scenario' | 'images' | 'notes' | 'details';
 
@@ -26,10 +36,10 @@ function layoutKey(space: Space, id: PanelId): keyof PanelLayout | null {
   return id === 'details' ? null : id;
 }
 
-function openIn(space: Space, id: PanelId, layout: PanelLayout, inspector: boolean, verifying: boolean): boolean {
+function openIn(space: Space, id: PanelId, layout: PanelLayout, inspector: boolean, verifying: boolean, retours: boolean): boolean {
   if (id !== 'details' && !PANELS_OF[space].includes(id)) return false;
-  // À droite, une seule chose : À vérifier passe devant Notes et Détails.
-  if ((id === 'details' || id === 'notes') && verifying) return false;
+  // À droite, une seule chose : À vérifier (puis Retours) passe devant Notes et Détails.
+  if ((id === 'details' || id === 'notes') && (verifying || (retours && space === 'decoupage'))) return false;
   if (space === 'decoupage' && id === 'details') return inspector && !layout.notes;
   const k = layoutKey(space, id);
   return k ? (layout[k] as boolean) : false;
@@ -41,12 +51,13 @@ export function usePanelOpen(id: PanelId): boolean {
   const view = useApp((s) => s.view);
   const inspector = useApp((s) => s.inspector);
   const verifying = useVerifyPanel((s) => s.open);
-  return openIn(SPACE_OF[view], id, layout, inspector, verifying);
+  const retours = useRetoursPanel((s) => s.open);
+  return openIn(SPACE_OF[view], id, layout, inspector, verifying, retours);
 }
 
 function isOpen(id: PanelId): boolean {
   const st = useApp.getState();
-  return openIn(SPACE_OF[st.view], id, getPrefs().layout, st.inspector, useVerifyPanel.getState().open);
+  return openIn(SPACE_OF[st.view], id, getPrefs().layout, st.inspector, useVerifyPanel.getState().open, useRetoursPanel.getState().open);
 }
 
 /** Change la disposition ; préférences illisibles : en mémoire seulement (le fichier n'est pas écrasé). */
@@ -58,7 +69,10 @@ export function setPanel(id: PanelId, on: boolean) {
   const st = useApp.getState();
   const space = SPACE_OF[st.view];
   // À droite, une seule chose à la fois : À vérifier, Notes ou Détails.
-  if ((id === 'notes' || id === 'details') && on) useVerifyPanel.getState().set(false);
+  if ((id === 'notes' || id === 'details') && on) {
+    useVerifyPanel.getState().set(false);
+    if (space === 'decoupage') useRetoursPanel.getState().set(false);
+  }
   if (space === 'decoupage' && id === 'details') {
     if (on) setLayout((d) => void (d.layout.notes = false));
     if (st.inspector !== on) st.toggleInspector();

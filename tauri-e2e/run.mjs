@@ -324,8 +324,11 @@ try {
     mkdirSync(drive, { recursive: true });
     const r1 = await exec(`return await window.__prepvis.publishTo(${JSON.stringify(drive)});`);
     ok(r1?.ok === true, `publication 1 (${JSON.stringify(r1)})`);
-    const names = readdirSync(drive).sort();
-    ok(names.length === r1?.files?.length && names.every((n) => n.includes(' — découpage.') || n.includes(' — plans au sol.')), `fichiers publiés (${names.join(', ')})`);
+    const names = readdirSync(drive).filter((n) => n !== 'Retours').sort();
+    ok(names.length === r1?.files?.length && names.every((n) => n.includes(' — découpage.') || n.includes(' — découpage interactif.') || n.includes(' — plans au sol.')), `fichiers publiés (${names.join(', ')})`);
+    const html = names.find((n) => n.endsWith('découpage interactif.html'));
+    ok(!!html && readFileSync(join(drive, html), 'utf8').includes('id="topshot-data"'), 'découpage interactif publié');
+    ok(statSync(join(drive, 'Retours')).isDirectory(), 'dossier « Retours » créé à côté');
     const pdf = names.find((n) => n.endsWith('découpage.pdf'));
     const before = pdf ? statSync(join(drive, pdf)) : null;
     ok(!!before && readFileSync(join(drive, pdf)).subarray(0, 5).toString() === '%PDF-', 'PDF publié lisible');
@@ -333,9 +336,19 @@ try {
     const r2 = await exec(`return await window.__prepvis.publishTo(${JSON.stringify(drive)});`);
     ok(r2?.ok === true && r2.n === r1.n + 1, `publication suivante (${JSON.stringify(r2)})`);
     const after = statSync(join(drive, pdf));
-    ok(readdirSync(drive).sort().join() === names.join(), 'mêmes noms après un changement de titre');
+    ok(readdirSync(drive).filter((n) => n !== 'Retours').sort().join() === names.join(), 'mêmes noms après un changement de titre');
     ok(after.ino === before.ino, `même fichier réécrit sur place (inode ${before.ino} → ${after.ino})`);
     await exec('window.__prepvis.app().undo(); return true;');
+    // Retours (0.21) : un fichier déposé dans « Retours » est trouvé ; un fichier abîmé est signalé, un autre projet ignoré.
+    const projectId = await exec('return window.__prepvis.app().hist.present.doc.id;');
+    const retours = (id, author, items) => JSON.stringify({ topshotRetours: 1, id, projectId: author === 'Autre' ? 'autre-projet' : projectId, publication: 1, author, role: 'Image', sentAt: 1760000000000, items });
+    writeFileSync(join(drive, 'Retours', 'Retours Margaux.topshot-retours'), retours('r-1', 'Margaux', [{ id: 'i1', planId: null, seqId: null, code: '1/1', verdict: 'revoir', text: 'Plutôt un 50', proposal: null }]));
+    writeFileSync(join(drive, 'Retours', 'Retours Autre.topshot-retours'), retours('r-2', 'Autre', [{ id: 'i1', planId: null, seqId: null, code: '1/1', verdict: 'ok', text: '', proposal: null }]));
+    writeFileSync(join(drive, 'Retours', 'abîmé.topshot-retours'), '{ pas du json');
+    writeFileSync(join(drive, 'Retours', 'notes.txt'), 'rien à voir');
+    const scan = await exec('return await window.__prepvis.scanRetours();');
+    ok(scan?.waiting?.length === 1 && scan.waiting[0].author === 'Margaux' && scan.waiting[0].items === 1, `retours trouvés dans « Retours » (${JSON.stringify(scan?.waiting)})`);
+    ok(scan?.errors?.length === 1 && scan.errors[0].name === 'abîmé.topshot-retours', `fichier abîmé signalé (${JSON.stringify(scan?.errors)})`);
   }
 
   // Modification faite ailleurs (synchronisation) : copie de sécurité, rien n'est écrasé en silence.

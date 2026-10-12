@@ -111,5 +111,6 @@ export function newProject(title = 'Sans titre'): ProjectDoc {
     imageFolders: [],
     floorPlans: [],
     shootingDays: [],
+    feedback: [],
   };
 }

@@ -22,7 +22,7 @@ describe('Publier', () => {
 
   it('fichiers à écrire : ceux cochés, sans PDF des plans au sol s’il n’y en a pas', () => {
     const doc = newProject('X');
-    expect(filesToPublish(doc)).toEqual(['pdf', 'xlsx']);
+    expect(filesToPublish(doc)).toEqual(['pdf', 'xlsx', 'html']);
     const withFloor = produce(doc, (d) => {
       d.floorPlans.push(newFloorPlan('Séq. 1', [d.sequences[0]!.id]));
       d.settings.publish.files = ['csv', 'floors', 'pdf'];
@@ -31,7 +31,7 @@ describe('Publier', () => {
   });
 
   it('libellé écrit dans les documents ; chemin dans le dossier', () => {
-    expect(publicationLabel(3, Date.UTC(2026, 9, 12, 12))).toBe('Publication 3 · 12 octobre 2026');
+    expect(publicationLabel(3, Date.UTC(2026, 9, 12, 12))).toBe('Publication 3 · révision rose · 12 octobre 2026');
     expect(joinPath('/Users/a/Google Drive/Le Quai/', 'Le Quai — découpage.pdf')).toBe('/Users/a/Google Drive/Le Quai/Le Quai — découpage.pdf');
     expect(joinPath('C:\\Drive\\Quai', 'a.pdf')).toBe('C:\\Drive\\Quai\\a.pdf');
   });

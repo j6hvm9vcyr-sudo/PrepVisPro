@@ -15,6 +15,7 @@ Trois pages qui partagent la même sélection : **Découpage** (le tableau, en l
 - **Travailler vite** : matériel du projet repris d’un autre projet, nouveau projet avec les réglages d’un autre, plans types ; dans les préférences de l’app (⌘,, pour tous les projets) : réglages repris par le plan suivant, abréviations ; figures du plan au sol dessinées avec les icônes PF_ICONES livrées avec l’app, ou vos propres icônes ; colonnes et rangées du tableau ajustables ; carte Caméra modifiable sur place.
 - **Exports** : découpage technique PDF et Excel, plans au sol, ordre de tournage, jours et matériel.
 - **Publier** (⇧⌘P) : un dossier de diffusion sur le drive de l’équipe (Google Drive, Dropbox, iCloud), choisi une fois ; chaque publication y réécrit les mêmes fichiers, sous les mêmes noms, avec « Publication N » et la date dedans : le lien partagé mène toujours à la dernière version.
+- **Révisions et retours** : chaque publication a sa couleur de révision (ordre de la WGA : blanche, bleue, rose…) et les plans changés depuis la précédente sont marqués « * ». Le découpage interactif publié (un seul .html, à télécharger depuis le drive) laisse chacun choisir son métier, annoter les plans et enregistrer ses retours dans un fichier ; déposé dans « Retours » du dossier de diffusion ou reçu par mail, il revient dans le panneau Retours : chaque retour devient une note datée ou une saisie dans le tableau, toujours validée à la main.
 
 Aucune valeur n'est inventée : sans donnée fiable (fiche fabricant, capteur, échelle), l'application n'affiche pas de chiffre.
 

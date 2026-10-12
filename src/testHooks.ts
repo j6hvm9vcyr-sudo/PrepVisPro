@@ -55,6 +55,13 @@ export async function install() {
       return publish();
     },
     /** Ouvre ou ferme un panneau (0.18). */
+    /** Regarde « Retours » du dossier de diffusion : fichiers trouvés et erreurs. */
+    async scanRetours() {
+      const r = await import('./state/retours');
+      await r.scanRetours();
+      const { waiting, errors } = r.useRetours.getState();
+      return { waiting: waiting.map((f) => ({ author: f.author, items: f.items.length })), errors };
+    },
     async panel(id: 'film' | 'scenario' | 'images' | 'notes' | 'details', on: boolean) {
       const { setPanel } = await import('./ui/panels');
       setPanel(id, on);

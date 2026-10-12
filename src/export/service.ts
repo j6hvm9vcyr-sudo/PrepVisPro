@@ -2,7 +2,7 @@
  * Exports depuis l'application : préparation des images, génération, écriture du fichier.
  * Les bibliothèques PDF et Excel sont chargées à la demande (démarrage plus rapide).
  */
-import type { ProjectDoc } from '../model/types';
+import type { Id, ProjectDoc } from '../model/types';
 import { imageStore } from '../platform/images';
 import { getBackend } from '../platform/backend';
 import { buildCsv, buildExportModel, exportFileName, type ExportModel, type ExportOptions } from './model';
@@ -182,10 +182,15 @@ async function exportVersionLabel(doc: ProjectDoc): Promise<string | null> {
   }
 }
 
-/** `version` : mention écrite dans le document (Publier : « Publication 3 · … ») ; par défaut, la dernière version enregistrée. */
-export async function buildExport(doc: ProjectDoc, format: ExportFormat, opts: ExportOptions, onProgress?: (done: number, total: number) => void, version?: string | null): Promise<BuiltExport> {
+/**
+ * `extra.version` : mention écrite dans le document (Publier : « Publication 3 · … ») ; par défaut, la
+ * dernière version enregistrée. `extra.revised` : plans ajoutés ou modifiés depuis la publication
+ * précédente, marqués « * » devant leur numéro (comme les lignes révisées d'un scénario).
+ */
+export async function buildExport(doc: ProjectDoc, format: ExportFormat, opts: ExportOptions, onProgress?: (done: number, total: number) => void, extra: { version?: string | null; revised?: ReadonlySet<Id> } = {}): Promise<BuiltExport> {
   const m = buildExportModel(doc, opts);
-  m.version = version !== undefined ? version : await exportVersionLabel(doc);
+  m.version = extra.version !== undefined ? extra.version : await exportVersionLabel(doc);
+  if (extra.revised?.size) markRevised(m, extra.revised);
   if (format === 'csv') return { bytes: new TextEncoder().encode(buildCsv(m, opts.columns, opts.showCamera)), failedImages: 0 };
   const withImages = opts.columns.includes('image');
   const { images, failed } = withImages ? await prepareImages(m, format === 'xlsx' ? 480 : MAX_WIDTH[opts.imageSize], onProgress) : { images: new Map<string, Resized>(), failed: [] };
@@ -199,6 +204,34 @@ export async function buildExport(doc: ProjectDoc, format: ExportFormat, opts: E
   const { renderPdf } = await pdfModule();
   const pdfImages = new Map<string, PdfImage>([...images].map(([k, v]) => [k, { dataUrl: `data:image/jpeg;base64,${toBase64(v.bytes)}`, width: v.width, height: v.height }]));
   return { bytes: await renderPdf(m, opts, pdfImages, floors), failedImages: failed.length, failedFloors: floors.filter((f) => f.error).map((f) => f.error!) };
+}
+
+/** « * » devant le numéro des plans révisés (dans le tableau, l'ordre de tournage et les jours). */
+function markRevised(m: ExportModel, revised: ReadonlySet<Id>) {
+  for (const s of m.sequences) for (const p of s.plans) if (revised.has(p.id)) p.code = `* ${p.code}`;
+}
+
+/**
+ * Découpage interactif (0.21) : le modèle d'export complet, les vignettes des images et les plans au
+ * sol dessinés, dans un seul fichier .html.
+ */
+export async function buildViewer(doc: ProjectDoc, pub: import('./viewer').ViewerData['publication'], revised: Map<Id, import('../model/revisions').PlanRevision>, appVersion: string): Promise<BuiltExport> {
+  const { buildViewerData, viewerHtml } = await import('./viewer');
+  const m = buildExportModel(doc, { sequenceIds: [] });
+  const { images, failed } = await prepareImages(m, 480);
+  const urls = new Map([...images].map(([k, v]) => [k, `data:image/jpeg;base64,${toBase64(v.bytes)}`]));
+  const floors = new Map<Id, { name: string; image: string }[]>();
+  const failedFloors: string[] = [];
+  for (const fp of doc.floorPlans) {
+    try {
+      const r = await floorPng(doc, fp, 1600);
+      for (const sid of fp.sequenceIds) floors.set(sid, [...(floors.get(sid) ?? []), { name: fp.name, image: `data:image/png;base64,${toBase64(r.bytes)}` }]);
+    } catch (e) {
+      failedFloors.push(`${fp.name} : ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+  const html = viewerHtml(buildViewerData(doc, m, pub, revised, urls, floors, appVersion));
+  return { bytes: new TextEncoder().encode(html), failedImages: failed.length, failedFloors };
 }
 
 const SUFFIX: Record<ExportFormat, string> = { pdf: 'Découpage', xlsx: 'Découpage', csv: 'Liste des plans' };

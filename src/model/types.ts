@@ -215,7 +215,7 @@ export interface ProjectSettings {
 }
 
 /** Fichiers que Publier tient à jour (format 23). */
-export const PUBLISH_FILES = ['pdf', 'xlsx', 'floors', 'csv'] as const;
+export const PUBLISH_FILES = ['pdf', 'xlsx', 'html', 'floors', 'csv'] as const;
 export type PublishFile = (typeof PUBLISH_FILES)[number];
 
 export interface PublishSettings {
@@ -290,7 +290,39 @@ interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 23 as const;
+/** Retours reçus (0.21) : un fichier de retours renvoyé depuis le découpage interactif publié. */
+export interface Feedback {
+  /** Identifiant du fichier de retours (un fichier importé deux fois n'est gardé qu'une fois). */
+  id: Id;
+  author: string;
+  /** Métier choisi dans le découpage interactif (« Réalisation »…). */
+  role: string;
+  /** Publication sur laquelle portent les retours. */
+  publication: number;
+  sentAt: number;
+  receivedAt: number;
+  items: FeedbackItem[];
+}
+
+export const FEEDBACK_FIELDS = ['action', 'size', 'axis', 'angle', 'focal', 'movement', 'grip'] as const;
+export type FeedbackField = (typeof FEEDBACK_FIELDS)[number];
+
+export interface FeedbackItem {
+  id: Id;
+  /** Plan visé (null : retour sur la séquence). Un plan retiré depuis garde son identifiant. */
+  planId: Id | null;
+  seqId: Id | null;
+  /** Numéro du plan (ou de la séquence) au moment de la publication. */
+  code: string;
+  verdict: 'ok' | 'revoir' | null;
+  text: string;
+  /** Valeur proposée pour un réglage, et celle qui était publiée. */
+  proposal: { setupId: Id | null; field: FeedbackField; text: string; before: string } | null;
+  /** Nouveau, repris dans le découpage, rangé en note, ou laissé de côté. */
+  state: 'new' | 'applied' | 'noted' | 'ignored';
+}
+
+export const SCHEMA_VERSION = 24 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;
@@ -311,6 +343,8 @@ export interface ProjectDoc {
   floorPlans: import('./floor').FloorPlan[];
   /** Jours de tournage, dans l'ordre (J1, J2… : numéros calculés, jamais stockés). */
   shootingDays: ShootingDay[];
+  /** Retours reçus sur les publications (voir feedback.ts). */
+  feedback: Feedback[];
 }
 
 /** Tampon : mention placée entre deux séquences, sans plan ni numéro. */

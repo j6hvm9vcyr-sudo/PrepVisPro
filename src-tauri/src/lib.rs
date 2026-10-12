@@ -252,6 +252,21 @@ fn publish_write(request: Request<'_>) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn retours_dir(folder: String) -> Result<(), String> {
+    storage::retours_dir(Path::new(&folder))
+}
+
+#[tauri::command]
+fn retours_list(folder: String) -> Result<Vec<(String, String)>, String> {
+    storage::list_retours(Path::new(&folder))
+}
+
+#[tauri::command]
+fn retours_read(path: String) -> Result<String, String> {
+    storage::read_retours(Path::new(&path))
+}
+
+#[tauri::command]
 fn script_read(path: String) -> Result<tauri::ipc::Response, String> {
     storage::read_script(Path::new(&path)).map(tauri::ipc::Response::new)
 }
@@ -424,7 +439,7 @@ fn request_quit(app: &AppHandle) {
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![project_create, project_load, project_rename_legacy, project_save, image_write, reveal_in_finder, quit_ack, quit_now, take_pending_open, image_read, export_write, publish_write, open_file, script_read, project_save_conflict_copy, icons_list, icons_scan, icons_read_source, icons_store, icons_read, icons_remove, kit_read, prefs_read, prefs_write, version_create, version_list, version_read])
+        .invoke_handler(tauri::generate_handler![project_create, project_load, project_rename_legacy, project_save, image_write, reveal_in_finder, quit_ack, quit_now, take_pending_open, image_read, export_write, publish_write, retours_dir, retours_list, retours_read, open_file, script_read, project_save_conflict_copy, icons_list, icons_scan, icons_read_source, icons_store, icons_read, icons_remove, kit_read, prefs_read, prefs_write, version_create, version_list, version_read])
         .setup(|app| {
             build_menu(app)?;
             Ok(())

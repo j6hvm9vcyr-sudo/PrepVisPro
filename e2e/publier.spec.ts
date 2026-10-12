@@ -24,7 +24,7 @@ test('0.20 : publier dans le dossier de diffusion — mêmes noms à chaque fois
   const dlg = page.getByRole('dialog', { name: 'Publier' });
   await expect(dlg).toContainText('Aucun dossier choisi sur ce Mac');
   await expect(dlg).toContainText('Pas encore publié');
-  await expect(dlg.getByRole('button', { name: 'Publier (publication 1)' })).toBeDisabled();
+  await expect(dlg.getByRole('button', { name: 'Publier (publication 1 · blanche)' })).toBeDisabled();
   await dlg.getByRole('button', { name: 'Choisir…' }).click();
   await expect(dlg.locator('.pub-folder')).toHaveText('/Drive/Le Quai/Image');
   // Par défaut : découpage PDF et Excel ; pas de plan au sol dans l'exemple.
@@ -33,13 +33,13 @@ test('0.20 : publier dans le dossier de diffusion — mêmes noms à chaque fois
   await expect(dlg.getByRole('checkbox', { name: /plans au sol\.pdf/ })).toBeChecked();
   await expect(dlg).toContainText('aucun plan au sol pour l’instant');
   await expect(dlg).toContainText('Les noms sont fixés à la première publication');
-  await dlg.getByRole('button', { name: 'Publier (publication 1)' }).click();
-  await expect(dlg.getByRole('status')).toContainText('Publication 1 : Exemple — Le Quai — découpage.pdf, Exemple — Le Quai — découpage.xlsx à jour.');
+  await dlg.getByRole('button', { name: 'Publier (publication 1 · blanche)' }).click();
+  await expect(dlg.getByRole('status')).toContainText('Publication 1 : Exemple — Le Quai — découpage.pdf, Exemple — Le Quai — découpage.xlsx, Exemple — Le Quai — découpage interactif.html à jour.');
   await expect(dlg).toContainText('Depuis la publication 1');
   await expect(dlg).toContainText('Rien n’a changé.');
   let files = await published(page);
-  expect(Object.keys(files).sort()).toEqual(['/Drive/Le Quai/Image/Exemple — Le Quai — découpage.pdf', '/Drive/Le Quai/Image/Exemple — Le Quai — découpage.xlsx']);
-  expect(await excelFooter(files['/Drive/Le Quai/Image/Exemple — Le Quai — découpage.xlsx']!.bytes)).toContain('Publication 1 · ');
+  expect(Object.keys(files).sort()).toEqual(['/Drive/Le Quai/Image/Exemple — Le Quai — découpage interactif.html', '/Drive/Le Quai/Image/Exemple — Le Quai — découpage.pdf', '/Drive/Le Quai/Image/Exemple — Le Quai — découpage.xlsx']);
+  expect(await excelFooter(files['/Drive/Le Quai/Image/Exemple — Le Quai — découpage.xlsx']!.bytes)).toContain('Publication 1 · révision blanche · ');
   await page.screenshot({ path: 'test-results/40-publier.png' });
   await page.keyboard.press('Escape');
   await expect(dlg).toHaveCount(0);
@@ -52,16 +52,16 @@ test('0.20 : publier dans le dossier de diffusion — mêmes noms à chaque fois
   await page.keyboard.press('ControlOrMeta+Shift+P');
   await expect(dlg).toContainText('1 plan modifié');
   await page.evaluate(() => (window as unknown as { __prepvisMemory: { missingFolders: Set<string> } }).__prepvisMemory.missingFolders.add('/Drive/Le Quai/Image'));
-  await dlg.getByRole('button', { name: 'Publier (publication 2)' }).click();
+  await dlg.getByRole('button', { name: 'Publier (publication 2 · bleue)' }).click();
   await expect(dlg.getByRole('alert')).toContainText('Publication impossible : Le dossier de diffusion est introuvable');
   // Rien n'est compté comme publié.
-  await expect(dlg.getByRole('button', { name: 'Publier (publication 2)' })).toBeEnabled();
+  await expect(dlg.getByRole('button', { name: 'Publier (publication 2 · bleue)' })).toBeEnabled();
   await page.evaluate(() => (window as unknown as { __prepvisMemory: { missingFolders: Set<string> } }).__prepvisMemory.missingFolders.clear());
-  await dlg.getByRole('button', { name: 'Publier (publication 2)' }).click();
+  await dlg.getByRole('button', { name: 'Publier (publication 2 · bleue)' }).click();
   await expect(dlg.getByRole('status')).toContainText('Publication 2 :');
   files = await published(page);
-  expect(Object.values(files).map((f) => f.writes)).toEqual([2, 2]);
-  expect(await excelFooter(files['/Drive/Le Quai/Image/Exemple — Le Quai — découpage.xlsx']!.bytes)).toContain('Publication 2 · ');
+  expect(Object.values(files).map((f) => f.writes)).toEqual([2, 2, 2]);
+  expect(await excelFooter(files['/Drive/Le Quai/Image/Exemple — Le Quai — découpage.xlsx']!.bytes)).toContain('Publication 2 · révision bleue · ');
   await page.keyboard.press('Escape');
   await expect(bar.getByRole('button', { name: 'Publier', exact: true })).toBeVisible();
 

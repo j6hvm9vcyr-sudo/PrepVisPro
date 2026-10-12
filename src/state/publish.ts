@@ -12,7 +12,9 @@ import { getBackend } from '../platform/backend';
 import { baseNameOf, filesToPublish, joinPath, publicationLabel, publicationNumber, publicationVersionName, publishFileName } from '../model/publish';
 import { BUILTIN_PRESETS, tablePreset, type ExportPreset } from '../export/model';
 import { projectPresets } from '../export/presets';
-import type { ProjectDoc, PublishFile } from '../model/types';
+import type { Id, ProjectDoc, PublishFile } from '../model/types';
+import { revisedPlans, revisionColor, type PlanRevision } from '../model/revisions';
+import { APP_VERSION } from '../version';
 
 /** La dernière publication : son numéro, sa date, le projet tel qu'il a été publié (pour dire ce qui a changé depuis). */
 export interface LastPublication {
@@ -101,7 +103,7 @@ export async function publish(): Promise<PublishResult> {
   const preset = presetOf(before);
   const files = filesToPublish(before);
   if (!files.length) return fail('Aucun fichier à publier : cochez au moins un fichier.');
-  if (files.some((f) => f !== 'floors') && !preset) return fail('Le modèle d’export choisi n’existe plus : choisissez-en un autre.');
+  if (files.some((f) => f === 'pdf' || f === 'xlsx' || f === 'csv') && !preset) return fail('Le modèle d’export choisi n’existe plus : choisissez-en un autre.');
   if (!(await canKeepVersions())) return fail(VERSIONS_NEED_SAVE);
   usePublish.setState({ busy: true, step: 'Préparation…' });
   const written: string[] = [];
@@ -113,13 +115,25 @@ export async function publish(): Promise<PublishResult> {
     if (!before.settings.publish.baseName) useApp.getState().updateDoc((d) => void (d.settings.publish.baseName = baseNameOf(before)), undefined, undefined);
     const doc = selectDoc(useApp.getState());
     const base = baseNameOf(doc);
-    const label = publicationLabel(n, Date.now());
-    const { buildExport, buildFloorPdf } = await import('../export/service');
+    // Plans ajoutés ou modifiés depuis la publication précédente (marqués « * »).
+    let prevDoc: ProjectDoc | null = null;
+    if (last) {
+      try {
+        prevDoc = await readVersion(last.v.file);
+      } catch {
+        warnings.push(`Publication ${last.n} illisible : les changements depuis ne sont pas marqués`);
+      }
+    }
+    const revised = prevDoc ? revisedPlans(prevDoc, doc) : new Map<Id, PlanRevision>();
+    const at = Date.now();
+    const label = publicationLabel(n, at) + (prevDoc && revised.size ? ` · * modifié depuis la publication ${last!.n}` : '');
+    const ctx: BuildCtx = { doc, preset, label, at, n, prev: prevDoc ? last!.n : null, revised, service: await import('../export/service') };
     const backend = await getBackend();
+    if (files.includes('html')) await backend.publishRetoursDir(folder);
     for (const f of files) {
       const name = publishFileName(base, f);
       usePublish.setState({ step: name });
-      const built = await buildFile(f, doc, preset, label, buildExport, buildFloorPdf);
+      const built = await buildFile(f, ctx);
       if (built.failedImages) warnings.push(`${name} : ${built.failedImages} image${built.failedImages > 1 ? 's' : ''} illisible${built.failedImages > 1 ? 's' : ''}`);
       if (built.failedFloors?.length) warnings.push(`${name} : plan au sol non dessiné (${built.failedFloors.join(', ')})`);
       await backend.publishWrite(joinPath(folder, name), built.bytes);
@@ -136,14 +150,20 @@ export async function publish(): Promise<PublishResult> {
   }
 }
 
-async function buildFile(
-  f: PublishFile,
-  doc: ProjectDoc,
-  preset: ExportPreset | null,
-  label: string,
-  buildExport: typeof import('../export/service').buildExport,
-  buildFloorPdf: typeof import('../export/service').buildFloorPdf,
-): Promise<{ bytes: Uint8Array; failedImages: number; failedFloors?: string[] }> {
-  if (f === 'floors') return buildFloorPdf(doc, doc.floorPlans, undefined, label);
-  return buildExport(doc, f, { ...preset!.options, sequenceIds: [] }, undefined, label);
+interface BuildCtx {
+  doc: ProjectDoc;
+  preset: ExportPreset | null;
+  /** Libellé écrit dans les documents (avec « * modifié depuis… ») ; le découpage interactif le dit lui-même. */
+  label: string;
+  at: number;
+  n: number;
+  prev: number | null;
+  revised: Map<Id, PlanRevision>;
+  service: typeof import('../export/service');
+}
+
+async function buildFile(f: PublishFile, c: BuildCtx): Promise<{ bytes: Uint8Array; failedImages: number; failedFloors?: string[] }> {
+  if (f === 'floors') return c.service.buildFloorPdf(c.doc, c.doc.floorPlans, undefined, c.label);
+  if (f === 'html') return c.service.buildViewer(c.doc, { n: c.n, label: publicationLabel(c.n, c.at), color: revisionColor(c.n), prev: c.prev }, c.revised, APP_VERSION);
+  return c.service.buildExport(c.doc, f, { ...c.preset!.options, sequenceIds: [] }, undefined, { version: c.label, revised: new Set(c.revised.keys()) });
 }

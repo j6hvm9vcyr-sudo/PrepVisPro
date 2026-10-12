@@ -1,6 +1,8 @@
 import { showInTournage, TournageBar, TournageDetails, TournageView } from './TournageView';
 import { ScenePanel } from './ScenePanel';
 import { NotesPanel } from './NotesPanel';
+import { RetoursPanel } from './RetoursPanel';
+import { scanRetours } from '../state/retours';
 import { useEffect } from 'react';
 import { useApp } from '../state/appStore';
 import { anyOverlay, selectCursor } from '../state/store';
@@ -9,7 +11,7 @@ import { CardsView } from './Cards';
 import { Inspector } from './Inspector';
 import { FilmTree, InterfaceBar, PageBar, SpaceBar, StatusBar, VerifyPanel } from './Chrome';
 import { isGridView, openSpace, SPACE_OF, useVerifyPanel } from './spaces';
-import { openDecoupagePanel, togglePanel, usePanelOpen } from './panels';
+import { openDecoupagePanel, togglePanel, usePanelOpen, useRetoursPanel } from './panels';
 import { DropChoice, Preview, SequenceDialog, Shortcuts, StampDialog } from './Overlays';
 import { SettingsDialog } from './Settings';
 import { PrefsDialog } from './Preferences';
@@ -217,6 +219,22 @@ export function App() {
   );
 }
 
+/** Retours déposés dans le dossier de diffusion : regardés à l'ouverture du projet et quand la fenêtre revient au premier plan. */
+function useRetoursWatch() {
+  const id = useApp((s) => s.hist.present.doc.id);
+  useEffect(() => {
+    void scanRetours();
+    let last = Date.now();
+    const onFocus = () => {
+      if (Date.now() - last < 30_000) return;
+      last = Date.now();
+      void scanRetours();
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [id]);
+}
+
 /** Titre de la fenêtre : nom du projet. */
 function useWindowTitle() {
   const title = useApp((s) => s.hist.present.doc.meta.title);
@@ -245,6 +263,8 @@ function Workspace() {
   const view = useApp((s) => s.view);
   const space = SPACE_OF[view];
   const verifying = useVerifyPanel((s) => s.open);
+  const retoursOpen = useRetoursPanel((s) => s.open);
+  useRetoursWatch();
   const film = usePanelOpen('film');
   const scenario = usePanelOpen('scenario');
   const images = usePanelOpen('images');
@@ -310,6 +330,11 @@ function Workspace() {
               {details && (
                 <ErrorBoundary label="détails">
                   <Inspector />
+                </ErrorBoundary>
+              )}
+              {retoursOpen && !verifying && (
+                <ErrorBoundary label="retours">
+                  <RetoursPanel />
                 </ErrorBoundary>
               )}
               {verifying && (

@@ -89,6 +89,7 @@ export function sampleProject(): ProjectDoc {
     imageFolders: [],
     floorPlans: [],
     shootingDays: [],
+    feedback: [],
   };
 }
 

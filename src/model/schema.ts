@@ -8,6 +8,28 @@ import { z } from 'zod';
 import type { ProjectDoc } from './types';
 import { PUBLISH_FILES, SCHEMA_VERSION, TABLE_COLUMN_IDS } from './types';
 import { MAX_DURATION_S } from './duration';
+import { FEEDBACK_FIELDS } from './types';
+
+/** Retours reçus (0.21). */
+const feedbackItemSchema = z.object({
+  id: z.string().min(1),
+  planId: z.string().min(1).nullable(),
+  seqId: z.string().min(1).nullable(),
+  code: z.string(),
+  verdict: z.enum(['ok', 'revoir']).nullable(),
+  text: z.string().max(5000),
+  proposal: z.object({ setupId: z.string().min(1).nullable(), field: z.enum(FEEDBACK_FIELDS), text: z.string().max(500), before: z.string().max(500) }).nullable(),
+  state: z.enum(['new', 'applied', 'noted', 'ignored']),
+});
+export const feedbackSchema = z.object({
+  id: z.string().min(1),
+  author: z.string().max(200),
+  role: z.string().max(200),
+  publication: z.number().int().positive(),
+  sentAt: z.number().int().nonnegative(),
+  receivedAt: z.number().int().nonnegative(),
+  items: z.array(feedbackItemSchema).max(5000),
+});
 
 const id = z.string().min(1);
 const nullableNum = z.number().finite().nullable();
@@ -201,6 +223,7 @@ const projectSchema = z.object({
   imageFolders: z.array(z.object({ id, name: z.string().trim().min(1), parentId: id.nullable() })),
   floorPlans: z.array(floorPlan),
   shootingDays: z.array(z.object({ id, date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(), sequenceIds: z.array(id), note: z.string() })),
+  feedback: z.array(feedbackSchema),
 });
 
 export type LoadResult = { ok: true; doc: ProjectDoc } | { ok: false; error: string };
@@ -255,6 +278,9 @@ function checkIntegrity(doc: ProjectDoc): string | null {
       }
     }
   }
+  // Retours : un fichier n'est gardé qu'une fois ; identifiants uniques dans chaque fichier.
+  if (new Set(doc.feedback.map((f) => f.id)).size !== doc.feedback.length) return 'retours en double.';
+  for (const f of doc.feedback) if (!notesOk(f.items)) return `retour en double dans ${f.id}.`;
   for (const fp of doc.floorPlans) {
     if (dup(fp.id)) return `identifiant de plan au sol en double (${fp.id}).`;
     for (const e of fp.elements) if (dup(e.id)) return `élément de plan au sol en double (${e.id}).`;

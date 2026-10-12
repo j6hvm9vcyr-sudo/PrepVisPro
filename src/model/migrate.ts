@@ -40,6 +40,7 @@ export function migrate(raw: unknown): MigrateResult {
   if (v <= 20) doc = from20to21(doc);
   if (v <= 21) doc = from21to22(doc);
   if (v <= 22) doc = from22to23(doc);
+  if (v <= 23) doc = from23to24(doc);
   return { ok: true, raw: doc };
 }
 
@@ -333,4 +334,13 @@ function from21to22(doc: Record<string, unknown>): Record<string, unknown> {
 function from22to23(doc: Record<string, unknown>): Record<string, unknown> {
   const settings = doc.settings && typeof doc.settings === 'object' ? (doc.settings as Record<string, unknown>) : {};
   return { ...doc, schemaVersion: 23, settings: { ...settings, publish: defaultPublish() } };
+}
+
+/** Format 23 → 24 : retours reçus (aucun) ; le découpage interactif rejoint les fichiers publiés. */
+function from23to24(doc: Record<string, unknown>): Record<string, unknown> {
+  const settings = doc.settings && typeof doc.settings === 'object' ? (doc.settings as Record<string, unknown>) : {};
+  const publish = settings.publish && typeof settings.publish === 'object' ? (settings.publish as Record<string, unknown>) : null;
+  const files = publish && Array.isArray(publish.files) ? (publish.files as unknown[]) : null;
+  const next = publish && files && !files.includes('html') ? { ...settings, publish: { ...publish, files: [...files, 'html'] } } : settings;
+  return { ...doc, schemaVersion: 24, settings: next, feedback: [] };
 }

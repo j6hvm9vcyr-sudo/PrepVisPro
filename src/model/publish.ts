@@ -6,14 +6,15 @@
  * elle qui compte les publications (rien de plus dans le projet, et ⌘Z ne « dépublie » rien).
  */
 import type { ProjectDoc, PublishFile, PublishSettings } from './types';
+import { revisionName } from './revisions';
 
 export function defaultPublish(): PublishSettings {
-  return { files: ['pdf', 'xlsx', 'floors'], presetId: 'tableau', baseName: null };
+  return { files: ['pdf', 'xlsx', 'html', 'floors'], presetId: 'tableau', baseName: null };
 }
 
-export const PUBLISH_FILE_LABEL: Record<PublishFile, string> = { pdf: 'Découpage PDF', xlsx: 'Découpage Excel', floors: 'Plans au sol PDF', csv: 'Liste des plans CSV' };
+export const PUBLISH_FILE_LABEL: Record<PublishFile, string> = { pdf: 'Découpage PDF', xlsx: 'Découpage Excel', html: 'Découpage interactif, avec retours', floors: 'Plans au sol PDF', csv: 'Liste des plans CSV' };
 
-const SUFFIX: Record<PublishFile, string> = { pdf: 'découpage.pdf', xlsx: 'découpage.xlsx', floors: 'plans au sol.pdf', csv: 'liste des plans.csv' };
+const SUFFIX: Record<PublishFile, string> = { pdf: 'découpage.pdf', xlsx: 'découpage.xlsx', html: 'découpage interactif.html', floors: 'plans au sol.pdf', csv: 'liste des plans.csv' };
 
 /** Début des noms de fichiers d'après le titre (caractères refusés par les systèmes de fichiers remplacés). */
 export function cleanBaseName(title: string): string {
@@ -29,9 +30,9 @@ export function publishFileName(base: string, f: PublishFile): string {
   return `${base} — ${SUFFIX[f]}`;
 }
 
-/** « Publication 3 · 12 octobre 2026 », écrit dans les documents. */
+/** « Publication 3 · révision rose · 12 octobre 2026 », écrit dans les documents. */
 export function publicationLabel(n: number, at: number): string {
-  return `Publication ${n} · ${new Date(at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+  return `Publication ${n} · ${revisionName(n)} · ${new Date(at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`;
 }
 
 /** Nom de la version qui garde le projet tel qu'il a été publié. */
@@ -41,7 +42,7 @@ export function publicationVersionName(n: number): string {
 
 /** Fichiers à écrire, dans l'ordre (sans plan au sol, pas de PDF des plans au sol). */
 export function filesToPublish(doc: ProjectDoc): PublishFile[] {
-  const order: PublishFile[] = ['pdf', 'xlsx', 'floors', 'csv'];
+  const order: PublishFile[] = ['pdf', 'xlsx', 'html', 'floors', 'csv'];
   return order.filter((f) => doc.settings.publish.files.includes(f) && (f !== 'floors' || doc.floorPlans.length > 0));
 }
 
