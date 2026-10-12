@@ -66,6 +66,9 @@ test('0.22 : animatique pour le montage — une image par plan minuté, timeline
   expect(fcpxml).toContain('<fcpxml version="1.9">');
   expect([...fcpxml.matchAll(/<video ref=/g)]).toHaveLength(all);
   expect(files[`${DIR}/Exemple — Le Quai — animatique.otio`]).toBeDefined();
+  // Le bouton cliqué est désactivé pendant la création : un Chromium récent rend alors le focus à la
+  // page (CI de la 0.22). Échap doit fermer la fenêtre quand même.
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await page.keyboard.press('Escape');
   await expect(dlg).toHaveCount(0);
 });

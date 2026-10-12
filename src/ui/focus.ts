@@ -97,7 +97,20 @@ export function installFocusRescue(canTake: () => boolean): () => void {
       if (gridEl && lost() && canTake()) gridEl.focus({ preventScroll: true });
     }, 0);
   const onKey = (e: KeyboardEvent) => {
-    if (!gridEl || !lost() || !canTake() || e.defaultPrevented) return;
+    if (!lost() || e.defaultPrevented) return;
+    // Une fenêtre est ouverte mais le focus est retombé sur la page (bouton cliqué puis désactivé
+    // pendant un travail : un Chromium récent rend alors le focus au document) : la touche va à la
+    // fenêtre du dessus, sinon Échap ne la fermerait plus.
+    const modals = document.querySelectorAll<HTMLElement>('[role="dialog"][aria-modal="true"]');
+    const top = modals[modals.length - 1];
+    if (top) {
+      e.preventDefault();
+      e.stopPropagation();
+      top.focus({ preventScroll: true });
+      top.dispatchEvent(new KeyboardEvent('keydown', { key: e.key, code: e.code, shiftKey: e.shiftKey, altKey: e.altKey, metaKey: e.metaKey, ctrlKey: e.ctrlKey, bubbles: true, cancelable: true }));
+      return;
+    }
+    if (!gridEl || !canTake()) return;
     e.preventDefault();
     e.stopPropagation();
     gridEl.focus({ preventScroll: true });
