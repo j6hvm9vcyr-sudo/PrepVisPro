@@ -123,6 +123,9 @@ export function InterfaceBar() {
           <button type="button" role="menuitem" onClick={() => st().setShowPublish(true)}>
             Publier…
           </button>
+          <button type="button" role="menuitem" onClick={() => st().setShowAnimatic(true)}>
+            Animatique pour le montage…
+          </button>
           <button type="button" role="menuitem" onClick={() => void importRetoursFile().then((ok) => ok && useRetoursPanel.getState().set(true))}>
             Importer des retours…
           </button>

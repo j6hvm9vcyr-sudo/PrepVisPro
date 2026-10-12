@@ -34,6 +34,8 @@ export interface Backend {
   writeExport(path: string, bytes: Uint8Array): Promise<void>;
   /** Publier : choix du dossier de diffusion ; renvoie son chemin, ou null. */
   pickFolder(title: string): Promise<string | null>;
+  /** Animatique (0.22) : crée un dossier neuf « nom » (ou « nom (2) »…) avec son sous-dossier « images » ; renvoie son chemin. */
+  animaticDir(parent: string, name: string): Promise<string>;
   /** Publier : réécrit un fichier du dossier de diffusion sur place (le lien partagé reste bon). */
   publishWrite(path: string, bytes: Uint8Array): Promise<void>;
   /** Retours (0.21) : crée le sous-dossier « Retours » du dossier de diffusion s'il manque. */
@@ -180,6 +182,11 @@ class TauriBackend implements Backend {
     const { open } = await this.dialog();
     const p = await open({ title, multiple: false, directory: true });
     return typeof p === 'string' ? p : null;
+  }
+
+  async animaticDir(parent: string, name: string) {
+    const { invoke } = await this.core();
+    return invoke<string>('animatic_dir', { parent, name });
   }
 
   async publishWrite(path: string, bytes: Uint8Array) {
@@ -369,6 +376,14 @@ export class MemoryBackend implements Backend {
   async pickFolder() {
     return this.nextFolder;
   }
+  /** Animatique, sans disque : dossiers créés (un nom déjà pris reçoit « (2) »…). */
+  animaticFolders: string[] = [];
+  async animaticDir(parent: string, name: string) {
+    let path = `${parent}/${name}`;
+    for (let n = 2; this.animaticFolders.includes(path); n++) path = `${parent}/${name} (${n})`;
+    this.animaticFolders.push(path);
+    return path;
+  }
   async publishWrite(path: string, bytes: Uint8Array) {
     if (this.missingFolders.has(path.slice(0, path.lastIndexOf('/')))) throw new Error('Le dossier de diffusion est introuvable (déplacé, renommé, ou drive déconnecté ?)');
     this.published.set(path, { bytes, writes: (this.published.get(path)?.writes ?? 0) + 1 });
@@ -387,8 +402,8 @@ export class MemoryBackend implements Backend {
   }
   async writeExport(path: string, bytes: Uint8Array) {
     this.exports.set(path, bytes);
-    // Dans un navigateur, l'export est proposé en téléchargement.
-    if (typeof document !== 'undefined' && typeof URL.createObjectURL === 'function' && import.meta.env.MODE !== 'test') {
+    // Dans un navigateur, l'export est proposé en téléchargement (pas les fichiers d'une animatique).
+    if (!this.animaticFolders.some((f) => path.startsWith(`${f}/`)) && typeof document !== 'undefined' && typeof URL.createObjectURL === 'function' && import.meta.env.MODE !== 'test') {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([bytes as BlobPart]));
       a.download = path.split('/').pop() ?? path;

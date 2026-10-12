@@ -16,6 +16,7 @@ Trois pages qui partagent la même sélection : **Découpage** (le tableau, en l
 - **Exports** : découpage technique PDF et Excel, plans au sol, ordre de tournage, jours et matériel.
 - **Publier** (⇧⌘P) : un dossier de diffusion sur le drive de l’équipe (Google Drive, Dropbox, iCloud), choisi une fois ; chaque publication y réécrit les mêmes fichiers, sous les mêmes noms, avec « Publication N » et la date dedans : le lien partagé mène toujours à la dernière version.
 - **Révisions et retours** : chaque publication a sa couleur de révision (ordre de la WGA : blanche, bleue, rose…) et les plans changés depuis la précédente sont marqués « * ». Le découpage interactif publié (un seul .html, à télécharger depuis le drive) laisse chacun choisir son métier, annoter les plans et enregistrer ses retours dans un fichier ; déposé dans « Retours » du dossier de diffusion ou reçu par mail, il revient dans le panneau Retours : chaque retour devient une note datée ou une saisie dans le tableau, toujours validée à la main.
+- **Animatique pour le montage** (menu du projet) : les plans minutés, dans l’ordre du film, avec leur image au format du film (sinon un carton : numéro et action), écrits dans un dossier neuf avec la timeline à ouvrir dans DaVinci Resolve (OpenTimelineIO) ou Final Cut Pro (FCPXML 1.9) ; chaque clip porte le numéro du plan.
 
 Aucune valeur n'est inventée : sans donnée fiable (fiche fabricant, capteur, échelle), l'application n'affiche pas de chiffre.
 

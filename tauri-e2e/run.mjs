@@ -351,6 +351,27 @@ try {
     ok(scan?.errors?.length === 1 && scan.errors[0].name === 'abîmé.topshot-retours', `fichier abîmé signalé (${JSON.stringify(scan?.errors)})`);
   }
 
+  // Animatique (0.22) : dossier neuf avec ses images (rendues par WebKit) et sa timeline ; un second ne remplace rien.
+  {
+    const out = join(work, 'Montage');
+    mkdirSync(out, { recursive: true });
+    const a = await exec(`return await window.__prepvis.animaticTo(${JSON.stringify(out)}, 'otio', 3);`);
+    ok(!!a?.folder && existsSync(a.folder), `animatique créée (${JSON.stringify(a)})`);
+    const pngs = readdirSync(join(a.folder, 'images')).sort();
+    ok(pngs.length === a.plans && pngs.length > 0, `une image par plan (${pngs.join(', ')})`);
+    const head = readFileSync(join(a.folder, 'images', pngs[0]));
+    ok(head.subarray(1, 4).toString() === 'PNG' && head.readUInt32BE(16) === 1920 && head.readUInt32BE(20) === 1080, 'images PNG 1920×1080');
+    const otio = JSON.parse(readFileSync(a.timeline, 'utf8'));
+    const url = otio.tracks.children[0].children[0].media_references.DEFAULT_MEDIA.target_url;
+    ok(existsSync(decodeURIComponent(new URL(url).pathname)), `la timeline retrouve ses images (${url})`);
+    const b = await exec(`return await window.__prepvis.animaticTo(${JSON.stringify(out)}, 'fcpxml', 3);`);
+    ok(b?.folder?.endsWith(' (2)') && readFileSync(b.timeline, 'utf8').includes('<fcpxml version="1.9">') && readdirSync(join(a.folder, 'images')).length === pngs.length, `second dossier, le premier intact (${b?.folder})`);
+    if (process.env.ANIMATIC_KEEP) {
+      const { cpSync } = await import('node:fs');
+      cpSync(out, process.env.ANIMATIC_KEEP, { recursive: true });
+    }
+  }
+
   // Modification faite ailleurs (synchronisation) : copie de sécurité, rien n'est écrasé en silence.
   {
     const pj = join(projectDir, 'project.json');

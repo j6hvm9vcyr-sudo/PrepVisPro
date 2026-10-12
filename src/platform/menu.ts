@@ -102,6 +102,9 @@ function runMenuCommand(id: string) {
     case 'file_export':
       st.setShowExport(true);
       return;
+    case 'file_animatic':
+      st.setShowAnimatic(true);
+      break;
     case 'file_publish':
       st.setShowPublish(true);
       return;

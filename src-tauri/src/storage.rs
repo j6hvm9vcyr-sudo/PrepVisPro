@@ -248,13 +248,36 @@ pub fn read_image(dir: &Path, file: &str) -> Result<Vec<u8>> {
 /// Écrit un fichier exporté (PDF, Excel, CSV) à l'emplacement choisi par l'utilisateur.
 pub fn write_export(path: &Path, bytes: &[u8]) -> Result<()> {
     let ext = path.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
-    if !["pdf", "xlsx", "csv", "png"].contains(&ext.as_str()) {
+    if !["pdf", "xlsx", "csv", "png", "otio", "fcpxml"].contains(&ext.as_str()) {
         return Err(format!("Type de fichier d'export refusé : « {} »", path.display()));
     }
     if path.parent().map(|p| !p.is_dir()).unwrap_or(true) {
         return Err("Le dossier de destination n'existe pas".into());
     }
     atomic_write(path, bytes)
+}
+
+/// Animatique (0.22) : crée un dossier neuf « nom » dans `parent` (« nom (2) »… si le nom est pris),
+/// avec son sous-dossier « images ». Rien d'existant n'est réutilisé ni remplacé.
+pub fn animatic_dir(parent: &Path, name: &str) -> Result<PathBuf> {
+    if !parent.is_dir() {
+        return Err("Le dossier de destination n'existe pas".into());
+    }
+    if name.is_empty() || name.contains(['/', '\\']) || name.starts_with('.') {
+        return Err(format!("Nom de dossier refusé : « {name} »"));
+    }
+    for n in 1..1000 {
+        let dir = parent.join(if n == 1 { name.to_string() } else { format!("{name} ({n})") });
+        match fs::create_dir(&dir) {
+            Ok(()) => {
+                fs::create_dir(dir.join("images")).map_err(err("Création du dossier « images » impossible"))?;
+                return Ok(dir);
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(e) => return Err(format!("Création du dossier impossible : {e}")),
+        }
+    }
+    Err("Trop de dossiers d'animatique portent déjà ce nom".into())
 }
 
 /// Publier (0.20) : réécrit un fichier du dossier de diffusion **sur place** (même fichier, contenu
@@ -441,6 +464,24 @@ mod tests {
         assert_eq!(l, vec![("Margaux.topshot-retours".to_string(), "{\"a\":1}".to_string())]);
         assert!(read_retours(&r.join("autre.txt")).is_err());
         assert!(retours_dir(&d.join("absent")).is_err());
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn animatique_dossier_neuf() {
+        let d = tmpdir("animatique");
+        fs::create_dir_all(&d).unwrap();
+        let a = animatic_dir(&d, "Le Quai — animatique").unwrap();
+        assert!(a.join("images").is_dir());
+        fs::write(a.join("images").join("0001 1-1.png"), "x").unwrap();
+        let b = animatic_dir(&d, "Le Quai — animatique").unwrap();
+        assert_eq!(b.file_name().unwrap(), "Le Quai — animatique (2)");
+        assert!(a.join("images").join("0001 1-1.png").exists());
+        assert!(animatic_dir(&d, "../ailleurs").is_err());
+        assert!(animatic_dir(&d.join("absent"), "x").is_err());
+        write_export(&b.join("x.otio"), b"{}").unwrap();
+        write_export(&b.join("x.fcpxml"), b"<x/>").unwrap();
+        assert!(write_export(&b.join("x.sh"), b"").is_err());
         let _ = fs::remove_dir_all(&d);
     }
 

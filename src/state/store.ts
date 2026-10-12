@@ -70,6 +70,8 @@ export interface AppState {
   showPrefs: boolean;
   showExport: boolean;
   showPublish: boolean;
+  /** Animatique (0.22). */
+  showAnimatic: boolean;
   showVersions: boolean;
   importing: { name: string; scenes: import('../import/fdx').ScriptScene[] } | null;
   contextMenu: { x: number; y: number; planId: Id; setupId: Id } | null;
@@ -100,6 +102,7 @@ function initialState(doc: ProjectDoc): AppState {
     showPrefs: false,
     showExport: false,
     showPublish: false,
+    showAnimatic: false,
     showVersions: false,
     importing: null,
     contextMenu: null,
@@ -166,7 +169,7 @@ export function suggestSequenceNumber(doc: ProjectDoc, afterSeqId: Id | null): s
 
 /** Une fenêtre superposée a la main sur le clavier (le tableau ne doit pas réagir). */
 export function anyOverlay(s: AppState): boolean {
-  return !!(s.preview || s.showShortcuts || s.pendingDrop || s.editingSequenceId || s.editingStampId || s.libraryPick || s.showSettings || s.showPrefs || s.showExport || s.showPublish || s.showVersions || s.importing || s.contextMenu);
+  return !!(s.preview || s.showShortcuts || s.pendingDrop || s.editingSequenceId || s.editingStampId || s.libraryPick || s.showSettings || s.showPrefs || s.showExport || s.showPublish || s.showAnimatic || s.showVersions || s.importing || s.contextMenu);
 }
 
 /** Rectangle sélectionné (une seule cellule s'il n'y a pas de sélection étendue). */
@@ -340,6 +343,7 @@ interface Actions {
   setShowPrefs(v: boolean): void;
   setShowExport(v: boolean): void;
   setShowPublish(v: boolean): void;
+  setShowAnimatic(v: boolean): void;
   setShowVersions(v: boolean): void;
   setImporting(v: AppState['importing']): void;
   setContextMenu(v: AppState['contextMenu']): void;
@@ -1048,6 +1052,9 @@ export function createAppStore(doc: ProjectDoc) {
         set({ showExport: v, editing: null });
       },
 
+      setShowAnimatic(v) {
+        set({ showAnimatic: v, editing: null });
+      },
       setShowPublish(v) {
         set({ showPublish: v, editing: null });
       },

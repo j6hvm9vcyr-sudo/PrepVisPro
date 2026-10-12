@@ -62,6 +62,12 @@ export async function install() {
       const { waiting, errors } = r.useRetours.getState();
       return { waiting: waiting.map((f) => ({ author: f.author, items: f.items.length })), errors };
     },
+    /** Animatique (0.22) dans `folder`, à 25 i/s ; plans sans durée : `provisionalS`. */
+    async animaticTo(folder: string, target: 'otio' | 'fcpxml', provisionalS: number | null) {
+      const { writeAnimatic } = await import('./export/animatic');
+      const { rateOf } = await import('./model/animatic');
+      return writeAnimatic(selectDoc(useApp.getState()), folder, { rate: rateOf(25)!, target, provisionalS });
+    },
     async panel(id: 'film' | 'scenario' | 'images' | 'notes' | 'details', on: boolean) {
       const { setPanel } = await import('./ui/panels');
       setPanel(id, on);

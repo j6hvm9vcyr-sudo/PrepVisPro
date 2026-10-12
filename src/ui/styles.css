@@ -1262,3 +1262,15 @@ button.board-group-h:hover { background: var(--accent-soft); }
 .ret-foot .btn { flex: 1; justify-content: center; }
 .rev-mark { color: #1F4E9A; font-weight: 800; margin-right: 2px; }
 .pub-rev { display: inline-block; width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--border); vertical-align: -1px; margin-right: 4px; }
+
+/* Animatique (0.22) */
+.dialog.animatic { width: 1040px; max-width: calc(100vw - 48px); padding: 16px 20px; gap: 10px; }
+.anim-strip { display: flex; gap: 2px; overflow-x: auto; padding: 4px 0 8px; min-height: 92px; align-items: flex-start; }
+.anim-clip { flex: none; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.anim-band { display: block; height: 6px; border-radius: 3px; border: 1px solid transparent; }
+.anim-pic { display: block; height: 52px; border-radius: 4px; background: #1e232b center / cover no-repeat; }
+.anim-clip.provisional .anim-pic { outline: 2px dashed #e8a13a; outline-offset: -2px; }
+.anim-label { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.anim-opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.anim-opts .sec { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.anim-sec { width: 64px; margin-left: 8px; }

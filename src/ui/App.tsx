@@ -18,6 +18,7 @@ import { PrefsDialog } from './Preferences';
 import { Welcome } from './Welcome';
 import { ExportDialog } from './ExportDialog';
 import { PublishDialog } from './PublishDialog';
+import { AnimaticDialog } from './AnimaticDialog';
 import { ImportDialog } from './ImportDialog';
 import { ContextMenu } from './ContextMenu';
 import { FloorView } from '../floor/FloorView';
@@ -69,6 +70,7 @@ function useGlobalShortcuts(settingsOpen: boolean) {
         e.preventDefault();
         if (st.showExport) st.setShowExport(false);
         else if (st.showPublish) st.setShowPublish(false);
+        else if (st.showAnimatic) st.setShowAnimatic(false);
         else if (st.showVersions) st.setShowVersions(false);
         else if (st.showSettings) st.setShowSettings(false);
         else if (st.showPrefs) st.setShowPrefs(false);
@@ -274,6 +276,7 @@ function Workspace() {
   const prefs = useApp((s) => s.showPrefs);
   const exporting = useApp((s) => s.showExport);
   const publishing = useApp((s) => s.showPublish);
+  const animatic = useApp((s) => s.showAnimatic);
   const versions = useApp((s) => s.showVersions);
   const importing = useApp((s) => !!s.importing);
   useGlobalShortcuts(settings || prefs || exporting || publishing || importing || versions);
@@ -387,6 +390,7 @@ function Workspace() {
         {settings && <SettingsDialog onClose={() => useApp.getState().setShowSettings(false)} />}
         {exporting && <ExportDialog onClose={() => useApp.getState().setShowExport(false)} />}
         {publishing && <PublishDialog onClose={() => useApp.getState().setShowPublish(false)} />}
+        {animatic && <AnimaticDialog onClose={() => useApp.getState().setShowAnimatic(false)} />}
         <ImportDialog />
         <VersionsDialog />
       </ErrorBoundary>

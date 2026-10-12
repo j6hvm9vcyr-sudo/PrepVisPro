@@ -251,6 +251,12 @@ fn publish_write(request: Request<'_>) -> Result<(), String> {
     storage::write_in_place(Path::new(&path), bytes)
 }
 
+/// Animatique : dossier neuf (avec « images ») dans le dossier choisi ; renvoie son chemin.
+#[tauri::command]
+fn animatic_dir(parent: String, name: String) -> Result<String, String> {
+    storage::animatic_dir(Path::new(&parent), &name).map(|p| p.to_string_lossy().into_owned())
+}
+
 #[tauri::command]
 fn retours_dir(folder: String) -> Result<(), String> {
     storage::retours_dir(Path::new(&folder))
@@ -361,6 +367,7 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
         .item(&item("file_versions", "Versions…", "CmdOrCtrl+Shift+S")?)
         .item(&item("file_export", "Exporter…", "CmdOrCtrl+E")?)
         .item(&item("file_publish", "Publier…", "CmdOrCtrl+Shift+P")?)
+        .item(&plain("file_animatic", "Animatique pour le montage…")?)
         .separator()
         .item(&item("file_close", "Fermer le projet", "CmdOrCtrl+Shift+W")?)
         .build()?;
@@ -439,7 +446,7 @@ fn request_quit(app: &AppHandle) {
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![project_create, project_load, project_rename_legacy, project_save, image_write, reveal_in_finder, quit_ack, quit_now, take_pending_open, image_read, export_write, publish_write, retours_dir, retours_list, retours_read, open_file, script_read, project_save_conflict_copy, icons_list, icons_scan, icons_read_source, icons_store, icons_read, icons_remove, kit_read, prefs_read, prefs_write, version_create, version_list, version_read])
+        .invoke_handler(tauri::generate_handler![project_create, project_load, project_rename_legacy, project_save, image_write, reveal_in_finder, quit_ack, quit_now, take_pending_open, image_read, export_write, publish_write, animatic_dir, retours_dir, retours_list, retours_read, open_file, script_read, project_save_conflict_copy, icons_list, icons_scan, icons_read_source, icons_store, icons_read, icons_remove, kit_read, prefs_read, prefs_write, version_create, version_list, version_read])
         .setup(|app| {
             build_menu(app)?;
             Ok(())
