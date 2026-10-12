@@ -15,6 +15,7 @@ import { SettingsDialog } from './Settings';
 import { PrefsDialog } from './Preferences';
 import { Welcome } from './Welcome';
 import { ExportDialog } from './ExportDialog';
+import { PublishDialog } from './PublishDialog';
 import { ImportDialog } from './ImportDialog';
 import { ContextMenu } from './ContextMenu';
 import { FloorView } from '../floor/FloorView';
@@ -65,6 +66,7 @@ function useGlobalShortcuts(settingsOpen: boolean) {
       if (settingsOpen && e.key === 'Escape' && !(e.target instanceof Element && e.target.closest('.overlay'))) {
         e.preventDefault();
         if (st.showExport) st.setShowExport(false);
+        else if (st.showPublish) st.setShowPublish(false);
         else if (st.showVersions) st.setShowVersions(false);
         else if (st.showSettings) st.setShowSettings(false);
         else if (st.showPrefs) st.setShowPrefs(false);
@@ -88,6 +90,11 @@ function useGlobalShortcuts(settingsOpen: boolean) {
         e.preventDefault();
         if (e.shiftKey) st.redo();
         else st.undo();
+        return;
+      }
+      if (meta && e.shiftKey && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        st.setShowPublish(true);
         return;
       }
       if (meta && e.shiftKey && e.key.toLowerCase() === 's') {
@@ -246,9 +253,10 @@ function Workspace() {
   const settings = useApp((s) => s.showSettings);
   const prefs = useApp((s) => s.showPrefs);
   const exporting = useApp((s) => s.showExport);
+  const publishing = useApp((s) => s.showPublish);
   const versions = useApp((s) => s.showVersions);
   const importing = useApp((s) => !!s.importing);
-  useGlobalShortcuts(settings || prefs || exporting || importing || versions);
+  useGlobalShortcuts(settings || prefs || exporting || publishing || importing || versions);
 
   // Le clavier ne doit jamais « disparaître » après un clic sur un bouton (Safari).
   useEffect(
@@ -353,6 +361,7 @@ function Workspace() {
       <ErrorBoundary label="fenêtre">
         {settings && <SettingsDialog onClose={() => useApp.getState().setShowSettings(false)} />}
         {exporting && <ExportDialog onClose={() => useApp.getState().setShowExport(false)} />}
+        {publishing && <PublishDialog onClose={() => useApp.getState().setShowPublish(false)} />}
         <ImportDialog />
         <VersionsDialog />
       </ErrorBoundary>

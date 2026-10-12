@@ -1,5 +1,6 @@
 import type { Breakdown, CameraSetup, Framing, Id, Plan, ProjectCamera, ProjectDoc, ProjectSettings, Sequence, TermCategory } from './types';
 import { DEFAULT_TABLE_COLUMNS, SCHEMA_VERSION } from './types';
+import { defaultPublish } from './publish';
 
 export const DEFAULT_TERMS: Record<TermCategory, string[]> = {
   size: ['TGP', 'GP', 'Poitrine', 'Taille', 'Américain', 'Italien', 'Moyen', 'Demi-ensemble', 'Ensemble', 'Général', 'Insert'],
@@ -92,6 +93,7 @@ export function defaultSettings(): ProjectSettings {
     floorIcons: { camera: null, actor: null, light: null },
     tableColumns: [...DEFAULT_TABLE_COLUMNS],
     timeZone: null,
+    publish: defaultPublish(),
   };
 }
 

@@ -98,6 +98,7 @@ const SHORTCUTS: { title: string; items: [string, string][] }[] = [
       ['Enregistrer (automatique)', '⌘S'],
       ['Versions : enregistrer, comparer, revenir', '⇧⌘S'],
       ['Exporter (PDF, Excel, CSV)', '⌘E'],
+      ['Publier dans le dossier de diffusion', '⇧⌘P'],
       ['Importer un scénario', '⇧⌘I'],
       ['Réglages du projet', '⇧⌘,'],
       ['Préférences de Topshot', '⌘,'],

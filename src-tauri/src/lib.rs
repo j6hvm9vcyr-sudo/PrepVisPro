@@ -235,6 +235,22 @@ fn export_write(request: Request<'_>) -> Result<(), String> {
     storage::write_export(Path::new(&path), bytes)
 }
 
+/// Publier : un fichier du dossier de diffusion, réécrit sur place (voir storage::write_in_place).
+#[tauri::command]
+fn publish_write(request: Request<'_>) -> Result<(), String> {
+    let InvokeBody::Raw(bytes) = request.body() else {
+        return Err("Fichier reçu dans un format inattendu".into());
+    };
+    let path = request
+        .headers()
+        .get("x-prepvis-path")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| percent_encoding::percent_decode_str(v).decode_utf8().ok())
+        .ok_or("Chemin manquant")?
+        .into_owned();
+    storage::write_in_place(Path::new(&path), bytes)
+}
+
 #[tauri::command]
 fn script_read(path: String) -> Result<tauri::ipc::Response, String> {
     storage::read_script(Path::new(&path)).map(tauri::ipc::Response::new)
@@ -329,6 +345,7 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
         .item(&item("file_import_script", "Importer un scénario…", "CmdOrCtrl+Shift+I")?)
         .item(&item("file_versions", "Versions…", "CmdOrCtrl+Shift+S")?)
         .item(&item("file_export", "Exporter…", "CmdOrCtrl+E")?)
+        .item(&item("file_publish", "Publier…", "CmdOrCtrl+Shift+P")?)
         .separator()
         .item(&item("file_close", "Fermer le projet", "CmdOrCtrl+Shift+W")?)
         .build()?;
@@ -407,7 +424,7 @@ fn request_quit(app: &AppHandle) {
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![project_create, project_load, project_rename_legacy, project_save, image_write, reveal_in_finder, quit_ack, quit_now, take_pending_open, image_read, export_write, open_file, script_read, project_save_conflict_copy, icons_list, icons_scan, icons_read_source, icons_store, icons_read, icons_remove, kit_read, prefs_read, prefs_write, version_create, version_list, version_read])
+        .invoke_handler(tauri::generate_handler![project_create, project_load, project_rename_legacy, project_save, image_write, reveal_in_finder, quit_ack, quit_now, take_pending_open, image_read, export_write, publish_write, open_file, script_read, project_save_conflict_copy, icons_list, icons_scan, icons_read_source, icons_store, icons_read, icons_remove, kit_read, prefs_read, prefs_write, version_create, version_list, version_read])
         .setup(|app| {
             build_menu(app)?;
             Ok(())

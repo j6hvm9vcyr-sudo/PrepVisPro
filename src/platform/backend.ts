@@ -32,6 +32,10 @@ export interface Backend {
   /** Boîte de dialogue d'enregistrement d'un export ; renvoie le chemin, ou null. */
   pickExportPath(defaultName: string, ext: 'pdf' | 'xlsx' | 'csv' | 'png'): Promise<string | null>;
   writeExport(path: string, bytes: Uint8Array): Promise<void>;
+  /** Publier : choix du dossier de diffusion ; renvoie son chemin, ou null. */
+  pickFolder(title: string): Promise<string | null>;
+  /** Publier : réécrit un fichier du dossier de diffusion sur place (le lien partagé reste bon). */
+  publishWrite(path: string, bytes: Uint8Array): Promise<void>;
   openFile(path: string): Promise<void>;
   /** Choisit et lit un scénario (Final Draft, Fountain, texte, Word, PDF) ; null si annulé. */
   pickScript(): Promise<ScriptFile | null>;
@@ -164,6 +168,17 @@ class TauriBackend implements Backend {
   async writeExport(path: string, bytes: Uint8Array) {
     const { invoke } = await this.core();
     await invoke('export_write', bytes, { headers: { 'x-prepvis-path': encodeURIComponent(path) } });
+  }
+
+  async pickFolder(title: string) {
+    const { open } = await this.dialog();
+    const p = await open({ title, multiple: false, directory: true });
+    return typeof p === 'string' ? p : null;
+  }
+
+  async publishWrite(path: string, bytes: Uint8Array) {
+    const { invoke } = await this.core();
+    await invoke('publish_write', bytes, { headers: { 'x-prepvis-path': encodeURIComponent(path) } });
   }
 
   async openFile(path: string) {
@@ -321,6 +336,17 @@ export class MemoryBackend implements Backend {
   async pickExportPath(defaultName: string) {
     return this.nextPick ?? defaultName;
   }
+  /** Publier, sans disque : le dossier « choisi », les dossiers disparus, les fichiers publiés (écritures comptées). */
+  nextFolder: string | null = '/Drive/Le Quai/Image';
+  missingFolders = new Set<string>();
+  published = new Map<string, { bytes: Uint8Array; writes: number }>();
+  async pickFolder() {
+    return this.nextFolder;
+  }
+  async publishWrite(path: string, bytes: Uint8Array) {
+    if (this.missingFolders.has(path.slice(0, path.lastIndexOf('/')))) throw new Error('Le dossier de diffusion est introuvable (déplacé, renommé, ou drive déconnecté ?)');
+    this.published.set(path, { bytes, writes: (this.published.get(path)?.writes ?? 0) + 1 });
+  }
   async writeExport(path: string, bytes: Uint8Array) {
     this.exports.set(path, bytes);
     // Dans un navigateur, l'export est proposé en téléchargement.
@@ -369,7 +395,12 @@ let current: Promise<Backend> | null = null;
  */
 export function getBackend(): Promise<Backend> {
   current ??= (async () => {
-    if (!isTauri()) return new MemoryBackend();
+    if (!isTauri()) {
+      const m = new MemoryBackend();
+      // Navigateur (tests de l'interface) : ce qui a été publié se lit ici.
+      if (typeof window !== 'undefined') (window as unknown as { __prepvisMemory?: MemoryBackend }).__prepvisMemory = m;
+      return m;
+    }
     const b = new TauriBackend();
     await b.init();
     return b;

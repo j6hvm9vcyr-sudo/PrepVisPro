@@ -21,7 +21,7 @@ export function isMenuShortcut(e: Pick<KeyboardEvent, 'key' | 'code' | 'shiftKey
   if (e.altKey) return e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3' || e.code === 'Digit4' || e.code === 'KeyL';
   // ⌘, (préférences) et ⇧⌘, (réglages du projet) : la virgule, quelle que soit la disposition du clavier.
   const comma = k === ',' || k === '<' || e.code === 'Comma';
-  return comma || k === 'z' || e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3' || k === 'i' || k === 'enter' || (e.shiftKey && (k === 'c' || k === 'i' || k === 's')) || k === 's' || k === 'o' || k === 'n' || k === 'q' || k === 'e';
+  return comma || k === 'z' || e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3' || k === 'i' || k === 'enter' || (e.shiftKey && (k === 'c' || k === 'i' || k === 's' || k === 'p')) || k === 's' || k === 'o' || k === 'n' || k === 'q' || k === 'e';
 }
 
 /** Exécute une commande de menu. Exporté pour les tests. */
@@ -101,6 +101,9 @@ function runMenuCommand(id: string) {
       return;
     case 'file_export':
       st.setShowExport(true);
+      return;
+    case 'file_publish':
+      st.setShowPublish(true);
       return;
     case 'file_versions':
       st.setShowVersions(true);

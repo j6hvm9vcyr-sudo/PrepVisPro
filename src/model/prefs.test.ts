@@ -6,7 +6,7 @@ const none = { size: false, axis: false, angle: false, focal: false, movement: f
 
 describe('préférences de l’app', () => {
   it('par défaut : plan suivant = focale, mouvement, machinerie ; abréviations livrées', () => {
-    expect(defaultPrefs()).toEqual({ version: 1, carryOver: DEFAULT_CARRY, aliases: TERM_ALIASES, table: { widths: {}, rowHeight: null }, layout: defaultLayout() });
+    expect(defaultPrefs()).toEqual({ version: 1, carryOver: DEFAULT_CARRY, aliases: TERM_ALIASES, table: { widths: {}, rowHeight: null }, layout: defaultLayout(), publishFolders: {} });
     expect(defaultPrefs().aliases).not.toBe(TERM_ALIASES);
   });
 
@@ -39,7 +39,7 @@ describe('préférences de l’app', () => {
   it('premières préférences du Mac : celles du premier ancien projet ouvert, telles quelles', () => {
     const legacy = { carryOver: { ...none, size: true }, aliases: { Dolly: ['grué'] } };
     const r = adoptLegacy(defaultPrefs(), legacy, true);
-    expect(r.prefs).toEqual({ version: 1, carryOver: legacy.carryOver, aliases: legacy.aliases, table: { widths: {}, rowHeight: null }, layout: defaultLayout() });
+    expect(r.prefs).toEqual({ version: 1, carryOver: legacy.carryOver, aliases: legacy.aliases, table: { widths: {}, rowHeight: null }, layout: defaultLayout(), publishFolders: {} });
     expect(r.changed).toBe(true);
     expect(adoptLegacy(defaultPrefs(), { carryOver: { ...DEFAULT_CARRY }, aliases: structuredClone(TERM_ALIASES) }, true).changed).toBe(false);
   });

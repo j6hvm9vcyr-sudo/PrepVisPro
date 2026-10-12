@@ -149,10 +149,10 @@ async function pdfModule() {
 }
 
 /** PDF des plans au sol seuls. */
-export async function buildFloorPdf(doc: ProjectDoc, plans: FloorPlan[], onProgress?: (done: number, total: number) => void): Promise<BuiltExport> {
+export async function buildFloorPdf(doc: ProjectDoc, plans: FloorPlan[], onProgress?: (done: number, total: number) => void, version: string | null = null): Promise<BuiltExport> {
   const floors = await prepareFloorPages(doc, plans, onProgress);
   const { renderFloorPdf } = await pdfModule();
-  return { bytes: await renderFloorPdf(doc.meta.title, doc.meta.director, floors), failedImages: 0, failedFloors: floors.filter((f) => f.error).map((f) => f.error!) };
+  return { bytes: await renderFloorPdf(doc.meta.title, doc.meta.director, floors, version), failedImages: 0, failedFloors: floors.filter((f) => f.error).map((f) => f.error!) };
 }
 
 /** Demande l'emplacement puis écrit un export de plan au sol (PNG ou PDF). */
@@ -182,9 +182,10 @@ async function exportVersionLabel(doc: ProjectDoc): Promise<string | null> {
   }
 }
 
-export async function buildExport(doc: ProjectDoc, format: ExportFormat, opts: ExportOptions, onProgress?: (done: number, total: number) => void): Promise<BuiltExport> {
+/** `version` : mention écrite dans le document (Publier : « Publication 3 · … ») ; par défaut, la dernière version enregistrée. */
+export async function buildExport(doc: ProjectDoc, format: ExportFormat, opts: ExportOptions, onProgress?: (done: number, total: number) => void, version?: string | null): Promise<BuiltExport> {
   const m = buildExportModel(doc, opts);
-  m.version = await exportVersionLabel(doc);
+  m.version = version !== undefined ? version : await exportVersionLabel(doc);
   if (format === 'csv') return { bytes: new TextEncoder().encode(buildCsv(m, opts.columns, opts.showCamera)), failedImages: 0 };
   const withImages = opts.columns.includes('image');
   const { images, failed } = withImages ? await prepareImages(m, format === 'xlsx' ? 480 : MAX_WIDTH[opts.imageSize], onProgress) : { images: new Map<string, Resized>(), failed: [] };

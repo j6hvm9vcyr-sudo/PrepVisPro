@@ -287,7 +287,7 @@ function DtSequence({ seq, cols, widths, opts, images, fields }: { seq: ExportSe
 }
 
 /** Une page par plan au sol, orientée selon la forme du plan. */
-function FloorPages({ title, floors, date }: { title: string; floors: PdfFloorPage[]; date: string }) {
+function FloorPages({ title, floors, date, version = null }: { title: string; floors: PdfFloorPage[]; date: string; version?: string | null }) {
   return (
     <>
       {floors.map((f) => {
@@ -302,7 +302,7 @@ function FloorPages({ title, floors, date }: { title: string; floors: PdfFloorPa
         const scale = img ? Math.min(pw / img.width, boxH / img.height) : 1;
         return (
           <Page key={f.id} size="A4" orientation={landscape ? 'landscape' : 'portrait'} style={s.page}>
-            <PageHead text={`${title} — Plan au sol`} date={date} />
+            <PageHead text={`${title} — Plan au sol${version ? ` · ${version}` : ''}`} date={date} />
             <View style={{ flexDirection: 'row', alignItems: 'baseline', marginBottom: 8 }}>
               <Text style={{ fontSize: 13, fontWeight: 700 }}>{f.name}</Text>
               {f.sequences ? <Text style={{ fontSize: 9, color: INK3, marginLeft: 10 }}>{f.sequences}</Text> : null}
@@ -349,16 +349,16 @@ function FloorPages({ title, floors, date }: { title: string; floors: PdfFloorPa
   );
 }
 
-function FloorPlansPdf({ title, director, floors }: { title: string; director: string; floors: PdfFloorPage[] }): ReactElement {
+function FloorPlansPdf({ title, director, floors, version }: { title: string; director: string; floors: PdfFloorPage[]; version: string | null }): ReactElement {
   return (
     <Document title={`${title} — Plans au sol`} author={director} creator="Topshot" producer="Topshot" language="fr">
-      <FloorPages title={title} floors={floors} date={today()} />
+      <FloorPages title={title} floors={floors} date={today()} version={version} />
     </Document>
   );
 }
 
-export async function renderFloorPdf(title: string, director: string, floors: PdfFloorPage[]): Promise<Uint8Array> {
-  const blob = await pdf(<FloorPlansPdf title={title} director={director} floors={floors} />).toBlob();
+export async function renderFloorPdf(title: string, director: string, floors: PdfFloorPage[], version: string | null = null): Promise<Uint8Array> {
+  const blob = await pdf(<FloorPlansPdf title={title} director={director} floors={floors} version={version} />).toBlob();
   return new Uint8Array(await blob.arrayBuffer());
 }
 
@@ -695,7 +695,7 @@ export function DecoupagePdf({ m, opts, images, floors = [] }: { m: ExportModel;
           <PageFoot />
         </Page>
       )}
-      {floors.length > 0 && <FloorPages title={m.title} floors={floors} date={date} />}
+      {floors.length > 0 && <FloorPages title={m.title} floors={floors} date={date} version={m.version} />}
     </Document>
   );
 }

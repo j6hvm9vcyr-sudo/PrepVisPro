@@ -519,6 +519,11 @@ async function versionsHome(): Promise<string | null> {
   return backend.kind === 'memory' && p.mode === 'unsaved' ? 'non-enregistre' : null;
 }
 
+/** Le projet peut-il garder des versions (enregistré, ou navigateur) ? */
+export async function canKeepVersions(): Promise<boolean> {
+  return (await versionsHome()) !== null;
+}
+
 export const VERSIONS_NEED_SAVE = 'Enregistrez d’abord le projet (Fichier › Nouveau projet ou « Enregistrer… ») pour garder des versions.';
 
 function stampOf(t: number): string {

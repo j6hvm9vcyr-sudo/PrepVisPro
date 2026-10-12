@@ -69,6 +69,8 @@ export interface AppPrefs {
   aliases: Record<string, string[]>;
   table: TableLayout;
   layout: PanelLayout;
+  /** Publier (0.20) : dossier de diffusion de chaque projet sur ce Mac (clé : identifiant du projet). */
+  publishFolders: Record<string, string>;
 }
 
 /** Colonnes de la grille CSS et largeur minimale du tableau ; `shown` : colonnes facultatives affichées (projet). */
@@ -107,11 +109,11 @@ const layoutSchema = z.object({
   solDetails: z.boolean().default(true),
   tournageDetails: z.boolean().default(true),
 });
-// `table` (0.11.1) et `layout` (0.18) sont apparus après la première version des préférences : absents, ils prennent leur valeur par défaut.
-const prefsSchema = z.object({ version: z.literal(PREFS_VERSION), carryOver: carrySchema, aliases: aliasesSchema, table: tableSchema.default({ widths: {}, rowHeight: null }), layout: layoutSchema.default(defaultLayout) });
+// `table` (0.11.1), `layout` (0.18) et `publishFolders` (0.20) sont apparus après la première version des préférences : absents, ils prennent leur valeur par défaut.
+const prefsSchema = z.object({ version: z.literal(PREFS_VERSION), carryOver: carrySchema, aliases: aliasesSchema, table: tableSchema.default({ widths: {}, rowHeight: null }), layout: layoutSchema.default(defaultLayout), publishFolders: z.record(z.string(), z.string().min(1)).default({}) });
 
 export function defaultPrefs(): AppPrefs {
-  return { version: PREFS_VERSION, carryOver: { ...DEFAULT_CARRY }, aliases: structuredClone(TERM_ALIASES), table: { widths: {}, rowHeight: null }, layout: defaultLayout() };
+  return { version: PREFS_VERSION, carryOver: { ...DEFAULT_CARRY }, aliases: structuredClone(TERM_ALIASES), table: { widths: {}, rowHeight: null }, layout: defaultLayout(), publishFolders: {} };
 }
 
 /** Relit le fichier de préférences : refusé en bloc s'il n'est pas valide (jamais à moitié). */
@@ -185,6 +187,7 @@ export function adoptLegacy(prefs: AppPrefs, legacy: LegacyPrefs, first: boolean
       aliases: legacy.aliases ? structuredClone(legacy.aliases) : structuredClone(prefs.aliases),
       table: prefs.table,
       layout: prefs.layout,
+      publishFolders: prefs.publishFolders,
     };
     return { prefs: next, changed: JSON.stringify(next) !== JSON.stringify(prefs) };
   }

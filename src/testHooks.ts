@@ -46,6 +46,14 @@ export async function install() {
     pending: () => [...inflight.values()].map((x) => `${x.cmd} (${Math.round(performance.now() - x.t0)} ms)`),
     errors,
     openSample,
+    /** Publier (0.20) dans un dossier, sans boîte de dialogue. */
+    async publishTo(folder: string) {
+      const { updatePrefs } = await import('./state/prefs');
+      const { publish } = await import('./state/publish');
+      const id = selectDoc(useApp.getState()).id;
+      updatePrefs((d) => void (d.publishFolders[id] = folder));
+      return publish();
+    },
     /** Ouvre ou ferme un panneau (0.18). */
     async panel(id: 'film' | 'scenario' | 'images' | 'notes' | 'details', on: boolean) {
       const { setPanel } = await import('./ui/panels');

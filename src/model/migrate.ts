@@ -5,6 +5,7 @@
  */
 import { DEFAULT_TABLE_COLUMNS, SCHEMA_VERSION } from './types';
 import { TERM_ALIASES } from './defaults';
+import { defaultPublish } from './publish';
 
 export type MigrateResult = { ok: true; raw: unknown } | { ok: false; error: string };
 
@@ -38,6 +39,7 @@ export function migrate(raw: unknown): MigrateResult {
   if (v <= 19) doc = from19to20(doc);
   if (v <= 20) doc = from20to21(doc);
   if (v <= 21) doc = from21to22(doc);
+  if (v <= 22) doc = from22to23(doc);
   return { ok: true, raw: doc };
 }
 
@@ -325,4 +327,10 @@ function from21to22(doc: Record<string, unknown>): Record<string, unknown> {
     settings: { ...rest, tableColumns: [...DEFAULT_TABLE_COLUMNS], timeZone },
     sequences: seqs.map((s) => (s && typeof s === 'object' && Array.isArray((s as { plans?: unknown }).plans) ? { ...(s as object), plans: (s as { plans: unknown[] }).plans.map(withDuration) } : s)),
   };
+}
+
+/** Format 22 → 23 : Publier (fichiers par défaut, rien encore publié). */
+function from22to23(doc: Record<string, unknown>): Record<string, unknown> {
+  const settings = doc.settings && typeof doc.settings === 'object' ? (doc.settings as Record<string, unknown>) : {};
+  return { ...doc, schemaVersion: 23, settings: { ...settings, publish: defaultPublish() } };
 }

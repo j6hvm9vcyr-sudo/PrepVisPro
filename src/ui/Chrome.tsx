@@ -12,7 +12,9 @@ import { focusGrid } from './focus';
 import { flushSave, saveAsDialog, useProject } from '../state/project';
 import { filmFlow } from '../model/stamps';
 import { useFloor } from '../floor/floorStore';
-import { IconClose, IconExport, IconGear, IconGrid, IconList, PanelIcons, SpaceIcons } from './Icons';
+import { IconClose, IconExport, IconGear, IconGrid, IconList, IconPublish, PanelIcons, SpaceIcons } from './Icons';
+import { useChangesSincePublication } from './PublishDialog';
+import { usePublish } from '../state/publish';
 import { PANEL_KEY, PANEL_LABEL, PANELS_OF, togglePanel, usePanelOpen, type PanelId } from './panels';
 import { isGridView, openSpace, SPACE_OF, SPACES, useVerifyPanel, type Space } from './spaces';
 import { Info } from './Info';
@@ -116,6 +118,9 @@ export function InterfaceBar() {
           <button type="button" role="menuitem" onClick={() => st().setShowExport(true)}>
             Exporter…
           </button>
+          <button type="button" role="menuitem" onClick={() => st().setShowPublish(true)}>
+            Publier…
+          </button>
         </BarMenu>
         <SaveIndicator />
         <span className="proj-sub" data-tauri-drag-region>
@@ -130,9 +135,25 @@ export function InterfaceBar() {
         </span>
       </div>
       <div className="ibar-side right" data-tauri-drag-region>
+        <PublishButton />
         <PanelToggle id="details" />
       </div>
     </header>
+  );
+}
+
+/** Publier (⇧⌘P) : un point orange quand le projet a changé depuis la dernière publication. */
+function PublishButton() {
+  const changes = useChangesSincePublication();
+  const last = usePublish((s) => s.last);
+  const changed = !!changes?.any;
+  const title = last ? `Publication ${last.n}${changed ? ' · modifié depuis' : ' · à jour'} (⇧⌘P)` : 'Publier sur le drive de l’équipe (⇧⌘P)';
+  return (
+    <button type="button" className="tog pub-btn" aria-label={changed ? 'Publier (modifié depuis la dernière publication)' : 'Publier'} title={title} onMouseDown={(e) => e.preventDefault()} onClick={() => useApp.getState().setShowPublish(true)}>
+      {changed && <span className="pub-dot" aria-hidden />}
+      <IconPublish />
+      <span>Publier</span>
+    </button>
   );
 }
 

@@ -69,6 +69,7 @@ export interface AppState {
   /** Préférences de l'app (⌘,), distinctes des réglages du projet (⇧⌘,). */
   showPrefs: boolean;
   showExport: boolean;
+  showPublish: boolean;
   showVersions: boolean;
   importing: { name: string; scenes: import('../import/fdx').ScriptScene[] } | null;
   contextMenu: { x: number; y: number; planId: Id; setupId: Id } | null;
@@ -98,6 +99,7 @@ function initialState(doc: ProjectDoc): AppState {
     showSettings: false,
     showPrefs: false,
     showExport: false,
+    showPublish: false,
     showVersions: false,
     importing: null,
     contextMenu: null,
@@ -164,7 +166,7 @@ export function suggestSequenceNumber(doc: ProjectDoc, afterSeqId: Id | null): s
 
 /** Une fenêtre superposée a la main sur le clavier (le tableau ne doit pas réagir). */
 export function anyOverlay(s: AppState): boolean {
-  return !!(s.preview || s.showShortcuts || s.pendingDrop || s.editingSequenceId || s.editingStampId || s.libraryPick || s.showSettings || s.showPrefs || s.showExport || s.showVersions || s.importing || s.contextMenu);
+  return !!(s.preview || s.showShortcuts || s.pendingDrop || s.editingSequenceId || s.editingStampId || s.libraryPick || s.showSettings || s.showPrefs || s.showExport || s.showPublish || s.showVersions || s.importing || s.contextMenu);
 }
 
 /** Rectangle sélectionné (une seule cellule s'il n'y a pas de sélection étendue). */
@@ -337,6 +339,7 @@ interface Actions {
   setShowSettings(v: boolean): void;
   setShowPrefs(v: boolean): void;
   setShowExport(v: boolean): void;
+  setShowPublish(v: boolean): void;
   setShowVersions(v: boolean): void;
   setImporting(v: AppState['importing']): void;
   setContextMenu(v: AppState['contextMenu']): void;
@@ -1043,6 +1046,10 @@ export function createAppStore(doc: ProjectDoc) {
 
       setShowExport(v) {
         set({ showExport: v, editing: null });
+      },
+
+      setShowPublish(v) {
+        set({ showPublish: v, editing: null });
       },
 
       setShowVersions(v) {

@@ -6,7 +6,7 @@
  */
 import { z } from 'zod';
 import type { ProjectDoc } from './types';
-import { SCHEMA_VERSION, TABLE_COLUMN_IDS } from './types';
+import { PUBLISH_FILES, SCHEMA_VERSION, TABLE_COLUMN_IDS } from './types';
 import { MAX_DURATION_S } from './duration';
 
 const id = z.string().min(1);
@@ -189,6 +189,11 @@ const projectSchema = z.object({
     floorIcons: z.object({ camera: figureIcon.nullable(), actor: figureIcon.nullable(), light: figureIcon.nullable() }),
     tableColumns: z.array(z.enum(TABLE_COLUMN_IDS)).refine((a) => new Set(a).size === a.length, 'colonne en double'),
     timeZone: z.string().min(1).nullable(),
+    publish: z.object({
+      files: z.array(z.enum(PUBLISH_FILES)).refine((a) => new Set(a).size === a.length, 'fichier en double'),
+      presetId: z.string().min(1),
+      baseName: z.string().trim().min(1).nullable(),
+    }),
   }),
   sequences: z.array(sequence),
   stamps: z.array(z.object({ id, text: z.string(), note: z.string(), beforeSequenceId: id.nullable() })),

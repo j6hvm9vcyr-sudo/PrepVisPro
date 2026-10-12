@@ -111,6 +111,19 @@ describe('mise à niveau des fichiers', () => {
     expect(Object.keys(r.doc.settings)).toEqual(Object.keys(ref.settings));
     expect(Object.keys(r.doc.sequences[0]!.plans[0]!)).toEqual(Object.keys(ref.sequences[0]!.plans[0]!));
   });
+  it('format 22 → 23 : Publier (découpage PDF et Excel, plans au sol ; rien encore publié), clés dans l’ordre du format, relu à l’identique', () => {
+    const cur = sampleProjectMultiCam();
+    const { publish: _p, ...settings } = cur.settings;
+    const v22 = JSON.parse(JSON.stringify({ ...cur, schemaVersion: 22, settings }));
+    const m = migrate(v22);
+    expect(m.ok).toBe(true);
+    if (!m.ok) return;
+    expect(Object.keys(m.raw as object)).toEqual(Object.keys(cur));
+    const r = validateProject(m.raw);
+    expect(r.ok && r.doc).toEqual(cur);
+    expect(r.ok && r.doc.settings.publish).toEqual({ files: ['pdf', 'xlsx', 'floors'], presetId: 'tableau', baseName: null });
+    expect(Object.keys((m.raw as { settings: object }).settings)).toEqual(Object.keys(newProject('X').settings));
+  });
   it('format 16 → 17 : modèles d’export et icônes des figures dans le projet (aucun)', () => {
     const cur = newProject('X');
     const { exportPresets: _e, floorIcons: _f, ...old } = cur.settings;

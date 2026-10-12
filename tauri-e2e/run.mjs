@@ -3,7 +3,7 @@
 //   VITE_TEST_HOOKS=1 npx tauri build --debug --no-bundle
 // Lancement : xvfb-run node tauri-e2e/run.mjs
 import { spawn } from 'node:child_process';
-import { mkdtempSync, readFileSync, existsSync, readdirSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -316,6 +316,26 @@ try {
     const closed = await waitFor(async () => (await exec('return !document.querySelector(".timer-dock");')) === true, 3000);
     ok(closed, 'minuteur fermé (échap), rien enregistré');
     await exec(`await window.__prepvis.panel('scenario', false); window.__prepvis.app().setCursor(window.__savedCursor); return true;`);
+  }
+
+  // Publier (0.20) : les fichiers sont réécrits sur place (même fichier : le lien d'un drive reste bon).
+  {
+    const drive = join(work, 'Drive', 'Le Quai');
+    mkdirSync(drive, { recursive: true });
+    const r1 = await exec(`return await window.__prepvis.publishTo(${JSON.stringify(drive)});`);
+    ok(r1?.ok === true, `publication 1 (${JSON.stringify(r1)})`);
+    const names = readdirSync(drive).sort();
+    ok(names.length === r1?.files?.length && names.every((n) => n.includes(' — découpage.') || n.includes(' — plans au sol.')), `fichiers publiés (${names.join(', ')})`);
+    const pdf = names.find((n) => n.endsWith('découpage.pdf'));
+    const before = pdf ? statSync(join(drive, pdf)) : null;
+    ok(!!before && readFileSync(join(drive, pdf)).subarray(0, 5).toString() === '%PDF-', 'PDF publié lisible');
+    await exec('const st = window.__prepvis.app(); st.updateDoc((d) => { d.meta.title = "Titre changé"; }); return true;');
+    const r2 = await exec(`return await window.__prepvis.publishTo(${JSON.stringify(drive)});`);
+    ok(r2?.ok === true && r2.n === r1.n + 1, `publication suivante (${JSON.stringify(r2)})`);
+    const after = statSync(join(drive, pdf));
+    ok(readdirSync(drive).sort().join() === names.join(), 'mêmes noms après un changement de titre');
+    ok(after.ino === before.ino, `même fichier réécrit sur place (inode ${before.ino} → ${after.ino})`);
+    await exec('window.__prepvis.app().undo(); return true;');
   }
 
   // Modification faite ailleurs (synchronisation) : copie de sécurité, rien n'est écrasé en silence.

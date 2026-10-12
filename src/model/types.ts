@@ -210,7 +210,22 @@ export interface ProjectSettings {
   tableColumns: TableColumnId[];
   /** Fuseau horaire des heures du projet (nom IANA, ex. « Europe/Paris ») ; null = celui de cet ordinateur. */
   timeZone: string | null;
+  /** Publier (0.20) : fichiers tenus à jour dans le dossier de diffusion (dossier : préférences de ce Mac). */
+  publish: PublishSettings;
 }
+
+/** Fichiers que Publier tient à jour (format 23). */
+export const PUBLISH_FILES = ['pdf', 'xlsx', 'floors', 'csv'] as const;
+export type PublishFile = (typeof PUBLISH_FILES)[number];
+
+export interface PublishSettings {
+  files: PublishFile[];
+  /** Modèle d'export du découpage (PDF, Excel, CSV). */
+  presetId: string;
+  /** Début des noms de fichiers, fixé à la première publication : les liens partagés restent bons. null = pas encore publié. */
+  baseName: string | null;
+}
+
 
 /**
  * Matière de réflecteur. Diffuse (toile, poly, muslin…) : renvoie la lumière dans toutes les
@@ -275,7 +290,7 @@ interface ProjectMeta {
   crew: CrewMember[];
 }
 
-export const SCHEMA_VERSION = 22 as const;
+export const SCHEMA_VERSION = 23 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;

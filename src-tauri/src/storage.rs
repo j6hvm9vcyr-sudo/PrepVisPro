@@ -257,6 +257,38 @@ pub fn write_export(path: &Path, bytes: &[u8]) -> Result<()> {
     atomic_write(path, bytes)
 }
 
+/// Publier (0.20) : réécrit un fichier du dossier de diffusion **sur place** (même fichier, contenu
+/// remplacé), comme un enregistrement ordinaire. Un remplacement par renommage créerait un autre
+/// fichier pour certains drive (nouvel identifiant), et le lien partagé ne mènerait plus à la
+/// dernière version. Le contenu est vérifié après écriture.
+pub fn write_in_place(path: &Path, bytes: &[u8]) -> Result<()> {
+    let ext = path.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
+    if !["pdf", "xlsx", "csv"].contains(&ext.as_str()) {
+        return Err(format!("Type de fichier refusé : « {} »", path.display()));
+    }
+    if path.parent().map(|p| !p.is_dir()).unwrap_or(true) {
+        return Err("Le dossier de diffusion est introuvable (déplacé, renommé, ou drive déconnecté ?)".into());
+    }
+    if path.is_dir() {
+        return Err(format!("« {} » est un dossier", path.display()));
+    }
+    {
+        let mut f = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(path)
+            .map_err(err("Écriture dans le dossier de diffusion impossible"))?;
+        f.write_all(bytes).map_err(err("Écriture impossible"))?;
+        f.sync_all().map_err(err("Écriture sur le disque impossible"))?;
+    }
+    let written = fs::read(path).map_err(err("Relecture du fichier publié impossible"))?;
+    if written != bytes {
+        return Err(format!("Le fichier « {} » n'a pas été écrit en entier", path.display()));
+    }
+    Ok(())
+}
+
 /// Formats de scénario acceptés à l'import.
 pub const SCRIPT_EXTENSIONS: [&str; 7] = ["fdx", "xml", "fountain", "txt", "md", "docx", "pdf"];
 
@@ -312,6 +344,32 @@ mod tests {
         let d = std::env::temp_dir().join(format!("prepvis-test-{tag}-{}-{}", std::process::id(), now_secs()));
         let _ = fs::remove_dir_all(&d);
         d
+    }
+
+    #[test]
+    fn publier_sur_place() {
+        let d = tmpdir("publier");
+        fs::create_dir_all(&d).unwrap();
+        let f = d.join("Le Quai — découpage.pdf");
+        write_in_place(&f, b"%PDF-1").unwrap();
+        #[cfg(unix)]
+        let ino = {
+            use std::os::unix::fs::MetadataExt;
+            fs::metadata(&f).unwrap().ino()
+        };
+        write_in_place(&f, b"%PDF-2, plus long").unwrap();
+        assert_eq!(fs::read(&f).unwrap(), b"%PDF-2, plus long");
+        write_in_place(&f, b"%PDF-3").unwrap();
+        assert_eq!(fs::read(&f).unwrap(), b"%PDF-3");
+        // Le même fichier (même inode) : le drive y voit une nouvelle version, pas un autre fichier.
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+            assert_eq!(fs::metadata(&f).unwrap().ino(), ino);
+        }
+        assert!(write_in_place(&d.join("x.json"), b"{}").is_err());
+        assert!(write_in_place(&d.join("absent").join("a.pdf"), b"x").is_err());
+        let _ = fs::remove_dir_all(&d);
     }
 
     #[test]

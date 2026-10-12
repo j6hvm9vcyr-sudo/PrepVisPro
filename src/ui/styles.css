@@ -1221,3 +1221,18 @@ button.board-group-h:hover { background: var(--accent-soft); }
 .board-ins-h { padding: 5px 10px 3px; border-top: 1px solid var(--border-soft); font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text3); }
 .board-ins-h.warn { color: var(--warn-text); }
 .board-ins .board-row:first-of-type { border-top: 0; }
+
+/* ——— 0.20 : Publier ——— */
+.pub-btn { position: relative; }
+.pub-dot { position: absolute; left: 6px; top: 7px; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); }
+.dialog.publish { width: 640px; max-width: calc(100vw - 48px); padding: 16px 20px; gap: 6px; }
+.pub-folder { flex: 1; min-width: 0; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--side); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pub-folder.none { color: var(--text3); }
+.pub-file { display: grid; grid-template-columns: 18px 1fr auto; gap: 8px; align-items: center; padding: 3px 0; }
+.pub-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pub-changes { margin: 0; padding-left: 18px; font-size: 12.5px; display: flex; flex-direction: column; gap: 2px; }
+.pub-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid var(--border-soft); }
+.pub-done { font-size: 12.5px; color: var(--ok, #1a7f37); font-weight: 600; flex-basis: 100%; }
+.pub-foot .welcome-error { flex-basis: 100%; }
+.pub-model { display: flex; align-items: center; gap: 10px; }
+.pub-model > .picker { flex: 1; }

@@ -116,7 +116,9 @@ export function compareDocs(before: ProjectDoc, after: ProjectDoc): DocDiff {
 
   const other: string[] = [];
   if (before.meta.title !== after.meta.title) other.push(`Titre : « ${before.meta.title} » → « ${after.meta.title} »`);
-  if (JSON.stringify(before.settings) !== JSON.stringify(after.settings)) other.push('Réglages du projet modifiés (caméras, listes de termes ou champs obligatoires)');
+  // Les réglages de Publier ne changent pas le contenu publié.
+  const settingsOf = (d: ProjectDoc) => JSON.stringify({ ...d.settings, publish: null });
+  if (settingsOf(before) !== settingsOf(after)) other.push('Réglages du projet modifiés (caméras, listes de termes ou champs obligatoires)');
   if (JSON.stringify(before.floorPlans) !== JSON.stringify(after.floorPlans)) other.push('Plans au sol modifiés');
   if (JSON.stringify(before.stamps ?? []) !== JSON.stringify(after.stamps ?? [])) {
     const list = (d: ProjectDoc) => (d.stamps ?? []).map((t) => t.text.trim() || 'sans texte').join(', ') || 'aucun';
