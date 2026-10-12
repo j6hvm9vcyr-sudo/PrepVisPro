@@ -54,12 +54,13 @@ export function FloorView() {
   const cursorPlan = useApp((s) => s.cursor?.planId);
   // Plan au sol courant : celui choisi, sinon celui de la séquence du plan sélectionné dans le découpage.
   const current = doc.floorPlans.find((f) => f.id === ui.currentId) ?? null;
+  const emptySeq = ui.emptySeqId ? (doc.sequences.find((s) => s.id === ui.emptySeqId && !doc.floorPlans.some((f) => f.sequenceIds.includes(s.id))) ?? null) : null;
   useEffect(() => {
-    if (current || !doc.floorPlans.length) return;
+    if (current || emptySeq || !doc.floorPlans.length) return;
     const seq = doc.sequences.find((s) => s.plans.some((p) => p.id === cursorPlan));
     const fp = (seq && doc.floorPlans.find((f) => f.sequenceIds.includes(seq.id))) ?? doc.floorPlans[0]!;
     useFloor.getState().set({ currentId: fp.id, selection: [] });
-  }, [current, doc.floorPlans, doc.sequences, cursorPlan]);
+  }, [current, emptySeq, doc.floorPlans, doc.sequences, cursorPlan]);
 
   const film = usePanelOpen('film');
   const details = usePanelOpen('details');
@@ -81,7 +82,7 @@ export function FloorView() {
       }
     }
     st().applyDoc(addFloorPlan(base, fp), 'Plan au sol créé');
-    useFloor.getState().set({ currentId: fp.id, selection: [], tool: 'select' });
+    useFloor.getState().set({ currentId: fp.id, selection: [], tool: 'select', emptySeqId: null });
   };
 
   const seqsWithout = doc.sequences.filter((s) => !doc.floorPlans.some((f) => f.sequenceIds.includes(s.id)));
@@ -94,18 +95,26 @@ export function FloorView() {
 
   return (
     <div className="space-body">
-      {film && <FloorTree current={current} onCreate={create} />}
+      {film && <FloorTree current={current} emptySeqId={emptySeq?.id ?? null} />}
       <div className="center">
-        <SpaceBar views={false}>
+        <SpaceBar views={false} left={current && <ToolPalette />}>
           {current && <FloorBarRight fp={current} />}
         </SpaceBar>
         <main className="floor-main">
-          {current ? (
+          {current && !emptySeq ? (
             <div className={`floor-stage ${ruler ? 'with-ruler' : ''}`}>
               <FloorCanvas key={current.id} fp={current} />
-              <ToolPalette />
               <PlanChips fp={current} />
               {ruler && <SunRuler fp={current} />}
+            </div>
+          ) : emptySeq ? (
+            <div className="empty-state">
+              <span>
+                Pas de plan au sol pour la séquence {emptySeq.number || '?'} · {emptySeq.location || 'Décor à préciser'}
+              </span>
+              <button type="button" className="btn primary" onClick={() => void create(emptySeq.id)}>
+                Créer le plan au sol
+              </button>
             </div>
           ) : (
             <div className="empty-state">
@@ -115,7 +124,7 @@ export function FloorView() {
           )}
         </main>
       </div>
-      {current && details && <FloorInspector fp={current} />}
+      {current && !emptySeq && details && <FloorInspector fp={current} />}
     </div>
   );
 }
@@ -123,7 +132,8 @@ export function FloorView() {
 /** À droite de la barre : consigne de l'outil en cours, échelle du plan. */
 function FloorBarRight({ fp }: { fp: FloorPlan }) {
   const tool = useFloor((s) => s.tool);
-  const hint = tool === 'scale' ? 'Deux points à distance connue' : tool === 'measure' ? 'Deux points à mesurer' : tool === 'path' ? 'Points du trajet, ↩ pour finir' : '';
+  const placing = useFloor((s) => s.placing);
+  const hint = placing ? 'Cliquez sur le plan pour placer la caméra (esc pour annuler)' : tool === 'scale' ? 'Deux points à distance connue' : tool === 'measure' ? 'Deux points à mesurer' : tool === 'path' ? 'Points du trajet, ↩ pour finir' : '';
   return (
     <>
       {hint && <span className="bar-hint">{hint}</span>}
@@ -136,11 +146,11 @@ function FloorBarRight({ fp }: { fp: FloorPlan }) {
   );
 }
 
-/** Outils, en ligne en haut du plan ; la touche de chaque outil est dans son infobulle. */
+/** Outils, dans la barre du plan (0.24) ; la touche de chaque outil est dans son infobulle. */
 function ToolPalette() {
   const tool = useFloor((s) => s.tool);
   return (
-    <div className="tool-palette" role="group" aria-label="Outils">
+    <div className="tools-inline" role="group" aria-label="Outils">
       {TOOLS.map((t) => {
         const I = ToolIcons[t.id];
         return (
@@ -153,7 +163,10 @@ function ToolPalette() {
   );
 }
 
-/** En bas du plan : les plans de la séquence ; orange = caméra pas encore placée sur ce plan au sol. */
+/**
+ * En bas du plan : les plans de la séquence, le seul endroit d'où l'on place une caméra (0.24) ;
+ * orange = caméra pas encore placée sur ce plan au sol.
+ */
 function PlanChips({ fp }: { fp: FloorPlan }) {
   const doc = useApp(selectDoc);
   const ui = useFloor();
@@ -190,18 +203,18 @@ function PlanChips({ fp }: { fp: FloorPlan }) {
 }
 
 /**
- * Gauche : une seule liste. Une séquence ouvre son plan au sol ; sans plan au sol, « + Plan au sol » le crée.
- * Les plans de la séquence ouverte : vert = caméra placée sur ce plan au sol, orange = à placer.
+ * Gauche : une seule liste. Une séquence ouvre son plan au sol ; sans plan au sol, l'état vide du
+ * centre propose de le créer (0.24). Les plans de la séquence ouverte : vert = caméra placée, orange = à placer.
  */
-function FloorTree({ current, onCreate }: { current: FloorPlan | null; onCreate: (seqId: Id) => void | Promise<void> }) {
+function FloorTree({ current, emptySeqId }: { current: FloorPlan | null; emptySeqId: Id | null }) {
   const doc = useApp(selectDoc);
   const cursorPlan = useApp((s) => s.cursor?.planId ?? null);
   const numbers = computeNumbers(doc);
   const cursorSeq = cursorPlan ? locatePlan(doc, cursorPlan)?.seq.id : null;
-  const openSeq = current ? (cursorSeq && current.sequenceIds.includes(cursorSeq) ? cursorSeq : current.sequenceIds[0]) : null;
+  const openSeq = emptySeqId ? null : current ? (cursorSeq && current.sequenceIds.includes(cursorSeq) ? cursorSeq : current.sequenceIds[0]) : null;
   const orphans = doc.floorPlans.filter((f) => !f.sequenceIds.some((id) => doc.sequences.some((x) => x.id === id)));
   const openFloor = (fp: FloorPlan, seqId: Id) => {
-    useFloor.getState().set({ currentId: fp.id, selection: [], tool: 'select', draft: [], placing: null });
+    useFloor.getState().set({ currentId: fp.id, selection: [], tool: 'select', draft: [], placing: null, emptySeqId: null });
     const seq = doc.sequences.find((x) => x.id === seqId);
     if (seq?.plans[0] && locatePlan(selectDoc(useApp.getState()), cursorPlan ?? '')?.seq.id !== seqId) useApp.getState().goToPlan(seq.plans[0].id);
   };
@@ -222,12 +235,12 @@ function FloorTree({ current, onCreate }: { current: FloorPlan | null; onCreate:
         if (!fp)
           return (
             <div key={s.id} className="tree-seq">
-              <button type="button" className="tree-seq-row none" aria-label={`Créer le plan au sol de la séquence ${s.number || '?'}`} onClick={() => void onCreate(s.id)}>
+              <button type="button" className={`tree-seq-row none ${emptySeqId === s.id ? 'open' : ''}`} title="Pas encore de plan au sol" onClick={() => useFloor.getState().set({ emptySeqId: s.id, selection: [], placing: null, draft: [] })}>
                 <span className="strip" style={{ background: c.fill, borderColor: c.edge }} />
                 <span className="lbl">
                   {s.number || '?'} · {s.location || 'Décor à préciser'}
                 </span>
-                <span className="add-floor">+ Plan au sol</span>
+                <span className="cnt">pas de plan</span>
               </button>
             </div>
           );
@@ -255,7 +268,7 @@ function FloorTree({ current, onCreate }: { current: FloorPlan | null; onCreate:
         );
       })}
       {orphans.map((f) => (
-        <button key={f.id} type="button" className={`tree-seq-row ${f.id === current?.id ? 'open' : ''}`} onClick={() => useFloor.getState().set({ currentId: f.id, selection: [], tool: 'select', draft: [] })}>
+        <button key={f.id} type="button" className={`tree-seq-row ${f.id === current?.id ? 'open' : ''}`} onClick={() => useFloor.getState().set({ currentId: f.id, selection: [], tool: 'select', draft: [], emptySeqId: null })}>
           <span className="lbl">{f.name}</span>
         </button>
       ))}

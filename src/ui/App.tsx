@@ -1,4 +1,4 @@
-import { showInTournage, TournageBar, TournageDetails, TournageView } from './TournageView';
+import { showInTournage, TournageBar, TournageNew, TournageDetails, TournageView } from './TournageView';
 import { ScenePanel } from './ScenePanel';
 import { NotesPanel } from './NotesPanel';
 import { RetoursPanel } from './RetoursPanel';
@@ -362,7 +362,7 @@ function Workspace() {
           <>
             {film && <FilmTree onPlan={chooseInTournage} />}
             <main className="center">
-              <SpaceBar>
+              <SpaceBar left={<TournageNew />}>
                 <TournageBar />
               </SpaceBar>
               <ErrorBoundary label={VIEW_LABEL[view]} key={view}>

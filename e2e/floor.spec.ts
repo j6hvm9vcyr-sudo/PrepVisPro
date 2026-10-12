@@ -37,8 +37,9 @@ test('plan au sol : fond, mise à l’échelle, caméra du découpage avec son c
   await page.getByRole('button', { name: 'Valider' }).click();
   await expect(page.locator('.floor-scalebar')).toBeVisible();
 
-  // Placer la caméra 1/1 depuis la liste.
-  await page.locator('.place-item', { hasText: '1/1' }).click();
+  // Placer la caméra 1/1 depuis la bande des plans, en bas du plan.
+  await page.getByRole('button', { name: 'Placer la caméra 1/1', exact: true }).click();
+  await expect(page.locator('.bar-hint')).toContainText('Cliquez sur le plan pour placer la caméra');
   const c = at(300, 600);
   await page.mouse.click(c.x, c.y);
   await expect(page.locator('.floor-canvas [data-el]')).toHaveCount(1);
@@ -96,9 +97,11 @@ test('plan au sol : fond, mise à l’échelle, caméra du découpage avec son c
   await page.keyboard.press('ControlOrMeta+2');
   await expect(page.locator('.floor-canvas text', { hasText: '1/2' })).toBeVisible();
 
-  // Export du plan : image PNG haute définition, puis PDF avec légende.
+  // Export du plan (Partager › Fichier, le plan ouvert proposé) : image PNG haute définition, puis PDF avec légende.
+  const file = await share(page, 'Fichier');
+  await expect(file.getByRole('button', { name: 'Plan au sol à exporter' })).toContainText('Quai de gare');
   const dl = page.waitForEvent('download');
-  await page.getByRole('group', { name: 'Exporter ce plan' }).getByRole('button', { name: 'PNG' }).click();
+  await file.getByRole('button', { name: 'Plan au sol en PNG' }).click();
   const png = await (await dl).path();
   const bytes = readFileSync(png);
   expect(bytes.subarray(1, 4).toString()).toBe('PNG');
@@ -109,7 +112,7 @@ test('plan au sol : fond, mise à l’échelle, caméra du découpage avec son c
   await expect(page.getByText(/Plan exporté/)).toBeVisible();
 
   const dl2 = page.waitForEvent('download');
-  await page.getByRole('group', { name: 'Exporter ce plan' }).getByRole('button', { name: 'PDF' }).click();
+  await file.getByRole('button', { name: 'Plan au sol en PDF' }).click();
   const pdfBytes = readFileSync(await (await dl2).path());
   expect(pdfBytes.subarray(0, 5).toString()).toBe('%PDF-');
   expect(pdfBytes.length).toBeGreaterThan(50_000);
@@ -213,12 +216,11 @@ test('bibliothèque d’icônes : import d’un dossier, recherche, pose sur le 
   await page.getByPlaceholder('ex. 2K, Fresnel 650').fill('650 W');
   await page.getByRole('group', { name: 'Taille de l’icône' }).getByRole('button', { name: 'Grande', exact: true }).click();
   await expect(page.locator('.floor-canvas text', { hasText: '650 W' })).toBeVisible();
-  // L'icône est dans le PNG exporté (le rendu ne casse pas). Export du plan : panneau du plan (rien de sélectionné).
-  await page.getByRole('application', { name: 'Plan au sol' }).press('Escape');
-  await page.getByRole('application', { name: 'Plan au sol' }).press('Escape');
+  // L'icône est dans le PNG exporté (le rendu ne casse pas).
   const dl = page.waitForEvent('download');
-  await page.getByRole('group', { name: 'Exporter ce plan' }).getByRole('button', { name: 'PNG' }).click();
+  await (await share(page, 'Fichier')).getByRole('button', { name: 'Plan au sol en PNG' }).click();
   expect(readFileSync(await (await dl).path()).subarray(1, 4).toString()).toBe('PNG');
+  await page.keyboard.press('Escape');
   await page.screenshot({ path: 'test-results/17-icones.png' });
   // Une icône posée devient un personnage, un réflecteur ou un projecteur (elle garde son image).
   const posed = page.locator('.floor-canvas [data-el]').filter({ has: page.locator('image') }).first();
@@ -296,7 +298,7 @@ test('tournage : installations proposées d’après le plan au sol, réorganis�
   const at = (fx: number, fy: number) => ({ x: box.x + box.width * fx, y: box.y + box.height * fy });
   // 1/1 et 1/2 depuis le bas (champ), 1/3 depuis le haut (contrechamp) ; 1/2B pas placé.
   for (const [code, fx, fy] of [['1/1', 0.5, 0.85], ['1/2', 0.52, 0.83], ['1/3', 0.5, 0.15]] as const) {
-    await page.locator('.place-item').filter({ has: page.getByText(code, { exact: true }) }).click();
+    await page.getByRole('button', { name: `Placer la caméra ${code}`, exact: true }).click();
     const p = at(fx, fy);
     await page.mouse.click(p.x, p.y);
   }
@@ -490,8 +492,8 @@ test('soleil : position GPS du décor, nord du plan, heure simulée, rapport ave
   await (await chooser).setFiles(resolve('e2e/plan-decor.png'));
   const sun = page.getByRole('region', { name: 'Soleil', exact: true });
   await expect(sun).toBeVisible();
-  // La position du décor se lit (et se corrige) ici aussi.
-  await expect(sun.getByLabel('Coordonnées GPS du décor')).toHaveValue('48.85661, 2.35219');
+  // La position du décor se lit ici ; elle se corrige dans la séquence.
+  await expect(sun.getByLabel('Position GPS du décor')).toHaveText('48.85661, 2.35219');
   await sun.getByRole('button', { name: 'Nord en haut' }).click();
   await sun.getByRole('button', { name: 'Simuler le soleil' }).click();
   await sun.getByLabel('Date simulée').fill('2026-06-21');
@@ -525,7 +527,7 @@ test('soleil : position GPS du décor, nord du plan, heure simulée, rapport ave
   await page.screenshot({ path: 'test-results/23b-reglette-soleil.png' });
 
   // Caméra 2/1 tournée vers le sud (180°) : le soleil (184°, 65° de haut) est devant elle → contre-jour, soleil haut.
-  await page.getByRole('button', { name: /^2\/1/ }).click();
+  await page.getByRole('button', { name: 'Placer la caméra 2/1', exact: true }).click();
   const img = (await page.locator('.floor-canvas image').boundingBox())!;
   await page.mouse.click(img.x + img.width * 0.4, img.y + img.height * 0.4);
   await page.getByLabel('Orientation en degrés').fill('180');

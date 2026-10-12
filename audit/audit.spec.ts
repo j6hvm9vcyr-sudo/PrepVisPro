@@ -99,7 +99,7 @@ test('audit', async ({ page }) => {
   await page.mouse.click(at(1100, 100).x, at(1100, 100).y);
   await page.getByLabel('Distance en mètres').fill('10');
   await page.keyboard.press('Enter');
-  await page.getByRole('button', { name: /^1\/1/ }).click();
+  await page.getByRole('button', { name: 'Placer la caméra 1/1', exact: true }).click();
   await page.mouse.click(at(300, 600).x, at(300, 600).y);
   await shot(page, '14-plan-camera');
   await canvas.press('p');

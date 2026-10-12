@@ -8,6 +8,9 @@ import { deleteProjectPreset, lastUsed, projectPresets, rememberLast, sameOption
 import { buildExport, floorPlansFor, saveExport, type ExportFormat } from '../export/service';
 import { getBackend } from '../platform/backend';
 import { useShareBusy } from './shareBusy';
+import { Picker } from './Picker';
+import { useFloor } from '../floor/floorStore';
+import { FloorExportButtons } from '../floor/FloorExport';
 
 type Busy = { format: ExportFormat; progress: string } | null;
 type Done = { path: string; format: ExportFormat; failedImages: number; failedFloors: string[] } | null;
@@ -294,6 +297,26 @@ export function ExportPane() {
             </section>
           </div>
         </div>
+        {doc.floorPlans.length > 0 && <FloorFileSection />}
+    </section>
+  );
+}
+
+/** Un plan au sol seul, en image ou en PDF (avant 0.24 : dans les détails du plan au sol). Le plan ouvert est proposé. */
+function FloorFileSection() {
+  const doc = useApp(selectDoc);
+  const open = useFloor((s) => s.currentId);
+  const [id, setId] = useState(() => (doc.floorPlans.some((f) => f.id === open) ? open! : doc.floorPlans[0]!.id));
+  const fp = doc.floorPlans.find((f) => f.id === id) ?? doc.floorPlans[0]!;
+  return (
+    <section className="sec floor-file" aria-label="Un plan au sol">
+      <div className="sec-h">Un plan au sol</div>
+      <div className="row" style={{ alignItems: 'center' }}>
+        <Picker label="Plan au sol à exporter" value={fp.id} onPick={setId} groups={[{ items: doc.floorPlans.map((f) => ({ id: f.id, label: f.name || 'Plan au sol' })) }]}>
+          {fp.name || 'Plan au sol'}
+        </Picker>
+        <FloorExportButtons fp={fp} />
+      </div>
     </section>
   );
 }

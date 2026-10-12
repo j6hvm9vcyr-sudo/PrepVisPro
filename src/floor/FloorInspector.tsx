@@ -2,7 +2,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
-import { cameraLabel, deleteElements, deleteFloorPlan, unplacedSetups, updateElement, updateFloorPlan } from '../model/floorOps';
+import { cameraLabel, deleteElements, deleteFloorPlan, updateElement, updateFloorPlan } from '../model/floorOps';
 import { computeNumbers } from '../model/numbering';
 import type { FloorActor, FloorCamera, FloorElement, FloorLight, FloorPlan } from '../model/floor';
 import { ACTOR_COLORS, useFloor } from './floorStore';
@@ -63,37 +63,6 @@ function BackgroundButton({ fp }: { fp: FloorPlan }) {
   );
 }
 
-function FloorExportButtons({ fp }: { fp: FloorPlan }) {
-  const [busy, setBusy] = useState<'png' | 'pdf' | null>(null);
-  const empty = !fp.background && fp.elements.length === 0;
-  const run = async (ext: 'png' | 'pdf') => {
-    setBusy(ext);
-    const st = useApp.getState();
-    const doc = selectDoc(st);
-    try {
-      const svc = await import('../export/service');
-      const built = ext === 'png' ? { bytes: (await svc.floorPng(doc, fp)).bytes, failedFloors: [] as string[] } : await svc.buildFloorPdf(doc, [fp]);
-      if (built.failedFloors?.length) throw new Error(built.failedFloors[0]);
-      const path = await svc.saveFloorExport(doc, ext, built.bytes, `Plan au sol ${fp.name.replace(/[\\/:*?"<>|]+/g, '-')}`);
-      if (path) st.setMessage(`Plan exporté : ${path.split('/').pop()}`);
-    } catch (e) {
-      st.setMessage(`Export du plan impossible : ${e instanceof Error ? e.message : String(e)}`, 'warn');
-    } finally {
-      setBusy(null);
-    }
-  };
-  return (
-    <div className="seg" role="group" aria-label="Exporter ce plan">
-      <button type="button" disabled={!!busy || empty} onClick={() => void run('png')} title="Exporter ce plan en image PNG">
-        {busy === 'png' ? 'Export…' : 'PNG'}
-      </button>
-      <button type="button" disabled={!!busy || empty} onClick={() => void run('pdf')} title="Exporter ce plan en PDF (avec la légende des caméras)">
-        {busy === 'pdf' ? 'Export…' : 'PDF'}
-      </button>
-    </div>
-  );
-}
-
 const NONE = '__aucun';
 
 export function FloorInspector({ fp }: { fp: FloorPlan }) {
@@ -105,7 +74,6 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
   const apply = (fn: (d: ReturnType<typeof selectDoc>) => ReturnType<typeof selectDoc>, msg?: string, key?: string) => st().applyDoc(fn(selectDoc(st())), msg, key);
   const selected = fp.elements.filter((e) => ui.selection.includes(e.id));
   const el = selected.length === 1 ? selected[0]! : null;
-  const unplaced = unplacedSetups(doc, fp);
   const upd = (fn: (e: FloorElement) => void, key: string) => el && apply((d) => updateElement(d, fp.id, el.id, fn as never), undefined, `${key}-${el.id}`);
 
   const setupOptions = doc.sequences
@@ -221,9 +189,6 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
               </div>
             )}
             {(el.kind === 'camera' || el.kind === 'actor' || el.kind === 'light') && <PositionsField fp={fp} el={el} />}
-            <button type="button" className="linkbtn danger" style={{ alignSelf: 'flex-start' }} title="⌫ sur le plan" onClick={() => (apply((d) => deleteElements(d, fp.id, [el.id]), 'Élément supprimé'), useFloor.getState().set({ selection: [] }))}>
-              Supprimer
-            </button>
           </section>
         ) : selected.length > 1 ? (
           <section className="sec">
@@ -286,41 +251,9 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
                 <BackgroundButton fp={fp} />
               </div>
             </div>
-            <div className="field">
-              Exporter ce plan
-              <div className="row" style={{ gap: 6 }}>
-                <FloorExportButtons fp={fp} />
-              </div>
-            </div>
-            <button type="button" className="linkbtn danger" style={{ alignSelf: 'flex-start' }} onClick={() => (apply((d) => deleteFloorPlan(d, fp.id), 'Plan au sol supprimé'), useFloor.getState().set({ currentId: null }))}>
-              Supprimer ce plan au sol
-            </button>
           </Fold>
         )}
-        {/* Avec une sélection, seulement ce qui la concerne : caméras à placer après une caméra, icônes après une icône. */}
-        {selected.every((x) => x.kind === 'camera') && (
-        <Fold id="to-place" title="Caméras à placer" count={unplaced.length}>
-          {unplaced.length === 0 ? (
-            <p className="note" style={{ margin: 0 }}>
-              Toutes les caméras du découpage sont placées.
-            </p>
-          ) : (
-            <div className="to-place">
-              {unplaced.map((u) => {
-                const lab = cameraLabel(doc, u.planId, u.setupId, numbers);
-                const on = ui.placing?.planId === u.planId && ui.placing?.setupId === u.setupId;
-                return (
-                  <button key={`${u.planId}|${u.setupId}`} type="button" className={`place-item ${on ? 'on' : ''}`} onClick={() => useFloor.getState().set({ placing: on ? null : u, tool: 'select' })}>
-                    <b className="mono">{lab.code}</b>
-                    <span className="mono">{lab.detail}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          {ui.placing && <p className="note" style={{ margin: 0, color: 'var(--accent)', fontWeight: 600 }}>Cliquez sur le plan pour placer la caméra (esc pour annuler).</p>}
-        </Fold>
-        )}
+        {/* Avec une sélection, seulement ce qui la concerne : icônes après une icône. Les caméras se placent depuis la bande du bas du plan. */}
         {selected.length === 0 && <LightingPanel fp={fp} />}
         {selected.length === 0 && (
         <Fold
@@ -341,6 +274,22 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
         <Fold id="icons" title="Icônes" label="Bibliothèque d’icônes" count={iconCount || undefined}>
           <IconPalette />
         </Fold>
+        )}
+      </div>
+      <div className="side-foot">
+        <span className="spacer" />
+        {el ? (
+          <button type="button" className="btn small danger" title="⌫ sur le plan" onClick={() => (apply((d) => deleteElements(d, fp.id, [el.id]), 'Élément supprimé'), useFloor.getState().set({ selection: [] }))}>
+            {el.kind === 'camera' ? 'Retirer du plan' : 'Supprimer'}
+          </button>
+        ) : selected.length > 1 ? (
+          <button type="button" className="btn small danger" title="⌫ sur le plan" onClick={() => (apply((d) => deleteElements(d, fp.id, selected.map((x) => x.id)), `${selected.length} éléments supprimés`), useFloor.getState().set({ selection: [] }))}>
+            Supprimer ({selected.length})
+          </button>
+        ) : (
+          <button type="button" className="btn small danger" onClick={() => (apply((d) => deleteFloorPlan(d, fp.id), 'Plan au sol supprimé'), useFloor.getState().set({ currentId: null }))}>
+            Supprimer ce plan au sol
+          </button>
         )}
       </div>
     </aside>

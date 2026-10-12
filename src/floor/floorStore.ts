@@ -27,6 +27,8 @@ export interface FloorUi {
   /** Élément dont on trace le trajet. */
   pathFor: Id | null;
   viewports: Record<Id, Viewport>;
+  /** Séquence choisie qui n'a pas encore de plan au sol (0.24) : état vide au centre, avec « Créer ». */
+  emptySeqId: Id | null;
   set(p: Partial<Omit<FloorUi, 'set'>>): void;
 }
 
@@ -39,7 +41,9 @@ export const useFloor = create<FloorUi>()((set) => ({
   placingIcon: null,
   pathFor: null,
   viewports: {},
-  set: (p) => set(p),
+  emptySeqId: null,
+  // Ouvrir un plan au sol quitte l'état vide d'une séquence sans plan.
+  set: (p) => set('currentId' in p && !('emptySeqId' in p) ? { ...p, emptySeqId: null } : p),
 }));
 
 export const ACTOR_COLORS = ['#E5484D', '#2E9150', '#8E4EC6', '#D98A1C', '#0091FF', '#E93D82'];

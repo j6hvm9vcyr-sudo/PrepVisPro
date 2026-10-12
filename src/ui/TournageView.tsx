@@ -22,6 +22,8 @@ import { sequenceTitle, stripColors } from './strip';
 import { SequenceShooting } from './Installations';
 import { PanelHead } from './Chrome';
 import { setPanel } from './panels';
+import { Info } from './Info';
+import { ActionMenu, type MenuItems } from './ActionMenu';
 
 /** Ce qui est choisi dans le Tournage : un jour, une séquence, ou tout le tournage (matériel). */
 export type TourSel = { kind: 'day'; id: Id } | { kind: 'seq'; id: Id } | { kind: 'all' } | null;
@@ -69,7 +71,45 @@ export function TournageDetails() {
           <div className="empty-line">Choisissez un jour ou une séquence</div>
         )}
       </div>
+      {day && <DayFoot doc={doc} day={day} label={labels.get(day.id)!} />}
     </aside>
+  );
+}
+
+/** Pied des détails d'un jour (0.24) : déplacer, dupliquer ; supprimer en dernier. */
+function DayFoot({ doc, day, label }: { doc: ProjectDoc; day: ProjectDoc['shootingDays'][number]; label: string }) {
+  const i = doc.shootingDays.findIndex((d) => d.id === day.id);
+  const items: MenuItems = [
+    { label: 'Monter ce jour', run: () => apply((d) => moveDay(d, day.id, -1)), disabled: i === 0 },
+    { label: 'Descendre ce jour', run: () => apply((d) => moveDay(d, day.id, 1)), disabled: i === doc.shootingDays.length - 1 },
+    null,
+    {
+      label: 'Dupliquer ce jour',
+      run: () => {
+        const r = duplicateDay(selectDoc(useApp.getState()), day.id);
+        if (!r) return;
+        apply(() => r.doc, `${label} dupliqué`);
+        showInTournage({ kind: 'day', id: r.id });
+      },
+    },
+  ];
+  return (
+    <div className="side-foot">
+      <ActionMenu label={`${label} : plus d’actions`} items={items} className="btn small">
+        ··· Plus
+      </ActionMenu>
+      <span className="spacer" />
+      <button
+        type="button"
+        className="btn small danger"
+        onClick={() => {
+          apply((d) => removeDay(d, day.id), `${label} supprimé`);
+          useTournage.getState().set(null);
+        }}
+      >
+        Supprimer le jour
+      </button>
+    </div>
   );
 }
 
@@ -82,6 +122,14 @@ export function addShootingDay() {
 }
 
 /** Barre du Tournage : trier les jours, matériel de tout le tournage, nouveau jour. */
+export function TournageNew() {
+  return (
+    <button type="button" className="tool-b" onClick={addShootingDay}>
+      + Jour
+    </button>
+  );
+}
+
 export function TournageBar() {
   const doc = useApp(selectDoc);
   const sel = useTournage((s) => s.sel);
@@ -94,9 +142,6 @@ export function TournageBar() {
       )}
       <button type="button" className={`tool-b ${sel?.kind === 'all' ? 'on' : ''}`} aria-pressed={sel?.kind === 'all'} onClick={() => showInTournage(sel?.kind === 'all' ? null : { kind: 'all' })}>
         Matériel du tournage
-      </button>
-      <button type="button" className="tool-b" onClick={addShootingDay}>
-        + Jour
       </button>
     </>
   );
@@ -245,7 +290,6 @@ function DayPage({ doc, day, label, labels }: { doc: ProjectDoc; day: ShootingDa
   const sun = daySun(doc, day);
   const tz = projectTimeZone(doc);
   const t = (ms: number | null) => (ms === null ? '—' : utcToLocal(Math.round(ms / 60000) * 60000, tz).time);
-  const i = doc.shootingDays.findIndex((d) => d.id === day.id);
   const upd = (fn: (d: ShootingDay) => void, key?: string) => apply((d) => updateDay(d, day.id, fn), undefined, key ? `day-${key}-${day.id}` : undefined);
   const others = doc.sequences.filter((s) => !day.sequenceIds.includes(s.id));
   const plansCount = seqs.reduce((n, s) => n + s.plans.length, 0);
@@ -266,35 +310,6 @@ function DayPage({ doc, day, label, labels }: { doc: ProjectDoc; day: ShootingDa
           Date
           <input type="date" aria-label="Date du jour de tournage" value={day.date ?? ''} onChange={(e) => upd((x) => void (x.date = e.target.value || null))} />
         </label>
-        <button type="button" className="icon-btn" aria-label="Monter ce jour" disabled={i === 0} onClick={() => apply((d) => moveDay(d, day.id, -1))}>
-          ↑
-        </button>
-        <button type="button" className="icon-btn" aria-label="Descendre ce jour" disabled={i === doc.shootingDays.length - 1} onClick={() => apply((d) => moveDay(d, day.id, 1))}>
-          ↓
-        </button>
-        <button
-          type="button"
-          className="linkbtn"
-          title="Mêmes séquences et même note, date à fixer"
-          onClick={() => {
-            const r = duplicateDay(selectDoc(useApp.getState()), day.id);
-            if (!r) return;
-            apply(() => r.doc, `${label} dupliqué`);
-            showInTournage({ kind: 'day', id: r.id });
-          }}
-        >
-          Dupliquer
-        </button>
-        <button
-          type="button"
-          className="linkbtn danger"
-          onClick={() => {
-            apply((d) => removeDay(d, day.id), `${label} supprimé`);
-            useTournage.getState().set(null);
-          }}
-        >
-          Supprimer ce jour
-        </button>
       </div>
       <textarea className="day-note" rows={2} aria-label="Note du jour" placeholder="Note : horaires, déplacements, remarques de la régie…" value={day.note} onChange={(e) => upd((x) => void (x.note = e.target.value), 'note')} />
 
@@ -394,7 +409,7 @@ function DayPage({ doc, day, label, labels }: { doc: ProjectDoc; day: ShootingDa
         {!day.date ? (
           <p className="note" style={{ margin: 0 }}>Fixez la date du jour pour les horaires du soleil.</p>
         ) : sun.length === 0 ? (
-          <p className="note" style={{ margin: 0 }}>Aucun décor de ce jour n’a de position GPS (fiche de la séquence).</p>
+          <p className="note" style={{ margin: 0 }}>Aucun décor de ce jour n’a de position GPS (détails de la séquence, au Découpage).</p>
         ) : (
           sun.map((x) => (
             <div key={x.location + x.sequences.join()} className="light-readings day-sun">
@@ -473,7 +488,9 @@ function EquipmentPanel({ eq }: { eq: Equipment }) {
     <section className="install" aria-label="Matériel">
       <div className="install-h">
         <b>Matériel</b>
-        <span className="note">déduit du découpage, des plans au sol et des plans feux</span>
+        <Info title="Matériel">
+          <span>Déduit du découpage (caméras, optiques, machinerie), des plans au sol et des plans feux (projecteurs, réflecteurs, gélatines). Rien n’est saisi à la main ici.</span>
+        </Info>
       </div>
       <div className="equip">
         <div className="equip-col">

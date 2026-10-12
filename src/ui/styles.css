@@ -1354,3 +1354,15 @@ button.board-group-h:hover { background: var(--accent-soft); }
 .seq-details .icard .row { display: grid; grid-template-columns: 64px minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
 .seq-details .field.small { min-width: 0; }
 .seq-details .field select, .seq-details .field input { width: 100%; min-width: 0; box-sizing: border-box; }
+
+/* ——— 0.24.2 : Plans au sol — outils dans la barre, bande des plans en bas, état vide ——— */
+.tools-inline { display: inline-flex; gap: 2px; padding: 3px; border-radius: 9px; background: var(--border-soft); }
+.tools-inline button { width: 32px; height: 28px; border: 0; border-radius: 7px; background: transparent; color: var(--text2); display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+.tools-inline button:hover { color: var(--text); }
+.tools-inline button[aria-pressed='true'] { background: var(--panel); color: var(--accent); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14); }
+.tree-seq-row.none .cnt { font-size: 11px; color: var(--text3); font-weight: 500; }
+.tree-seq-row.none.open { background: var(--accent-soft); color: var(--accent); }
+.floor-file .row .picker { min-width: 260px; }
+.tour-details .shooting-head > div:first-child { flex: 1; min-width: 0; }
+.tour-details .shooting-head .field.small { flex: none; min-width: 0; }
+.tour-details .shooting-head input[type='date'] { width: 140px; box-sizing: border-box; }

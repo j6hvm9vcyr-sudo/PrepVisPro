@@ -2,7 +2,8 @@
  * Soleil du plan au sol : nord du plan, date et heure simulées, position du soleil,
  * événements de la journée et rapport avec chaque caméra.
  */
-import { GpsField } from '../ui/Overlays';
+import { Info } from '../ui/Info';
+import { setPanel } from '../ui/panels';
 import { TimeZoneSelect } from '../ui/Settings';
 import { Explain } from '../ui/Explain';
 import { useApp } from '../state/appStore';
@@ -11,11 +12,18 @@ import type { FloorCamera, FloorPlan } from '../model/floor';
 import { cameraLabel, updateFloorPlan } from '../model/floorOps';
 import { computeNumbers } from '../model/numbering';
 import { formatNumber } from '../model/text';
-import { compassName, utcToLocal } from '../model/sun';
+import { compassName, formatCoordinates, utcToLocal } from '../model/sun';
 import { planLocation, planSun, projectTimeZone, shadowLength, sunForCamera } from '../model/sunPlan';
 import { DecimalField } from '../ui/DecimalField';
 import { dayLabels } from '../model/days';
-import { produce } from 'immer';
+
+/** Détails de la séquence, au Découpage : c'est là que se donne la position du décor. */
+function openSequenceDetails(seqId: string) {
+  const st = useApp.getState();
+  st.setView('table');
+  st.setEditingSequence(seqId);
+  setPanel('details', true);
+}
 
 const deg = (v: number) => `${formatNumber(Math.round(v))}°`;
 
@@ -55,7 +63,13 @@ export function SunSection({ fp }: { fp: FloorPlan }) {
 
       <div className="row" style={{ gap: 8, alignItems: 'flex-end', flexWrap: 'nowrap' }}>
         <div className="field small">
-          Nord du plan
+          <span className="field-h">
+            Nord du plan
+            <Info title="Nord du plan">
+              <span>Direction du nord sur le plan, en degrés (0° = haut du plan, sens horaire). Sans nord, le soleil n’est pas dessiné.</span>
+              <span>Vue satellite ou plan orienté : « Nord en haut ».</span>
+            </Info>
+          </span>
           <DecimalField
             label="Direction du nord sur le plan en degrés"
             unit="°"
@@ -70,29 +84,30 @@ export function SunSection({ fp }: { fp: FloorPlan }) {
           Nord en haut
         </button>
       </div>
-      {fp.northDeg === null && <p className="note" style={{ margin: 0 }}>Sans nord, le soleil n’est pas dessiné (0° = haut du plan).</p>}
 
       {seqs.length > 0 ? (
-        <GpsField
-          label={seqs.length > 1 ? `Coordonnées GPS du décor (séq. ${seqs.map((x) => x.number || '?').join(', ')})` : 'Coordonnées GPS du décor'}
-          value={gps}
-          onChange={(g) =>
-            apply(
-              (d) =>
-                produce(d, (x) => {
-                  for (const q of x.sequences) if (fp.sequenceIds.includes(q.id)) q.gps = g ? { ...g } : null;
-                }),
-              undefined,
-              `gps-${fp.id}`,
-            )
-          }
-        />
+        <div className="field">
+          <span className="field-h">
+            Position du décor
+            <Info title="Position du décor">
+              <span>La position GPS appartient à la séquence (c’est son décor) : elle se donne dans les détails de la séquence, au Découpage.</span>
+            </Info>
+          </span>
+          <div className="row" style={{ alignItems: 'center', gap: 8 }}>
+            <span className={gps ? 'mono' : 'note'} aria-label="Position GPS du décor">
+              {gps ? formatCoordinates(gps) : 'non renseignée'}
+            </span>
+            <button type="button" className="linkbtn" style={{ padding: 0 }} onClick={() => openSequenceDetails(seqs[0]!.id)}>
+              {gps ? 'Modifier' : 'Renseigner'} dans la séquence {seqs[0]!.number || '?'} →
+            </button>
+          </div>
+        </div>
       ) : (
         <p className="note" style={{ margin: 0 }}>Plan rattaché à aucune séquence : pas de position, pas de soleil.</p>
       )}
       {!loc.ok ? (
         loc.reason === 'none' ? null : (
-          <p className="note" style={{ margin: 0, color: 'var(--warn-text)' }}>Les séquences de ce plan ont des positions GPS différentes : le soleil n’est pas calculé. Saisissez la position ci-dessus pour les accorder.</p>
+          <p className="note" style={{ margin: 0, color: 'var(--warn-text)' }}>Les séquences de ce plan ont des positions GPS différentes : le soleil n’est pas calculé. Accordez-les dans les détails des séquences.</p>
         )
       ) : !fp.sunAt ? (
         <button type="button" className="btn" style={{ alignSelf: 'flex-start' }} onClick={() => setPlan((x) => void (x.sunAt = { date: shootDays[0]?.date ?? todayIn(tz), time: '12:00' }), 'sun')}>

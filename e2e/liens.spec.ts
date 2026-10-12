@@ -23,7 +23,7 @@ test('documents liés : un plan modifié se retrouve partout, « ce plan ailleur
   await expect(links.getByRole('button', { name: /caméra à placer/ })).toBeVisible();
   await links.getByRole('button', { name: /caméra à placer/ }).click();
   await expect(page.getByRole('application', { name: 'Plan au sol' })).toBeVisible();
-  await expect(page.locator('.place-item.on')).toContainText('1/1');
+  await expect(page.getByRole('button', { name: 'Placer la caméra 1/1', exact: true })).toHaveClass(/on/);
   const img = (await page.locator('.floor-canvas image').boundingBox())!;
   await page.mouse.click(img.x + img.width * 0.3, img.y + img.height * 0.6);
   await expect(page.locator('.floor-canvas text', { hasText: '32 mm' })).toBeVisible();
