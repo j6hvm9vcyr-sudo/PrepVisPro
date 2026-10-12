@@ -139,6 +139,20 @@ export interface FloorPlan {
   northDeg: number | null;
   /** Date et heure légales simulées pour le soleil ; null si pas de simulation. */
   sunAt: { date: string; time: string } | null;
+  /** Axes de la règle des 180°, chacun entre deux personnages de ce plan au sol (format 25). */
+  axes: FloorAxis[];
+}
+
+/**
+ * Axe entre deux personnages (règle des 180°). Les caméras de ce plan au sol sont d'un côté ou de
+ * l'autre ; un changement de côté entre deux plans qui se suivent est signalé (raccords.ts).
+ */
+export interface FloorAxis {
+  id: Id;
+  /** Les deux personnages (éléments `actor` de ce plan au sol). */
+  actorIds: [Id, Id];
+  /** Changements de côté acceptés (« C'est voulu »), chacun noté « planAvant>planAprès ». */
+  accepted: string[];
 }
 
 export const DEFAULT_FOV_LENGTH_M = 4;

@@ -20,6 +20,8 @@ const CAM_COLOR = '#2457C5';
 const CAM_END = '#7A5AF8';
 const LIGHT_COLOR = '#D98A1C';
 const REFLECTOR_COLOR = '#6B7280';
+/** Axe de la règle des 180° entre deux personnages. */
+export const AXIS_COLOR = '#B3372E';
 /** Largeur dessinée d'un réflecteur quand le plan n'est pas à l'échelle (pixels écran). */
 const UNSCALED_REFLECTOR_PX = 60;
 /** Longueur dessinée du faisceau des projecteurs, rapportée à celle des champs caméra. */
@@ -163,6 +165,32 @@ export function FloorScene({ doc, fp, k, numbers, selection = [], urlFor }: Scen
   const paths: ReactNode[] = [];
   const bodies: ReactNode[] = [];
   const labels: ReactNode[] = [];
+  const axes: ReactNode[] = [];
+
+  // Axes des 180° : la droite qui joint les deux personnages, prolongée de part et d'autre.
+  // Pâle si l'un d'eux se déplace (l'axe n'est alors pas vérifié).
+  for (const ax of fp.axes) {
+    const [a, b] = ax.actorIds.map((id) => fp.elements.find((e) => e.id === id));
+    if (!a || !b || a.kind !== 'actor' || b.kind !== 'actor') continue;
+    const len = Math.hypot(b.at.x - a.at.x, b.at.y - a.at.y);
+    if (!(len > 0)) continue;
+    const ux = (b.at.x - a.at.x) / len;
+    const uy = (b.at.y - a.at.y) / len;
+    const ext = Math.max(len * 0.35, 70 * k);
+    const p1 = { x: a.at.x - ux * ext, y: a.at.y - uy * ext };
+    const p2 = { x: b.at.x + ux * ext, y: b.at.y + uy * ext };
+    const moving = a.positions.length > 0 || b.positions.length > 0;
+    axes.push(
+      <g key={`ax-${ax.id}`} data-axis={ax.id} pointerEvents="none" opacity={moving ? 0.45 : 0.9}>
+        <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke={AXIS_COLOR} strokeWidth={1.8 * k} strokeDasharray={`${9 * k} ${6 * k}`} />
+        <g transform={`translate(${(a.at.x + b.at.x) / 2} ${(a.at.y + b.at.y) / 2}) scale(${k})`}>
+          <text y={-7} fontSize={11} fontWeight={700} textAnchor="middle" fill={AXIS_COLOR} stroke="#fff" strokeWidth={3} paintOrder="stroke">
+            {`${a.name || 'Personnage'} ↔ ${b.name || 'Personnage'}`}
+          </text>
+        </g>
+      </g>,
+    );
+  }
 
   for (const el of fp.elements) {
     const isSel = sel.has(el.id);
@@ -381,6 +409,7 @@ export function FloorScene({ doc, fp, k, numbers, selection = [], urlFor }: Scen
 
   return (
     <>
+      <g>{axes}</g>
       <g>{cones}</g>
       <g>{paths}</g>
       <g>{bodies}</g>

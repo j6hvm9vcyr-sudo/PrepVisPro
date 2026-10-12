@@ -41,6 +41,7 @@ export function migrate(raw: unknown): MigrateResult {
   if (v <= 21) doc = from21to22(doc);
   if (v <= 22) doc = from22to23(doc);
   if (v <= 23) doc = from23to24(doc);
+  if (v <= 24) doc = from24to25(doc);
   return { ok: true, raw: doc };
 }
 
@@ -343,4 +344,10 @@ function from23to24(doc: Record<string, unknown>): Record<string, unknown> {
   const files = publish && Array.isArray(publish.files) ? (publish.files as unknown[]) : null;
   const next = publish && files && !files.includes('html') ? { ...settings, publish: { ...publish, files: [...files, 'html'] } } : settings;
   return { ...doc, schemaVersion: 24, settings: next, feedback: [] };
+}
+
+/** Format 24 → 25 : axes de la règle des 180° sur les plans au sol (aucun). */
+function from24to25(doc: Record<string, unknown>): Record<string, unknown> {
+  const plans = Array.isArray(doc.floorPlans) ? doc.floorPlans : [];
+  return { ...doc, schemaVersion: 25, floorPlans: plans.map((f) => (f && typeof f === 'object' ? { ...(f as object), axes: [] } : f)) };
 }

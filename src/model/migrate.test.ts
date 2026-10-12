@@ -139,6 +139,27 @@ describe('mise à niveau des fichiers', () => {
     const r2 = m2.ok ? validateProject(m2.raw) : null;
     expect(r2?.ok && r2.doc.settings.publish.files).toEqual(['pdf', 'csv', 'html']);
   });
+  it('format 24 → 25 : aucun axe sur les plans au sol, relu à l’identique (avec un axe ensuite)', () => {
+    let cur = addFloorPlan(sampleProjectMultiCam(), newFloorPlan('P', []));
+    const fpId = cur.floorPlans[0]!.id;
+    cur = addElements(cur, fpId, [
+      { id: 'a1', kind: 'actor', at: { x: 0, y: 0 }, rotation: 0, name: 'Léa', color: '#E5484D', positions: [], icon: null, size: 40 },
+      { id: 'a2', kind: 'actor', at: { x: 100, y: 0 }, rotation: 0, name: 'Paul', color: '#3E63DD', positions: [], icon: null, size: 40 },
+    ]);
+    const old = JSON.parse(JSON.stringify({ ...cur, schemaVersion: 24, floorPlans: cur.floorPlans.map(({ axes: _a, ...f }) => f) }));
+    const m = migrate(old);
+    expect(m.ok).toBe(true);
+    if (!m.ok) return;
+    expect(Object.keys((m.raw as { floorPlans: object[] }).floorPlans[0]!)).toEqual(Object.keys(cur.floorPlans[0]!));
+    const r = validateProject(m.raw);
+    expect(r.ok && r.doc).toEqual(cur);
+    const withAxis = produce(cur, (d) => void d.floorPlans[0]!.axes.push({ id: 'ax', actorIds: ['a1', 'a2'], accepted: ['p1>p2'] }));
+    const r2 = validateProject(JSON.parse(JSON.stringify(withAxis)));
+    expect(r2.ok && r2.doc).toEqual(withAxis);
+    // Un axe vers un personnage absent : fichier refusé (incohérent).
+    const bad = produce(withAxis, (d) => void (d.floorPlans[0]!.axes[0]!.actorIds = ['a1', 'zz']));
+    expect(validateProject(JSON.parse(JSON.stringify(bad))).ok).toBe(false);
+  });
   it('format 16 → 17 : modèles d’export et icônes des figures dans le projet (aucun)', () => {
     const cur = newProject('X');
     const { exportPresets: _e, floorIcons: _f, ...old } = cur.settings;

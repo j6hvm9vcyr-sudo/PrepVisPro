@@ -179,3 +179,43 @@ export function floorMismatches(doc: ProjectDoc): Map<string, FloorMismatch[]> {
   }
   return out;
 }
+
+export interface InField {
+  actor: FloorActor;
+  /** Distance à la caméra (m) ; null si le plan au sol n'est pas à l'échelle. */
+  distanceM: number | null;
+  /** Largeur du cadre à cette distance (m) = distance × largeur de l'image ÷ focale. */
+  widthM: number | null;
+  inField: boolean;
+}
+
+/**
+ * Personnages dans le champ horizontal de la caméra, au début du plan (positions principales),
+ * du plus proche au plus loin ; puis ceux hors champ. null si le champ est inconnu (capteur ou
+ * focale manquants) : on ne dit pas qui est dans un champ qu'on ne connaît pas.
+ */
+export function actorsInField(doc: ProjectDoc, fp: FloorPlan, cam: FloorCamera): { horizontalDeg: number; actors: InField[] } | null {
+  const loc = cam.planId ? locatePlan(doc, cam.planId) : null;
+  const setup = loc?.plan.cameras.find((c) => c.id === cam.setupId);
+  if (!setup) return null;
+  const focal = setup.start.focalMm;
+  const fov = fieldOfView(
+    doc.settings.cameras.find((c) => c.id === setup.cameraId),
+    focal,
+    parseAspectRatio(doc.meta.aspectRatio),
+  );
+  if (fov.horizontal === null || fov.frame === null || focal === null) return null;
+  const half = fov.horizontal / 2;
+  const actors: InField[] = [];
+  for (const el of fp.elements) {
+    if (el.kind !== 'actor') continue;
+    const off = normalizeDeg(bearing(cam.at, el.at) - cam.rotation);
+    const dev = off > 180 ? 360 - off : off;
+    const units = Math.hypot(el.at.x - cam.at.x, el.at.y - cam.at.y);
+    const distanceM = metersBetween(fp, cam.at, el.at);
+    actors.push({ actor: el, distanceM, widthM: distanceM !== null ? (distanceM * fov.frame.widthMm) / focal : null, inField: units > 0 && dev <= half });
+  }
+  const d = (x: InField) => Math.hypot(x.actor.at.x - cam.at.x, x.actor.at.y - cam.at.y);
+  actors.sort((a, b) => Number(b.inField) - Number(a.inField) || d(a) - d(b));
+  return { horizontalDeg: fov.horizontal, actors };
+}

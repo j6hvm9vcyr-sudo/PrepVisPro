@@ -322,7 +322,7 @@ export interface FeedbackItem {
   state: 'new' | 'applied' | 'noted' | 'ignored';
 }
 
-export const SCHEMA_VERSION = 24 as const;
+export const SCHEMA_VERSION = 25 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;

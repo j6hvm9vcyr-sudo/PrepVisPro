@@ -12,6 +12,7 @@
 import type { CameraSetup, Id, Plan, ProjectDoc } from './types';
 import { missingFields } from './completeness';
 import { computeNumbers } from './numbering';
+import { axisJumps } from './raccords';
 
 export type PlanState = 'ok' | 'warn' | 'none';
 
@@ -21,7 +22,9 @@ export type VerifyItem =
   /** La séquence a un plan au sol, mais une caméra de ce plan n'y est placée nulle part. */
   | { kind: 'floor'; planId: Id; code: string; cameras: string[] }
   /** Des jours de tournage existent, mais cette séquence n'est dans aucun. */
-  | { kind: 'day'; seqId: Id; number: string; location: string };
+  | { kind: 'day'; seqId: Id; number: string; location: string }
+  /** Saut d'axe (règle des 180°) entre ce plan et le précédent, non marqué « C'est voulu ». */
+  | { kind: 'axis'; planId: Id; code: string; fromCode: string; names: [string, string]; floorPlanId: Id; axisId: Id; key: string };
 
 export interface Verification {
   items: VerifyItem[];
@@ -48,6 +51,8 @@ export function verify(doc: ProjectDoc): Verification {
   const states = new Map<Id, PlanState>();
   const labelOf = (cameraId: Id) => doc.settings.cameras.find((k) => k.id === cameraId)?.label ?? '?';
   const hasDays = doc.shootingDays.length > 0;
+  const jumps = new Map<Id, ReturnType<typeof axisJumps>>();
+  for (const j of axisJumps(doc, numbers)) if (!j.accepted) jumps.set(j.toPlanId, [...(jumps.get(j.toPlanId) ?? []), j]);
 
   for (const seq of doc.sequences) {
     const floors = doc.floorPlans.filter((f) => f.sequenceIds.includes(seq.id));
@@ -71,6 +76,10 @@ export function verify(doc: ProjectDoc): Verification {
           warn = true;
         }
       }
+      for (const j of jumps.get(plan.id) ?? []) {
+        items.push({ kind: 'axis', planId: plan.id, code, fromCode: j.fromCode, names: j.names, floorPlanId: j.floorPlanId, axisId: j.axisId, key: j.key });
+        warn = true;
+      }
       states.set(plan.id, warn ? 'warn' : 'ok');
     }
     if (hasDays && seq.plans.length && !doc.shootingDays.some((d) => d.sequenceIds.includes(seq.id))) {
@@ -89,5 +98,7 @@ export function itemLabel(it: VerifyItem): string {
       return `${it.code} · ${it.cameras.length ? `caméra${it.cameras.length > 1 ? 's' : ''} ${it.cameras.join(', ')} pas` : 'pas'} sur le plan au sol`;
     case 'day':
       return `Séq. ${it.number || '?'}${it.location ? ` · ${it.location}` : ''} · aucun jour`;
+    case 'axis':
+      return `${it.fromCode} → ${it.code} · saut d’axe ${it.names[0]} ↔ ${it.names[1]}`;
   }
 }

@@ -12,6 +12,7 @@ import { useLateFocus } from '../ui/focus';
 import { DecimalField } from '../ui/DecimalField';
 import { IconPalette } from './icons';
 import { FramingSuggestion } from './Suggest';
+import { ActorAxes, CameraField, CameraRaccords } from './Raccords';
 import { ActorLight, LightInspector } from './LightPanels';
 import { convertIcon } from './iconConvert';
 import { ReflectorInspector } from './ReflectorPanel';
@@ -149,7 +150,9 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
                   <input type="checkbox" checked={el.showFov} onChange={(e) => upd((x) => void (x.kind === 'camera' && (x.showFov = e.target.checked)), 'fov')} />
                   Afficher le champ
                 </label>
+                <CameraField fp={fp} cam={el} />
                 <FramingSuggestion fp={fp} cam={el} />
+                <CameraRaccords fp={fp} cam={el} />
                 <CameraSun fp={fp} cam={el} />
               </>
             )}
@@ -165,6 +168,7 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
                   ))}
                 </div>
                 <ActorLight fp={fp} actor={el} />
+                <ActorAxes fp={fp} actor={el} />
               </>
             )}
             {el.kind === 'light' && <LightInspector fp={fp} el={el} />}

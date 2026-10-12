@@ -8,7 +8,7 @@ import { displayText } from './entry';
 import { locatePlan } from './ops';
 
 export function newFloorPlan(name: string, sequenceIds: Id[]): FloorPlan {
-  return { id: newId('fp'), name, sequenceIds, background: null, scale: null, elements: [], fovLengthM: DEFAULT_FOV_LENGTH_M, northDeg: null, sunAt: null };
+  return { id: newId('fp'), name, sequenceIds, background: null, scale: null, elements: [], fovLengthM: DEFAULT_FOV_LENGTH_M, northDeg: null, sunAt: null, axes: [] };
 }
 
 export function addFloorPlan(doc: ProjectDoc, fp: FloorPlan): ProjectDoc {
@@ -99,7 +99,9 @@ export function cleanupFloorRefs(doc: ProjectDoc): ProjectDoc {
   const badLight = (e: FloorElement) => e.kind === 'light' && e.fixtureId !== null && (!modes.has(e.fixtureId) || e.mode >= modes.get(e.fixtureId)!);
   const mats = new Set(doc.settings.reflectors.map((m) => m.id));
   const badRefl = (e: FloorElement) => e.kind === 'reflector' && e.materialId !== null && !mats.has(e.materialId);
-  const needs = doc.floorPlans.some((fp) => fp.sequenceIds.some((id) => !seqIds.has(id)) || fp.elements.some((e) => (e.kind === 'camera' && e.planId && !setups.has(`${e.planId}|${e.setupId}`)) || badLight(e) || badRefl(e)));
+  // Axe dont un personnage a été retiré du plan au sol : l'axe part avec lui.
+  const badAxis = (fp: FloorPlan) => fp.axes.some((a) => !a.actorIds.every((x) => fp.elements.some((e) => e.kind === 'actor' && e.id === x)));
+  const needs = doc.floorPlans.some((fp) => fp.sequenceIds.some((id) => !seqIds.has(id)) || badAxis(fp) || fp.elements.some((e) => (e.kind === 'camera' && e.planId && !setups.has(`${e.planId}|${e.setupId}`)) || badLight(e) || badRefl(e)));
   if (!needs) return doc;
   return produce(doc, (d) => {
     for (const fp of d.floorPlans) {
@@ -119,6 +121,7 @@ export function cleanupFloorRefs(doc: ProjectDoc): ProjectDoc {
         }
       // Matière retirée du projet : le réflecteur redevient « non défini ».
       for (const e of fp.elements) if (e.kind === 'reflector' && e.materialId !== null && !mats.has(e.materialId)) e.materialId = null;
+      if (badAxis(fp)) fp.axes = fp.axes.filter((a) => a.actorIds.every((x) => fp.elements.some((e) => e.kind === 'actor' && e.id === x)));
     }
   });
 }

@@ -377,6 +377,24 @@ table.cams input { width: 100%; border: 1px solid var(--border); border-radius: 
 .suggest-v { flex: 1; font-weight: 600; }
 .suggest-v small { font-weight: 400; color: var(--text3); }
 .suggest-ok { color: var(--ok); font-weight: 700; }
+/* Raccords (0.23) : axes des 180°, sauts d'axe, personnages dans le champ */
+.raccords, .in-field { border: 1px solid var(--border-soft); border-radius: 8px; padding: 8px 10px; background: var(--head); display: flex; flex-direction: column; gap: 6px; }
+.raccords .sec-h, .in-field .sec-h { display: flex; align-items: center; gap: 6px; }
+.raccord-axis { display: flex; flex-direction: column; gap: 5px; padding-top: 2px; }
+.raccord-axis + .raccord-axis { border-top: 1px solid var(--border-soft); padding-top: 7px; }
+.raccord-head { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.raccord-shots { display: flex; flex-wrap: wrap; gap: 4px; }
+.raccord-shot { font-size: 11.5px; padding: 1px 6px; border-radius: 5px; border: 1px solid var(--border-soft); background: var(--panel); color: var(--text2); white-space: nowrap; }
+.raccord-shot.side-a { border-color: color-mix(in srgb, var(--accent) 45%, transparent); color: var(--accent); }
+.raccord-shot.side-b { border-color: color-mix(in srgb, var(--warn) 55%, transparent); color: var(--warn-text); }
+.raccord-shot.side-none { color: var(--text3); border-style: dashed; }
+.raccord-jump { display: flex; align-items: center; gap: 7px; font-size: 12.5px; }
+.raccord-jump .lbl { flex: 1; color: var(--warn-text); }
+.raccord-jump.accepted .lbl { color: var(--text3); }
+.in-field-row { display: flex; align-items: center; gap: 8px; border: 0; background: transparent; padding: 3px 2px; font: inherit; font-size: 13px; color: var(--text); text-align: left; border-radius: 6px; cursor: pointer; }
+.in-field-row:hover { background: var(--panel); }
+.in-field-row .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.in-field-row.out .lbl { color: var(--text3); }
 /* Versions */
 .dialog.versions { width: 900px; max-width: calc(100vw - 32px); height: 620px; max-height: calc(100vh - 40px); display: flex; flex-direction: column; gap: 12px; }
 .versions-new { display: grid; grid-template-columns: 1.2fr 1fr auto; gap: 8px; }

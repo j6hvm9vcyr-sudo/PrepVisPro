@@ -419,6 +419,15 @@ function goTo(it: VerifyItem) {
     focusGrid();
     return;
   }
+  if (it.kind === 'axis') {
+    // Saut d'axe : le plan au sol de l'axe, caméra du second plan choisie (ses détails disent « C'est voulu »).
+    st.goToPlan(it.planId);
+    const fp = st.hist.present.doc.floorPlans.find((f) => f.id === it.floorPlanId);
+    const cam = fp?.elements.find((e) => e.kind === 'camera' && e.planId === it.planId);
+    useFloor.getState().set({ currentId: it.floorPlanId, selection: cam ? [cam.id] : [], tool: 'select', draft: [] });
+    st.setView('floor');
+    return;
+  }
   // Plan au sol : on ouvre le premier plan au sol de la séquence, caméra à placer.
   st.goToPlan(it.planId);
   const links = planLinks(st.hist.present.doc, it.planId);
@@ -441,7 +450,7 @@ export function VerifyPanel() {
         count={items.length}
         info={
           <Info title="À vérifier">
-            <span>Cases du découpage vides, caméras absentes du plan au sol de leur séquence, séquences sans jour.</span>
+            <span>Cases du découpage vides, caméras absentes du plan au sol de leur séquence, sauts d’axe (règle des 180°), séquences sans jour.</span>
             <span>Le plan au sol et les jours ne sont vérifiés qu’une fois commencés.</span>
           </Info>
         }
@@ -450,7 +459,7 @@ export function VerifyPanel() {
       <div className="side-body">
         {items.length === 0 && <div className="empty-line">Rien à vérifier</div>}
         {items.map((it) => (
-          <button key={`${it.kind}-${it.kind === 'day' ? it.seqId : it.planId}`} type="button" className="verify-item" onClick={() => goTo(it)}>
+          <button key={`${it.kind}-${it.kind === 'day' ? it.seqId : it.kind === 'axis' ? it.key + it.axisId : it.planId}`} type="button" className="verify-item" onClick={() => goTo(it)}>
             <span className="st st-warn" aria-hidden />
             <span className="lbl">{itemLabel(it)}</span>
             <span className="go" aria-hidden>

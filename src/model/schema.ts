@@ -135,6 +135,7 @@ const floorPlan = z.object({
   fovLengthM: z.number().finite().positive(),
   northDeg: z.number().finite().min(0).max(360).nullable(),
   sunAt: z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), time: z.string().regex(/^\d{2}:\d{2}$/) }).nullable(),
+  axes: z.array(z.object({ id, actorIds: z.tuple([id, id]), accepted: z.array(z.string()) })),
 });
 
 const terms = z.object({
@@ -284,6 +285,11 @@ function checkIntegrity(doc: ProjectDoc): string | null {
   for (const fp of doc.floorPlans) {
     if (dup(fp.id)) return `identifiant de plan au sol en double (${fp.id}).`;
     for (const e of fp.elements) if (dup(e.id)) return `élément de plan au sol en double (${e.id}).`;
+    const actors = new Set(fp.elements.filter((e) => e.kind === 'actor').map((e) => e.id));
+    for (const a of fp.axes) {
+      if (dup(a.id)) return `axe en double (${a.id}).`;
+      if (a.actorIds[0] === a.actorIds[1] || !a.actorIds.every((x) => actors.has(x))) return `un axe renvoie à des personnages absents du plan au sol (${a.id}).`;
+    }
   }
   const seqIds = new Set(doc.sequences.map((x) => x.id));
   const libFiles = new Set<string>();

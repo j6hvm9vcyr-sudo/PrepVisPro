@@ -128,3 +128,27 @@ describe('focale inverse', () => {
     expect(idealFocalFor('Inconnu', 3, 24)).toBeNull();
   });
 });
+
+describe('personnages dans le champ', () => {
+  it('dans le champ horizontal, avec la distance et la largeur du cadre ; hors champ ensuite ; rien sans capteur', async () => {
+    const { actorsInField } = await import('./floorSuggest');
+    let d = doc((c) => [seq('1', [plan(c, { cameras: [setup(c, { start: fr({ focalMm: 75 }) })] })])]);
+    d = produce(d, (x) => {
+      x.settings.cameras[0]!.sensorWidthMm = 24.9;
+    });
+    const p = d.sequences[0]!.plans[0]!;
+    d = addFloorPlan(d, { ...newFloorPlan('Q', [d.sequences[0]!.id]), scale: computeScale({ x: 0, y: 0 }, { x: 100, y: 0 }, 1)! });
+    const cam: FloorCamera = { id: 'c', kind: 'camera', at: { x: 0, y: 0 }, rotation: 0, planId: p.id, setupId: p.cameras[0]!.id, showFov: true, positions: [], icon: null };
+    const actor = (id: string, name: string, x: number, y: number): FloorActor => ({ id, kind: 'actor', at: { x, y }, rotation: 180, name, color: '#E5484D', positions: [], icon: null, size: 40 });
+    d = addElements(d, d.floorPlans[0]!.id, [cam, actor('paul', 'Paul', 200, -320), actor('lea', 'Léa', 0, -320)]);
+    const r = actorsInField(d, d.floorPlans[0]!, cam)!;
+    // 2 × atan(24,9 ÷ 150) = 18,85°.
+    expect(r.horizontalDeg).toBeCloseTo(18.85, 2);
+    expect(r.actors.map((a) => [a.actor.name, a.inField])).toEqual([['Léa', true], ['Paul', false]]);
+    expect(r.actors[0]!.distanceM).toBeCloseTo(3.2, 6);
+    // 3,2 m × 24,9 mm ÷ 75 mm = 1,0624 m.
+    expect(r.actors[0]!.widthM).toBeCloseTo(1.0624, 4);
+    const noSensor = produce(d, (x) => void (x.settings.cameras[0]!.sensorWidthMm = null));
+    expect(actorsInField(noSensor, noSensor.floorPlans[0]!, cam)).toBeNull();
+  });
+});
