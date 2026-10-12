@@ -11,7 +11,7 @@ import { PUBLISH_FILES, type PublishFile } from '../model/types';
 import { compareDocs } from '../model/diff';
 import { revisionColor, revisionName } from '../model/revisions';
 import { getBackend } from '../platform/backend';
-import { focusGrid, useDialogFocus } from './focus';
+import { useShareBusy } from './shareBusy';
 import { Info } from './Info';
 import { Picker } from './Picker';
 
@@ -34,7 +34,8 @@ export function useChangesSincePublication() {
   }, [last, doc, projectId]);
 }
 
-export function PublishDialog({ onClose }: { onClose: () => void }) {
+/** Partager › Publier sur le drive (⇧⌘P). */
+export function PublishPane() {
   const doc = useApp(selectDoc);
   const folder = usePublishFolder();
   const busy = usePublish((s) => s.busy);
@@ -42,7 +43,7 @@ export function PublishDialog({ onClose }: { onClose: () => void }) {
   const last = usePublish((s) => s.last);
   const changes = useChangesSincePublication();
   const [result, setResult] = useState<PublishResult | null>(null);
-  const dlg = useDialogFocus<HTMLDivElement>();
+  useShareBusy(busy);
   const st = useApp.getState;
   const settings = doc.settings.publish;
   const base = baseNameOf(doc);
@@ -50,11 +51,6 @@ export function PublishDialog({ onClose }: { onClose: () => void }) {
   const files = filesToPublish(doc);
   const next = (last?.n ?? 0) + 1;
 
-  const close = () => {
-    if (busy) return;
-    onClose();
-    focusGrid();
-  };
   const toggle = (f: PublishFile) => {
     setResult(null);
     st().updateDoc(
@@ -74,30 +70,13 @@ export function PublishDialog({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div
-      ref={dlg}
-      tabIndex={-1}
-      className="overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Publier"
-      onClick={close}
-      onKeyDown={(e) => {
-        e.stopPropagation();
-        if (e.key === 'Escape') close();
-      }}
-    >
-      <div className="dialog publish" onClick={(e) => e.stopPropagation()}>
+    <section className="share-pane publish" role="tabpanel" aria-label="Publier">
         <div className="export-head">
-          <h3>Publier</h3>
+          <h3>Publier sur le drive</h3>
           <Info title="Publier">
             <span>Les fichiers choisis sont réécrits dans le dossier de diffusion, toujours sous les mêmes noms : partagez ce dossier (Google Drive, Dropbox, iCloud) une seule fois, le lien mène toujours à la dernière publication.</span>
             <span>« Publication N » et sa date sont écrits dans chaque document. Chaque publication est gardée dans les versions du projet.</span>
           </Info>
-          <span className="spacer" />
-          <button type="button" className="btn" onClick={close} disabled={busy}>
-            Fermer
-          </button>
         </div>
 
         <section className="sec" aria-label="Dossier de diffusion">
@@ -198,7 +177,6 @@ export function PublishDialog({ onClose }: { onClose: () => void }) {
             {busy ? 'Publication…' : `Publier (publication ${next} · ${revisionColor(next).name})`}
           </button>
         </div>
-      </div>
-    </div>
+    </section>
   );
 }

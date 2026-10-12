@@ -44,7 +44,6 @@ export function RetoursPanel() {
   const doc = useApp(selectDoc);
   const folder = usePublishFolder();
   const waiting = useRetours((s) => s.waiting);
-  const errors = useRetours((s) => s.errors);
   const numbers = useMemo(() => computeNumbers(doc), [doc]);
   const pending = pendingCount(doc);
   useEffect(() => {
@@ -62,43 +61,26 @@ export function RetoursPanel() {
             <span>Chaque retour devient une note datée, ou une proposition reprise dans le tableau : la case s’ouvre avec la valeur proposée, à valider (↩) ou annuler (esc).</span>
           </Info>
         }
-        onClose={() => {
-          useRetoursPanel.getState().set(false);
-          focusGrid();
-        }}
       />
       <div className="side-body">
         {waiting.length > 0 && (
           <div className="ret-waiting" role="status">
             <strong>
-              {waiting.length} fichier{waiting.length > 1 ? 's' : ''} de retours dans « Retours »
+              {waiting.length} fichier{waiting.length > 1 ? 's' : ''} de retours reçu{waiting.length > 1 ? 's' : ''}
             </strong>
-            {waiting.map((f) => (
-              <span key={f.id} className="note">
-                {f.role ? `${f.author} · ${f.role}` : f.author} · publication {f.publication} · {f.items.length} retour{f.items.length > 1 ? 's' : ''}
-              </span>
-            ))}
-            <button type="button" className="btn primary" onClick={importWaiting}>
-              Ranger avec le projet
+            <button type="button" className="linkbtn" style={{ alignSelf: 'flex-start', padding: 0 }} onClick={() => useApp.getState().setShare('retours')}>
+              Ranger avec le projet…
             </button>
           </div>
         )}
-        {errors.map((e) => (
-          <div key={e.name} className="note warn-text">
-            {e.name} : {e.error}
-          </div>
-        ))}
-        <div className="row">
-          {folder && (
-            <button type="button" className="linkbtn" onClick={() => void scanRetours()}>
-              Chercher dans le dossier de diffusion
+        {list.length === 0 && waiting.length === 0 && (
+          <div className="empty-line">
+            Aucun retour pour l’instant ·{' '}
+            <button type="button" className="linkbtn" style={{ padding: 0 }} onClick={() => useApp.getState().setShare('retours')}>
+              Retours reçus…
             </button>
-          )}
-          <button type="button" className="linkbtn" onClick={() => void importRetoursFile()}>
-            Importer un fichier…
-          </button>
-        </div>
-        {list.length === 0 && waiting.length === 0 && <div className="empty-line">Aucun retour pour l’instant</div>}
+          </div>
+        )}
         {list.map((f) => (
           <FeedbackCard key={f.id} doc={doc} fb={f} code={(id) => numbers.get(id)?.code ?? null} />
         ))}
@@ -111,6 +93,95 @@ export function RetoursPanel() {
         </div>
       )}
     </aside>
+  );
+}
+
+/**
+ * Partager › Retours reçus (0.24) : les fichiers déposés dans « Retours » du dossier de diffusion ou
+ * reçus par mail entrent dans le projet ici ; on les traite ensuite dans le panneau Retours du Découpage.
+ */
+export function RetoursPane({ onDone }: { onDone: () => void }) {
+  const doc = useApp(selectDoc);
+  const folder = usePublishFolder();
+  const waiting = useRetours((s) => s.waiting);
+  const errors = useRetours((s) => s.errors);
+  const pending = pendingCount(doc);
+  useEffect(() => {
+    void scanRetours();
+  }, [folder, doc.id]);
+  const files = [...doc.feedback].sort((a, b) => b.sentAt - a.sentAt);
+  const process = () => {
+    onDone();
+    if (useApp.getState().view !== 'table' && useApp.getState().view !== 'cards') useApp.getState().setView('table');
+    useRetoursPanel.getState().set(true);
+  };
+  return (
+    <section className="share-pane retours" role="tabpanel" aria-label="Retours reçus">
+      <div className="export-head">
+        <h3>Retours reçus</h3>
+        <Info title="Retours reçus">
+          <span>Le découpage interactif publié laisse chacun annoter les plans et enregistrer ses retours dans un fichier, à déposer dans « Retours » du dossier de diffusion ou à envoyer par mail.</span>
+          <span>Les fichiers trouvés dans « Retours » sont proposés ici ; un fichier reçu par mail s’importe. Les retours se traitent ensuite dans le panneau Retours du Découpage.</span>
+        </Info>
+      </div>
+      {waiting.length > 0 && (
+        <div className="ret-waiting" role="status">
+          <strong>
+            {waiting.length} fichier{waiting.length > 1 ? 's' : ''} de retours dans « Retours »
+          </strong>
+          {waiting.map((f) => (
+            <span key={f.id} className="note">
+              {f.role ? `${f.author} · ${f.role}` : f.author} · publication {f.publication} · {f.items.length} retour{f.items.length > 1 ? 's' : ''}
+            </span>
+          ))}
+          <button type="button" className="btn primary" style={{ alignSelf: 'flex-start' }} onClick={importWaiting}>
+            Ranger avec le projet
+          </button>
+        </div>
+      )}
+      {errors.map((e) => (
+        <div key={e.name} className="note warn-text">
+          {e.name} : {e.error}
+        </div>
+      ))}
+      <div className="row">
+        {folder && (
+          <button type="button" className="btn" onClick={() => void scanRetours()}>
+            Chercher dans le dossier de diffusion
+          </button>
+        )}
+        <button type="button" className="btn" onClick={() => void importRetoursFile()}>
+          Importer un fichier…
+        </button>
+      </div>
+      <section className="sec" aria-label="Retours du projet">
+        <div className="sec-h">Dans le projet</div>
+        {files.length === 0 ? (
+          <span className="note">Aucun retour pour l’instant</span>
+        ) : (
+          files.map((f) => {
+            const open = f.items.filter((i) => i.state === 'new').length;
+            return (
+              <div key={f.id} className="ret-file">
+                <span className="ret-rev" style={{ background: revisionColor(f.publication).hex }} aria-hidden />
+                <strong>{f.role ? `${f.author} · ${f.role}` : f.author}</strong>
+                <span className="note">
+                  publication {f.publication} · {when(f.sentAt)}
+                </span>
+                <span className="spacer" />
+                <span className={open ? 'warn-text' : 'note'}>{open ? `${open} à traiter` : 'tout est traité'}</span>
+              </div>
+            );
+          })
+        )}
+      </section>
+      <div className="share-actions">
+        <span className="spacer" />
+        <button type="button" className="btn primary" disabled={!files.length} onClick={process}>
+          Traiter dans le Découpage{pending ? ` (${pending})` : ''}
+        </button>
+      </div>
+    </section>
   );
 }
 

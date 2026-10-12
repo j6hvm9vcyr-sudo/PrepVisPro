@@ -12,7 +12,6 @@ import { sequenceTitle, stripColors } from './strip';
 import { NotesList } from './Notes';
 import { Info } from './Info';
 import { PanelHead } from './Chrome';
-import { setPanel } from './panels';
 import { isGridView } from './spaces';
 
 export function NotesPanel() {
@@ -44,7 +43,6 @@ export function NotesPanel() {
             <span>Notes d’un plan : aussi dans ses détails et dans la colonne Notes du tableau (Colonnes ▾). Les exports les reprennent : Divers (plan) et Commentaires (séquence), ✓ devant celles qui sont faites.</span>
           </Info>
         }
-        onClose={() => setPanel('notes', false)}
       />
       <div className="nv-head">
         <div className="seg" role="group" aria-label="Notes affichées">

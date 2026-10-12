@@ -19,9 +19,9 @@ async function excelFooter(bytes: number[]): Promise<string> {
 test('0.20 : publier dans le dossier de diffusion — mêmes noms à chaque fois, « Publication N » dans les documents, ce qui a changé depuis', async ({ page }) => {
   await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
-  const bar = page.getByRole('banner', { name: 'Panneaux' });
-  await bar.getByRole('button', { name: 'Publier', exact: true }).click();
-  const dlg = page.getByRole('dialog', { name: 'Publier' });
+  const bar = page.getByRole('banner', { name: 'Barre du haut' });
+  await bar.getByRole('button', { name: 'Partager', exact: true }).click();
+  const dlg = page.getByRole('dialog', { name: 'Partager' }).getByRole('tabpanel', { name: 'Publier' });
   await expect(dlg).toContainText('Aucun dossier choisi sur ce Mac');
   await expect(dlg).toContainText('Pas encore publié');
   await expect(dlg.getByRole('button', { name: 'Publier (publication 1 · blanche)' })).toBeDisabled();
@@ -48,7 +48,7 @@ test('0.20 : publier dans le dossier de diffusion — mêmes noms à chaque fois
   await page.locator('.line [id$="-focal"]').first().click();
   await page.keyboard.type('40');
   await page.keyboard.press('Enter');
-  await expect(bar.getByRole('button', { name: 'Publier (modifié depuis la dernière publication)' })).toBeVisible();
+  await expect(bar.getByRole('button', { name: 'Partager (modifié depuis la dernière publication)' })).toBeVisible();
   await page.keyboard.press('ControlOrMeta+Shift+P');
   await expect(dlg).toContainText('1 plan modifié');
   await page.evaluate(() => (window as unknown as { __prepvisMemory: { missingFolders: Set<string> } }).__prepvisMemory.missingFolders.add('/Drive/Le Quai/Image'));
@@ -63,7 +63,7 @@ test('0.20 : publier dans le dossier de diffusion — mêmes noms à chaque fois
   expect(Object.values(files).map((f) => f.writes)).toEqual([2, 2, 2]);
   expect(await excelFooter(files['/Drive/Le Quai/Image/Exemple — Le Quai — découpage.xlsx']!.bytes)).toContain('Publication 2 · révision bleue · ');
   await page.keyboard.press('Escape');
-  await expect(bar.getByRole('button', { name: 'Publier', exact: true })).toBeVisible();
+  await expect(bar.getByRole('button', { name: 'Partager', exact: true })).toBeVisible();
 
   // Chaque publication est gardée dans les versions.
   await page.keyboard.press('ControlOrMeta+Shift+S');

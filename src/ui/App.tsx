@@ -9,16 +9,15 @@ import { anyOverlay, selectCursor } from '../state/store';
 import { DecoupageTable } from './Table';
 import { CardsView } from './Cards';
 import { Inspector } from './Inspector';
-import { FilmTree, InterfaceBar, PageBar, SpaceBar, StatusBar, VerifyPanel } from './Chrome';
+import { FilmTree, InterfaceBar, SpaceBar, StatusBar, VerifyPanel } from './Chrome';
 import { isGridView, openSpace, SPACE_OF, useVerifyPanel } from './spaces';
 import { openDecoupagePanel, togglePanel, usePanelOpen, useRetoursPanel } from './panels';
 import { DropChoice, Preview, SequenceDialog, Shortcuts, StampDialog } from './Overlays';
 import { SettingsDialog } from './Settings';
 import { PrefsDialog } from './Preferences';
 import { Welcome } from './Welcome';
-import { ExportDialog } from './ExportDialog';
-import { PublishDialog } from './PublishDialog';
-import { AnimaticDialog } from './AnimaticDialog';
+import { ShareDialog } from './ShareDialog';
+import { useShareBusyStore } from './shareBusy';
 import { ImportDialog } from './ImportDialog';
 import { ContextMenu } from './ContextMenu';
 import { FloorView } from '../floor/FloorView';
@@ -68,10 +67,9 @@ function useGlobalShortcuts(settingsOpen: boolean) {
       // Fenêtre ouverte mais touche reçue hors d'elle (focus perdu) : Esc la ferme quand même.
       if (settingsOpen && e.key === 'Escape' && !(e.target instanceof Element && e.target.closest('.overlay'))) {
         e.preventDefault();
-        if (st.showExport) st.setShowExport(false);
-        else if (st.showPublish) st.setShowPublish(false);
-        else if (st.showAnimatic) st.setShowAnimatic(false);
-        else if (st.showVersions) st.setShowVersions(false);
+        if (st.share) {
+          if (!useShareBusyStore.getState().busy) st.setShare(null);
+        } else if (st.showVersions) st.setShowVersions(false);
         else if (st.showSettings) st.setShowSettings(false);
         else if (st.showPrefs) st.setShowPrefs(false);
         else if (st.importing) st.setImporting(null);
@@ -98,7 +96,7 @@ function useGlobalShortcuts(settingsOpen: boolean) {
       }
       if (meta && e.shiftKey && e.key.toLowerCase() === 'p') {
         e.preventDefault();
-        st.setShowPublish(true);
+        st.setShare('publish');
         return;
       }
       if (meta && e.shiftKey && e.key.toLowerCase() === 's') {
@@ -123,7 +121,7 @@ function useGlobalShortcuts(settingsOpen: boolean) {
       }
       if (meta && !e.shiftKey && e.key.toLowerCase() === 'e') {
         e.preventDefault();
-        st.setShowExport(true);
+        st.setShare('file');
         return;
       }
       if (meta && e.shiftKey && e.key.toLowerCase() === 'i') {
@@ -274,12 +272,10 @@ function Workspace() {
   const details = usePanelOpen('details');
   const settings = useApp((s) => s.showSettings);
   const prefs = useApp((s) => s.showPrefs);
-  const exporting = useApp((s) => s.showExport);
-  const publishing = useApp((s) => s.showPublish);
-  const animatic = useApp((s) => s.showAnimatic);
+  const share = useApp((s) => s.share);
   const versions = useApp((s) => s.showVersions);
   const importing = useApp((s) => !!s.importing);
-  useGlobalShortcuts(settings || prefs || exporting || publishing || importing || versions);
+  useGlobalShortcuts(settings || prefs || !!share || importing || versions);
 
   // Le clavier ne doit jamais « disparaître » après un clic sur un bouton (Safari).
   useEffect(
@@ -378,7 +374,6 @@ function Workspace() {
           </ErrorBoundary>
         )}
       </div>
-      <PageBar />
       <StatusBar />
       <Preview />
       <Shortcuts />
@@ -388,9 +383,7 @@ function Workspace() {
       <LibraryPicker />
       <ErrorBoundary label="fenêtre">
         {settings && <SettingsDialog onClose={() => useApp.getState().setShowSettings(false)} />}
-        {exporting && <ExportDialog onClose={() => useApp.getState().setShowExport(false)} />}
-        {publishing && <PublishDialog onClose={() => useApp.getState().setShowPublish(false)} />}
-        {animatic && <AnimaticDialog onClose={() => useApp.getState().setShowAnimatic(false)} />}
+        {share && <ShareDialog tab={share} />}
         <ImportDialog />
         <VersionsDialog />
       </ErrorBoundary>

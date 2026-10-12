@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import ExcelJS from 'exceljs';
 import { readFileSync } from 'node:fs';
 import { PNG_160x90_B64 } from '../src/test/fixtures';
+import { openSettings, share } from './ui';
 
 const cell = (page: Page, row: number, col: string) => page.locator(`.line [id$="-${col}"]`).nth(row);
 
@@ -145,7 +146,7 @@ test('modifier une séquence', async ({ page }) => {
 });
 
 test('réglages : largeur capteur donne un angle de champ', async ({ page }) => {
-  await page.getByRole('button', { name: 'Réglages' }).click();
+  await openSettings(page);
   await page.getByRole('tab', { name: 'Caméras' }).click();
   await page.getByLabel('Largeur capteur').first().fill('36');
   await page.getByLabel('Hauteur capteur').fill('24');
@@ -237,15 +238,15 @@ test('saisie incomplète puis clic ailleurs : rien n’est perdu', async ({ page
 
 test('fenêtres Réglages et Export : Esc ferme, et le clavier ne touche pas au tableau derrière', async ({ page }) => {
   await page.keyboard.press('ControlOrMeta+e');
-  await expect(page.getByRole('dialog', { name: 'Exporter' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Partager' }).getByRole('tabpanel', { name: 'Fichier' })).toBeVisible();
   await page.keyboard.press('Backspace');
   await page.keyboard.type('x');
   await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog', { name: 'Exporter' })).toHaveCount(0);
+  await expect(page.getByRole('dialog', { name: 'Partager' })).toHaveCount(0);
   await expect(cell(page, 0, 'size')).toHaveText('Ensemble');
   await expect(page.getByLabel('Saisie')).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Réglages' }).click();
+  await openSettings(page);
   await expect(page.getByRole('dialog', { name: 'Réglages du projet' })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog', { name: 'Réglages du projet' })).toHaveCount(0);
@@ -334,7 +335,7 @@ test('versions : enregistrer, voir ce qui a changé, revenir en arrière sans ri
   // Les exports disent de quelle version il s'agit.
   await page.keyboard.press('ControlOrMeta+e');
   const dl = page.waitForEvent('download');
-  await page.getByRole('dialog', { name: 'Exporter' }).getByRole('button', { name: 'Excel', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Partager' }).getByRole('button', { name: 'Excel', exact: true }).click();
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(readFileSync(await (await dl).path()).buffer as ArrayBuffer);
   expect(String(wb.getWorksheet('Page de garde')!.getCell('C7').value)).toMatch(/^V1 réalisation \(du .+\) \+ modifications$/);
@@ -356,7 +357,7 @@ test('versions : enregistrer, voir ce qui a changé, revenir en arrière sans ri
 });
 
 test('optiques du projet : focales proposées à la saisie, focale hors série signalée', async ({ page }) => {
-  await page.getByRole('button', { name: 'Réglages' }).click();
+  await openSettings(page);
   await page.getByRole('tab', { name: 'Optiques' }).click();
   await page.getByRole('button', { name: '+ Série de fixes' }).click();
   await page.getByLabel('Nom de la série').fill('Supreme');
@@ -395,7 +396,7 @@ test('↩ sur une case remplie : toute la liste est proposée, les flèches chan
 });
 
 test('0.9 : trois espaces, arbre du film, détails refermables, aide ⌘/', async ({ page }) => {
-  const spaces = page.getByRole('navigation', { name: 'Espaces' });
+  const spaces = page.getByRole('navigation', { name: 'Pages' });
   // Un espace rouvre la dernière vue utilisée dans cet espace.
   await page.getByRole('group', { name: 'Affichage du découpage' }).getByRole('button', { name: 'Fiches' }).click();
   await spaces.getByRole('button', { name: 'Tournage' }).click();
@@ -416,8 +417,8 @@ test('0.9 : trois espaces, arbre du film, détails refermables, aide ⌘/', asyn
   await tree.getByRole('button', { name: '1 · Quai de gare' }).click();
   await tree.getByRole('button', { name: 'Plan 1/3' }).click();
   await expect(page.locator('.line.sel [id$="-size"]')).toHaveText('Général → Poitrine');
-  // Détails : × ferme, le bouton de la barre du haut rouvre.
-  await page.getByRole('button', { name: 'Fermer les détails' }).click();
+  // Détails : le bouton de la barre du haut ferme et rouvre.
+  await page.getByRole('button', { name: 'Détails', exact: true }).click();
   await expect(page.getByRole('complementary', { name: 'Détails du plan' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Détails', exact: true }).click();
   await expect(page.getByRole('complementary', { name: 'Détails du plan' })).toBeVisible();
@@ -518,7 +519,7 @@ test('0.15 : colonnes du tableau choisies (et reprises par l’export) ; durée 
   // Reprise 1/2B : la durée de 1/2, grisée.
   await expect(cell(page, 3, 'duration')).toHaveText('4"');
   await expect(page.locator('.band').first()).toContainText('4 plans · 18"');
-  await expect(page.locator('.proj-sub').first()).toContainText('18" +');
+  await expect(page.getByRole('navigation', { name: 'Le film' }).locator('.panel-head')).toContainText('18" +');
   // Saisie au clavier : du mouvement, → passe directement à la durée (machinerie masquée).
   await cell(page, 4, 'movement').click();
   await page.keyboard.press('ArrowRight');
@@ -536,8 +537,7 @@ test('0.15 : colonnes du tableau choisies (et reprises par l’export) ; durée 
   await expect(cell(page, 4, 'duration')).toHaveText('1\'05"');
   await page.screenshot({ path: 'test-results/35-colonnes-duree.png' });
   // Export : « Comme le tableau » reprend ces colonnes.
-  await page.getByRole('button', { name: 'Exporter…' }).last().click();
-  const dlg = page.getByRole('dialog', { name: 'Exporter' });
+  const dlg = await share(page, 'Fichier');
   await dlg.getByRole('radio', { name: 'Comme le tableau' }).click();
   await expect(dlg.getByRole('checkbox', { name: 'Durée' })).toBeChecked();
   await expect(dlg.getByRole('checkbox', { name: 'Machinerie', exact: true })).not.toBeChecked();

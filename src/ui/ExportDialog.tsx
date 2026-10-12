@@ -7,12 +7,13 @@ import { ALL_COLUMNS, BUILTIN_PRESETS, COLUMN_DEFS, TABLE_PRESET_ID, tablePreset
 import { deleteProjectPreset, lastUsed, projectPresets, rememberLast, sameOptions, saveProjectPreset } from '../export/presets';
 import { buildExport, floorPlansFor, saveExport, type ExportFormat } from '../export/service';
 import { getBackend } from '../platform/backend';
-import { focusGrid, useDialogFocus } from './focus';
+import { useShareBusy } from './shareBusy';
 
 type Busy = { format: ExportFormat; progress: string } | null;
 type Done = { path: string; format: ExportFormat; failedImages: number; failedFloors: string[] } | null;
 
-export function ExportDialog({ onClose }: { onClose: () => void }) {
+/** Partager › Fichier : le découpage en PDF, Excel ou CSV (⌘E). */
+export function ExportPane() {
   const doc = useApp(selectDoc);
   // « Comme le tableau » suit les colonnes du tableau telles qu'elles sont maintenant.
   const [initial] = useState(() => {
@@ -26,15 +27,10 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   const [done, setDone] = useState<Done>(null);
   const [error, setError] = useState<string | null>(null);
   const [naming, setNaming] = useState<string | null>(null);
-  const dlg = useDialogFocus<HTMLDivElement>();
+  useShareBusy(!!busy);
   const preset = presets.find((p) => p.id === presetId);
   const modified = !preset || !sameOptions(preset.options, opts);
   const presetName = modified ? 'personnalisé' : preset!.name;
-
-  const close = () => {
-    onClose();
-    focusGrid();
-  };
 
   const choosePreset = (id: string) => {
     const p = presets.find((x) => x.id === id);
@@ -84,26 +80,9 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   const seqAll = opts.sequenceIds.length === 0;
 
   return (
-    <div
-      ref={dlg}
-      tabIndex={-1}
-      className="overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Exporter"
-      onClick={close}
-      onKeyDown={(e) => {
-        e.stopPropagation();
-        if (e.key === 'Escape' && !busy) close();
-      }}
-    >
-      <div className="dialog export" onClick={(e) => e.stopPropagation()}>
+    <section className="share-pane export" role="tabpanel" aria-label="Fichier">
         <div className="export-head">
           <h3>Exporter le découpage</h3>
-          <span className="spacer" />
-          <button type="button" className="btn" onClick={close} disabled={!!busy}>
-            Fermer
-          </button>
         </div>
         <div className="export-body">
           <div className="export-col">
@@ -315,8 +294,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
             </section>
           </div>
         </div>
-      </div>
-    </div>
+    </section>
   );
 }
 

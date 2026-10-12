@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { pick } from './pick';
+import { openSettings, share } from './ui';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/?exemple');
@@ -8,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 
 test('tournage : jours et installations ensemble — séquences du jour, ordre, soleil à la date du jour, matériel déduit', async ({ page }) => {
   // Fuseau fixé et position GPS du quai (pour le soleil).
-  await page.getByRole('button', { name: 'Réglages' }).click();
+  await openSettings(page);
   await page.getByLabel('Fuseau horaire').selectOption('Europe/Paris');
   await page.getByRole('button', { name: 'Terminé' }).click();
   await page.getByRole('button', { name: 'Modifier la séquence 1' }).click();
@@ -63,7 +64,7 @@ test('tournage : jours et installations ensemble — séquences du jour, ordre, 
   // Une séquence sans jour mène à sa place dans le Tournage.
   await verif.getByRole('button', { name: /Séq\. 3/ }).click();
   await expect(page.getByRole('button', { name: 'Installations de la séquence 3' })).toHaveAttribute('aria-pressed', 'true');
-  await verif.getByRole('button', { name: 'Fermer À vérifier' }).click();
+  await page.locator('.verify-btn').click();
   // Les détails montrent alors les installations de la séquence 3 ; J1 se rouvre d'un clic.
   await expect(page.getByRole('complementary', { name: 'Détails du tournage' })).toContainText('SÉQ. 3');
   await page.getByRole('button', { name: 'Ouvrir J1' }).click();
@@ -79,6 +80,6 @@ test('tournage : jours et installations ensemble — séquences du jour, ordre, 
 
   // Export : l'option est proposée et cochée.
   await page.keyboard.press('ControlOrMeta+3');
-  await page.getByRole('button', { name: 'Exporter…' }).first().click();
+  await share(page, 'Fichier');
   await expect(page.getByLabel(/Jours de tournage et matériel/)).toBeChecked();
 });

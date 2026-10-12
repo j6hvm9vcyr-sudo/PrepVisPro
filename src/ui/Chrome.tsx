@@ -9,15 +9,14 @@ import { planLinks } from '../model/links';
 import { DEFAULT_TABLE_COLUMNS, TABLE_COLUMN_IDS, type Id, type TableColumnId } from '../model/types';
 import { stripColors } from './strip';
 import { focusGrid } from './focus';
-import { flushSave, saveAsDialog, useProject } from '../state/project';
+import { closeProject, flushSave, revealProject, saveAsDialog, useProject } from '../state/project';
 import { filmFlow } from '../model/stamps';
 import { useFloor } from '../floor/floorStore';
-import { IconClose, IconExport, IconGear, IconGrid, IconList, IconPublish, PanelIcons, SpaceIcons } from './Icons';
+import { IconGrid, IconList, IconPublish, IconVerify, PanelIcons, SpaceIcons } from './Icons';
 import { useChangesSincePublication } from './PublishDialog';
 import { usePublish, usePublishFolder } from '../state/publish';
 import { PANEL_KEY, PANEL_LABEL, PANELS_OF, togglePanel, usePanelOpen, useRetoursPanel, type PanelId } from './panels';
 import { useRetoursCount } from './RetoursPanel';
-import { importRetoursFile } from '../state/retours';
 import { isGridView, openSpace, SPACE_OF, SPACES, useVerifyPanel, type Space } from './spaces';
 import { Info } from './Info';
 import { useTournage } from './TournageView';
@@ -30,51 +29,22 @@ export function useVerification() {
 
 const KEY_OF: Record<Space, string> = { decoupage: '⌘1', sol: '⌘2', tournage: '⌘3' };
 
-/** Barre des espaces, en bas de la fenêtre (comme les pages de Resolve). */
-export function PageBar() {
+/** Les trois pages, au centre de la barre du haut (0.24). */
+function PageSwitch() {
   const view = useApp((s) => s.view);
   const space = SPACE_OF[view];
-  const n = useVerification().items.length;
-  const verifyOpen = useVerifyPanel((s) => s.open);
-  const st = useApp.getState;
   return (
-    <footer className="pagebar glass" data-tauri-drag-region>
-      <div className="pagebar-left">
-        <button
-          type="button"
-          className={`vpill verify-btn ${verifyOpen ? 'on' : ''}`}
-          aria-pressed={verifyOpen}
-          aria-label={`À vérifier${n ? ` : ${n}` : ''}`}
-          title="À vérifier"
-          onClick={() => useVerifyPanel.getState().set(!verifyOpen)}
-        >
-          <span className={`st ${n ? 'st-warn' : 'st-ok'}`} aria-hidden />
-          {n ? `${n} à vérifier` : 'Rien à vérifier'}
-        </button>
-      </div>
-      <nav className="pages" aria-label="Espaces">
-        {SPACES.map((sp) => {
-          const I = SpaceIcons[sp.id];
-          return (
-            <button key={sp.id} type="button" className="page" aria-pressed={space === sp.id} onClick={() => openSpace(sp.id)} title={`${sp.label} (${KEY_OF[sp.id]})`}>
-              <I />
-              <span>{sp.label}</span>
-            </button>
-          );
-        })}
-      </nav>
-      <div className="pagebar-right">
-        <button type="button" className="ibtn" aria-label="Réglages" onClick={() => st().setShowSettings(true)} title="Réglages du projet (⇧⌘,)">
-          <IconGear />
-        </button>
-        <button type="button" className="ibtn" aria-label="Exporter…" onClick={() => st().setShowExport(true)} title="Exporter… (⌘E)">
-          <IconExport />
-        </button>
-        <button type="button" className="ibtn help-btn" onClick={() => st().setShowShortcuts(true)} aria-label="Raccourcis clavier" title="Aide et raccourcis (⌘/)">
-          ?
-        </button>
-      </div>
-    </footer>
+    <nav className="pages-top" aria-label="Pages">
+      {SPACES.map((sp) => {
+        const I = SpaceIcons[sp.id];
+        return (
+          <button key={sp.id} type="button" className="page-top" aria-pressed={space === sp.id} onMouseDown={(e) => e.preventDefault()} onClick={() => openSpace(sp.id)} title={`${sp.label} (${KEY_OF[sp.id]})`}>
+            <I />
+            <span>{sp.label}</span>
+          </button>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -89,79 +59,106 @@ function PanelToggle({ id }: { id: PanelId }) {
   );
 }
 
+/** À vérifier : un panneau de droite comme Détails, son bouton à côté, avec le nombre. */
+function VerifyToggle() {
+  const n = useVerification().items.length;
+  const open = useVerifyPanel((s) => s.open);
+  return (
+    <button type="button" className={`tog verify-btn ${open ? 'on' : ''}`} aria-pressed={open} aria-label={`À vérifier${n ? ` : ${n}` : ''}`} title={`${open ? 'Masquer' : 'Afficher'} À vérifier`} onMouseDown={(e) => e.preventDefault()} onClick={() => useVerifyPanel.getState().set(!open)}>
+      <IconVerify />
+      <span>À vérifier</span>
+      {n > 0 && <span className="tog-count">{n}</span>}
+    </button>
+  );
+}
+
 /**
- * Barre du haut (0.18, comme celle de Resolve) : les panneaux de la page à gauche, le projet au centre
- * (menu, enregistrement, taille du film), Détails à droite.
+ * Barre du haut, la seule de la fenêtre (0.24) : à gauche le projet (menu du fichier, enregistrement)
+ * et les panneaux de la page ; au centre les trois pages ; à droite Partager, À vérifier et Détails.
  */
 export function InterfaceBar() {
   const doc = useApp(selectDoc);
   const view = useApp((s) => s.view);
   const space = SPACE_OF[view];
   const st = useApp.getState;
+  const mode = useProject((p) => p.mode);
   const plans = doc.sequences.reduce((n, s) => n + s.plans.length, 0);
   const total = filmDuration(doc);
   const film = total.counted ? total : null;
+  const size = `${doc.sequences.length} séquence${doc.sequences.length > 1 ? 's' : ''} · ${plans} plan${plans > 1 ? 's' : ''}${film ? ` · ${formatDuration(film.seconds)}${film.missing ? ' +' : ''}` : ''}`;
   return (
-    <header className="ibar glass" data-tauri-drag-region aria-label="Panneaux">
+    <header className="ibar glass" data-tauri-drag-region aria-label="Barre du haut">
       <div className="ibar-side" data-tauri-drag-region>
         <span className="lights-space" data-tauri-drag-region aria-hidden />
+        <div className="ibar-proj">
+          <BarMenu label={doc.meta.title || 'Sans titre'} className="proj-menu" title={`Projet · ${size}`}>
+            <div className="bar-pop-cap" role="presentation">
+              {size}
+            </div>
+            {mode === 'unsaved' && (
+              <button type="button" role="menuitem" onClick={() => void saveAsDialog()}>
+                Enregistrer… <span className="k">⌘S</span>
+              </button>
+            )}
+            <button type="button" role="menuitem" onClick={() => st().setShowSettings(true)}>
+              Réglages du projet… <span className="k">⇧⌘,</span>
+            </button>
+            <button type="button" role="menuitem" onClick={() => st().setShowVersions(true)}>
+              Versions… <span className="k">⇧⌘S</span>
+            </button>
+            {mode === 'file' && (
+              <button type="button" role="menuitem" onClick={() => void revealProject()}>
+                Afficher dans le Finder
+              </button>
+            )}
+            <button type="button" role="menuitem" onClick={() => void closeProject()}>
+              Fermer le projet <span className="k">⇧⌘W</span>
+            </button>
+          </BarMenu>
+          <SaveIndicator />
+        </div>
+        <span className="vsep" aria-hidden />
         {PANELS_OF[space].map((id) => (
           <PanelToggle key={id} id={id} />
         ))}
       </div>
-      <div className="ibar-proj" data-tauri-drag-region>
-        <BarMenu label={doc.meta.title || 'Sans titre'} className="proj-menu" title="Projet">
-          <button type="button" role="menuitem" onClick={() => st().setShowSettings(true)}>
-            Réglages du projet…
-          </button>
-          <button type="button" role="menuitem" onClick={() => st().setShowVersions(true)}>
-            Versions…
-          </button>
-          <button type="button" role="menuitem" onClick={() => st().setShowExport(true)}>
-            Exporter…
-          </button>
-          <button type="button" role="menuitem" onClick={() => st().setShowPublish(true)}>
-            Publier…
-          </button>
-          <button type="button" role="menuitem" onClick={() => st().setShowAnimatic(true)}>
-            Animatique pour le montage…
-          </button>
-          <button type="button" role="menuitem" onClick={() => void importRetoursFile().then((ok) => ok && useRetoursPanel.getState().set(true))}>
-            Importer des retours…
-          </button>
-        </BarMenu>
-        <SaveIndicator />
-        <span className="proj-sub" data-tauri-drag-region>
-          {doc.sequences.length} séquence{doc.sequences.length > 1 ? 's' : ''} · {plans} plan{plans > 1 ? 's' : ''}
-          {film && (
-            <span title={film.missing ? `Durée des plans minutés, sans les reprises ; ${film.missing} plan${film.missing > 1 ? 's' : ''} sans durée` : 'Durée du film, sans les reprises'}>
-              {' '}
-              · {formatDuration(film.seconds)}
-              {film.missing ? ' +' : ''}
-            </span>
-          )}
-        </span>
-      </div>
+      <PageSwitch />
       <div className="ibar-side right" data-tauri-drag-region>
+        <ShareButton />
         {space === 'decoupage' && <RetoursToggle />}
-        <PublishButton />
+        <span className="vsep" aria-hidden />
+        <VerifyToggle />
         <PanelToggle id="details" />
       </div>
     </header>
   );
 }
 
-/** Publier (⇧⌘P) : un point orange quand le projet a changé depuis la dernière publication. */
-function PublishButton() {
+/** Taille du film, en tête du panneau Le film : plans et durée (« + » : des plans sans durée). */
+function FilmSize() {
+  const doc = useApp(selectDoc);
+  const plans = doc.sequences.reduce((n, s) => n + s.plans.length, 0);
+  const total = filmDuration(doc);
+  const film = total.counted ? total : null;
+  return (
+    <span title={film?.missing ? `Durée des plans minutés, sans les reprises ; ${film.missing} plan${film.missing > 1 ? 's' : ''} sans durée` : 'Durée du film, sans les reprises'}>
+      {plans} plan{plans > 1 ? 's' : ''}
+      {film ? ` · ${formatDuration(film.seconds)}${film.missing ? ' +' : ''}` : ''}
+    </span>
+  );
+}
+
+/** Partager (⇧⌘P) : tout ce qui sort ; un point orange quand le projet a changé depuis la dernière publication. */
+function ShareButton() {
   const changes = useChangesSincePublication();
   const last = usePublish((s) => s.last);
   const changed = !!changes?.any;
-  const title = last ? `Publication ${last.n}${changed ? ' · modifié depuis' : ' · à jour'} (⇧⌘P)` : 'Publier sur le drive de l’équipe (⇧⌘P)';
+  const title = last ? `Partager · publication ${last.n}${changed ? ', modifié depuis' : ', à jour'} (⇧⌘P)` : 'Partager : publier, exporter un fichier, animatique, retours (⇧⌘P)';
   return (
-    <button type="button" className="tog pub-btn" aria-label={changed ? 'Publier (modifié depuis la dernière publication)' : 'Publier'} title={title} onMouseDown={(e) => e.preventDefault()} onClick={() => useApp.getState().setShowPublish(true)}>
+    <button type="button" className="share-btn" aria-label={changed ? 'Partager (modifié depuis la dernière publication)' : 'Partager'} title={title} onMouseDown={(e) => e.preventDefault()} onClick={() => useApp.getState().setShare('publish')}>
       {changed && <span className="pub-dot" aria-hidden />}
       <IconPublish />
-      <span>Publier</span>
+      <span>Partager</span>
     </button>
   );
 }
@@ -183,8 +180,8 @@ function RetoursToggle() {
   );
 }
 
-/** En-tête d'un panneau : son nom, son ⓘ, et de quoi le fermer. */
-export function PanelHead({ label, count, info, onClose, children }: { label: string; count?: ReactNode; info?: ReactNode; onClose?: () => void; children?: ReactNode }) {
+/** En-tête d'un panneau : son nom et son ⓘ (il s'ouvre et se ferme depuis la barre du haut). */
+export function PanelHead({ label, count, info, children }: { label: string; count?: ReactNode; info?: ReactNode; children?: ReactNode }) {
   return (
     <div className="panel-head">
       <span className="panel-h">{label}</span>
@@ -192,11 +189,6 @@ export function PanelHead({ label, count, info, onClose, children }: { label: st
       {info}
       <span className="spacer" />
       {children}
-      {onClose && (
-        <button type="button" className="ibtn small" aria-label={`Fermer ${label}`} onClick={onClose}>
-          <IconClose />
-        </button>
-      )}
     </div>
   );
 }
@@ -346,7 +338,7 @@ export function FilmTree({ onPlan, head }: { onPlan?: (planId: Id) => void; head
   });
   return (
     <nav className="tree glass-panel" aria-label="Le film">
-      <PanelHead label="Le film" onClose={() => togglePanel('film')} />
+      <PanelHead label="Le film" count={<FilmSize />} />
       {head}
       {filmFlow(doc).map((it) => {
         if (it.kind === 'stamp')
@@ -442,7 +434,6 @@ function goTo(it: VerifyItem) {
 export function VerifyPanel() {
   const { items, notStarted } = useVerification();
   const st = useApp.getState;
-  const close = () => useVerifyPanel.getState().set(false);
   return (
     <aside className="side-panel verify" aria-label="À vérifier">
       <PanelHead
@@ -454,7 +445,6 @@ export function VerifyPanel() {
             <span>Le plan au sol et les jours ne sont vérifiés qu’une fois commencés.</span>
           </Info>
         }
-        onClose={close}
       />
       <div className="side-body">
         {items.length === 0 && <div className="empty-line">Rien à vérifier</div>}
@@ -494,7 +484,7 @@ export function VerifyPanel() {
   );
 }
 
-/** Messages : une bulle discrète en bas de la fenêtre, et l'aide « ? » en bas à droite. */
+/** Messages : une bulle discrète en bas de la fenêtre (l'aide est dans le menu Aide, ⌘/). */
 export function StatusBar() {
   const message = useApp((s) => s.message);
   const anchor = useApp((s) => s.anchor);
@@ -526,12 +516,9 @@ function SaveIndicator() {
   const p = useProject();
   if (p.mode === 'unsaved')
     return (
-      <span className="save-state unsaved">
-        Non enregistré ·{' '}
-        <button type="button" className="linkbtn" style={{ padding: 0 }} onClick={() => void saveAsDialog()}>
-          Enregistrer…
-        </button>
-      </span>
+      <button type="button" className="save-dot unsaved" aria-label="Non enregistré : enregistrer… (⌘S)" title="Non enregistré : enregistrer… (⌘S)" onClick={() => void saveAsDialog()}>
+        <span className="dot" />
+      </button>
     );
   if (p.mode !== 'file') return null;
   if (p.status === 'error')

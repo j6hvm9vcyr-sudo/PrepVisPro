@@ -68,14 +68,15 @@ export interface AppState {
   showSettings: boolean;
   /** Préférences de l'app (⌘,), distinctes des réglages du projet (⇧⌘,). */
   showPrefs: boolean;
-  showExport: boolean;
-  showPublish: boolean;
-  /** Animatique (0.22). */
-  showAnimatic: boolean;
+  /** Fenêtre Partager (0.24) ouverte sur cette partie : tout ce qui sort du projet. */
+  share: ShareTab | null;
   showVersions: boolean;
   importing: { name: string; scenes: import('../import/fdx').ScriptScene[] } | null;
   contextMenu: { x: number; y: number; planId: Id; setupId: Id } | null;
 }
+
+/** Parties de la fenêtre Partager (0.24). */
+export type ShareTab = 'publish' | 'file' | 'animatic' | 'retours';
 
 const MESSAGE_CLEAR = null;
 
@@ -100,9 +101,7 @@ function initialState(doc: ProjectDoc): AppState {
     libraryPick: null,
     showSettings: false,
     showPrefs: false,
-    showExport: false,
-    showPublish: false,
-    showAnimatic: false,
+    share: null,
     showVersions: false,
     importing: null,
     contextMenu: null,
@@ -169,7 +168,7 @@ export function suggestSequenceNumber(doc: ProjectDoc, afterSeqId: Id | null): s
 
 /** Une fenêtre superposée a la main sur le clavier (le tableau ne doit pas réagir). */
 export function anyOverlay(s: AppState): boolean {
-  return !!(s.preview || s.showShortcuts || s.pendingDrop || s.editingSequenceId || s.editingStampId || s.libraryPick || s.showSettings || s.showPrefs || s.showExport || s.showPublish || s.showAnimatic || s.showVersions || s.importing || s.contextMenu);
+  return !!(s.preview || s.showShortcuts || s.pendingDrop || s.editingSequenceId || s.editingStampId || s.libraryPick || s.showSettings || s.showPrefs || s.share || s.showVersions || s.importing || s.contextMenu);
 }
 
 /** Rectangle sélectionné (une seule cellule s'il n'y a pas de sélection étendue). */
@@ -341,9 +340,8 @@ interface Actions {
   setTiming(seqId: Id | null): void;
   setShowSettings(v: boolean): void;
   setShowPrefs(v: boolean): void;
-  setShowExport(v: boolean): void;
-  setShowPublish(v: boolean): void;
-  setShowAnimatic(v: boolean): void;
+  /** Ouvre Partager sur une partie (null : ferme). */
+  setShare(tab: ShareTab | null): void;
   setShowVersions(v: boolean): void;
   setImporting(v: AppState['importing']): void;
   setContextMenu(v: AppState['contextMenu']): void;
@@ -1048,15 +1046,8 @@ export function createAppStore(doc: ProjectDoc) {
         set(v ? { showPrefs: true, showSettings: false, editing: null } : { showPrefs: false });
       },
 
-      setShowExport(v) {
-        set({ showExport: v, editing: null });
-      },
-
-      setShowAnimatic(v) {
-        set({ showAnimatic: v, editing: null });
-      },
-      setShowPublish(v) {
-        set({ showPublish: v, editing: null });
+      setShare(tab) {
+        set({ share: tab, editing: null });
       },
 
       setShowVersions(v) {

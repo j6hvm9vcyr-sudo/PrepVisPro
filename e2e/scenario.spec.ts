@@ -79,8 +79,8 @@ test('0.17–0.18 : panneau Scénario à côté du tableau — passages reliés 
   await expect(pane).toContainText('SÉQ. 2');
   await expect(pane).toContainText('Pas de texte pour cette scène.');
   await expect(pane.getByRole('button', { name: 'Importer un scénario…' })).toBeVisible();
-  // Refermé (×), il le reste : la disposition des panneaux est gardée sur ce Mac.
-  await page.getByRole('button', { name: 'Fermer Scénario' }).click();
+  // Refermé, il le reste : la disposition des panneaux est gardée sur ce Mac.
+  await page.getByRole('banner', { name: 'Barre du haut' }).getByRole('button', { name: 'Scénario', exact: true }).click();
   await expect(pane).toHaveCount(0);
   await page.reload();
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();

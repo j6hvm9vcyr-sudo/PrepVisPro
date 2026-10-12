@@ -199,6 +199,13 @@ export const IconGrid = () => (
     <rect x="13" y="13" width="7" height="6.5" rx="1.2" />
   </Svg>
 );
+/** À vérifier (0.24). */
+export const IconVerify = () => (
+  <Svg>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 7.5v5M12 16v.5" />
+  </Svg>
+);
 /** Publier (0.20). */
 export const IconPublish = () => (
   <Svg>

@@ -100,13 +100,13 @@ function runMenuCommand(id: string) {
       void startScriptImport();
       return;
     case 'file_export':
-      st.setShowExport(true);
+      st.setShare('file');
       return;
     case 'file_animatic':
-      st.setShowAnimatic(true);
+      st.setShare('animatic');
       break;
     case 'file_publish':
-      st.setShowPublish(true);
+      st.setShare('publish');
       return;
     case 'file_versions':
       st.setShowVersions(true);

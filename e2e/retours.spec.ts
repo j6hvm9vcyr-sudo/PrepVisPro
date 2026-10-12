@@ -13,9 +13,9 @@ async function publishedText(page: Page, path: string): Promise<string> {
 test('0.21 : découpage interactif publié — révisions marquées « * », retours enregistrés puis repris dans le projet', async ({ page, context }) => {
   await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
-  const bar = page.getByRole('banner', { name: 'Panneaux' });
-  await bar.getByRole('button', { name: 'Publier', exact: true }).click();
-  const dlg = page.getByRole('dialog', { name: 'Publier' });
+  const bar = page.getByRole('banner', { name: 'Barre du haut' });
+  await bar.getByRole('button', { name: 'Partager', exact: true }).click();
+  const dlg = page.getByRole('dialog', { name: 'Partager' }).getByRole('tabpanel', { name: 'Publier' });
   await dlg.getByRole('button', { name: 'Choisir…' }).click();
   await dlg.getByRole('button', { name: 'Publier (publication 1 · blanche)' }).click();
   await expect(dlg.getByRole('status')).toContainText('Publication 1 :');
@@ -80,22 +80,29 @@ test('0.21 : découpage interactif publié — révisions marquées « * », ret
   await expect(viewer.locator('footer')).toContainText('0 retour à envoyer');
   await viewer.close();
 
-  // Déposé dans « Retours » du dossier de diffusion : trouvé, puis rangé avec le projet.
+  // Déposé dans « Retours » du dossier de diffusion : signalé dans le panneau Retours, rangé depuis Partager.
   await page.evaluate(([folder, t]) => (window as unknown as { __prepvisMemory: Memory }).__prepvisMemory.retours.get(folder!)!.push({ name: 'Retours Margaux.topshot-retours', text: t! }), [FOLDER, text]);
   await bar.getByRole('button', { name: 'Retours', exact: true }).click();
   const panel = page.getByRole('complementary', { name: 'Retours' });
-  await expect(panel.getByRole('status')).toContainText('1 fichier de retours dans « Retours »');
-  await expect(panel.getByRole('status')).toContainText('Margaux · Image · publication 2 · 3 retours');
-  await panel.getByRole('button', { name: 'Ranger avec le projet' }).click();
+  await expect(panel.getByRole('status')).toContainText('1 fichier de retours reçu');
+  await panel.getByRole('button', { name: 'Ranger avec le projet…' }).click();
+  const recu = page.getByRole('dialog', { name: 'Partager' }).getByRole('tabpanel', { name: 'Retours reçus' });
+  await expect(recu.getByRole('status')).toContainText('1 fichier de retours dans « Retours »');
+  await expect(recu.getByRole('status')).toContainText('Margaux · Image · publication 2 · 3 retours');
+  await recu.getByRole('button', { name: 'Ranger avec le projet' }).click();
+  await expect(recu).toContainText('Margaux · Image');
+  await expect(recu).toContainText('3 à traiter');
+  await page.screenshot({ path: 'test-results/42b-retours-recus.png' });
+
+  // Le même fichier reçu par mail : déjà là.
+  await page.evaluate((t) => void ((window as unknown as { __prepvisMemory: Memory }).__prepvisMemory.nextRetours = { name: 'Retours Margaux.topshot-retours', text: t }), text);
+  await recu.getByRole('button', { name: 'Importer un fichier…' }).click();
+  await expect(page.getByText('Ces retours de Margaux (image) sont déjà là')).toBeVisible();
+  await recu.getByRole('button', { name: 'Traiter dans le Découpage (3)' }).click();
   await expect(bar.getByRole('button', { name: 'Retours : 3' })).toBeVisible();
   const card = panel.getByRole('region', { name: 'Retours de Margaux' });
   await expect(card.locator('.ret-item')).toHaveCount(3);
   await page.screenshot({ path: 'test-results/42-retours.png' });
-
-  // Le même fichier reçu par mail : déjà là.
-  await page.evaluate((t) => void ((window as unknown as { __prepvisMemory: Memory }).__prepvisMemory.nextRetours = { name: 'Retours Margaux.topshot-retours', text: t }), text);
-  await panel.getByRole('button', { name: 'Importer un fichier…' }).click();
-  await expect(page.getByText('Ces retours de Margaux (image) sont déjà là')).toBeVisible();
 
   // Reprendre la focale proposée : la case s'ouvre avec 50, ↩ valide.
   const proposal = card.locator('.ret-item').filter({ hasText: 'Plutôt un 50' });

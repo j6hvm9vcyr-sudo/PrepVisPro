@@ -16,7 +16,6 @@ import { PlanLinksSection } from './PlanLinks';
 import { NotesList } from './Notes';
 import { CARD_FIELDS, CellEditor, editFromCard, useEditHost, type CardField } from './CellEditor';
 import { verify } from '../model/verify';
-import { IconClose } from './Icons';
 import { Picker } from './Picker';
 import { applyPreset, emptySetup, matchingPreset, presetLabel, savePreset } from '../model/shotPresets';
 
@@ -43,9 +42,6 @@ export function Inspector() {
           {parent && n.repriseLetter ? ` · reprise de ${parent.code}` : ''}
         </span>
         <span className="spacer" />
-        <button type="button" className="ibtn small" aria-label="Fermer les détails" title="Fermer (⌘I)" onClick={() => st().toggleInspector()}>
-          <IconClose />
-        </button>
       </div>
       <div className="side-body">
         <label className="icard">

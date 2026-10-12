@@ -3,12 +3,13 @@ import { pick } from './pick';
 import { resolve } from 'node:path';
 import { copyFileSync, readFileSync } from 'node:fs';
 import ExcelJS from 'exceljs';
+import { openSettings, share } from './ui';
 
 test('plan au sol : fond, mise à l’échelle, caméra du découpage avec son champ, mesure', async ({ page }) => {
   await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
   // Format capteur renseigné : le champ peut être dessiné.
-  await page.getByRole('button', { name: 'Réglages' }).click();
+  await openSettings(page);
   await page.getByRole('tab', { name: 'Caméras' }).click();
   await page.getByLabel('Largeur capteur').first().fill('24,89');
   await page.getByRole('button', { name: 'Terminé' }).click();
@@ -118,14 +119,14 @@ test('plan au sol : fond, mise à l’échelle, caméra du découpage avec son c
   await page.keyboard.press('ControlOrMeta+e');
   await expect(page.getByLabel('Plans au sol des séquences exportées (1 plan), en PDF et Excel')).toBeChecked();
   const dl3 = page.waitForEvent('download');
-  await page.getByRole('dialog', { name: 'Exporter' }).getByRole('button', { name: 'PDF', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Partager' }).getByRole('button', { name: 'PDF', exact: true }).click();
   const full = readFileSync(await (await dl3).path());
   expect(full.subarray(0, 5).toString()).toBe('%PDF-');
   await expect(page.getByText('Exporté :', { exact: true })).toBeVisible();
   copyFileSync(await (await dl3).path(), 'test-results/15-decoupage-avec-plan.pdf');
   // Et dans l'Excel : une feuille « Plans au sol » avec l'image du plan et sa légende.
   const dl4 = page.waitForEvent('download');
-  await page.getByRole('dialog', { name: 'Exporter' }).getByRole('button', { name: 'Excel', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Partager' }).getByRole('button', { name: 'Excel', exact: true }).click();
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(readFileSync(await (await dl4).path()).buffer as ArrayBuffer);
   const fws = wb.getWorksheet('Plans au sol')!;
@@ -340,10 +341,10 @@ test('tournage : installations proposées d’après le plan au sol, réorganis�
   await expect(page.locator('.board-ins-h.warn')).toHaveText('À ranger');
   await page.screenshot({ path: 'test-results/19-tournage.png' });
   // L'ordre de tournage part dans l'Excel.
-  await page.getByRole('button', { name: 'Exporter…' }).first().click();
+  await share(page, 'Fichier');
   await expect(page.getByLabel('Ordre de tournage (installations), en PDF et Excel')).toBeChecked();
   const dl = page.waitForEvent('download');
-  await page.getByRole('dialog', { name: 'Exporter' }).getByRole('button', { name: 'Excel', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Partager' }).getByRole('button', { name: 'Excel', exact: true }).click();
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(readFileSync(await (await dl).path()).buffer as ArrayBuffer);
   const sh = wb.getWorksheet('Ordre de tournage')!;
@@ -466,7 +467,7 @@ test('soleil : position GPS du décor, nord du plan, heure simulée, rapport ave
   await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
   // Fuseau du projet fixé (les heures ne dépendent pas de l'ordinateur qui fait le test).
-  await page.getByRole('button', { name: 'Réglages' }).click();
+  await openSettings(page);
   await page.getByLabel('Fuseau horaire').selectOption('Europe/Paris');
   await page.getByRole('button', { name: 'Terminé' }).click();
 

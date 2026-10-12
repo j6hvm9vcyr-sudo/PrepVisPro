@@ -12,7 +12,7 @@ import { computeNumbers } from '../model/numbering';
 import { addPlanForPassage, linkScene, sceneSegments } from '../model/scriptLink';
 import { Info } from './Info';
 import { PanelHead } from './Chrome';
-import { startTiming, togglePanel } from './panels';
+import { startTiming } from './panels';
 import { TimerBlock } from './Timer';
 import { sequenceTitle, stripColors } from './strip';
 import { focusGrid } from './focus';
@@ -54,7 +54,7 @@ export function ScenePanel() {
   if (!seq || !links)
     return (
       <aside className="side-panel left scene-panel" aria-label="Scénario">
-        <PanelHead label="Scénario" onClose={() => togglePanel('scenario')} />
+        <PanelHead label="Scénario" />
       </aside>
     );
   const pick = picked && picked.seqId === seq.id ? picked : null;
@@ -113,7 +113,6 @@ export function ScenePanel() {
             <span>Un extrait est relié s’il se retrouve tel quel dans la scène (les retours à la ligne comptent comme des espaces). Non couvert : le texte qu’aucun extrait ne reprend, sauf les noms de personnage seuls sur leur ligne.</span>
           </Info>
         }
-        onClose={() => togglePanel('scenario')}
       >
         {!timed && seq.plans.length > 0 && (
           <button type="button" className="linkbtn" title="Minuter à la lecture : espace à chaque changement de plan" onClick={() => startTiming(seq.id)}>

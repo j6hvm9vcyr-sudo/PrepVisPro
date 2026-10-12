@@ -2,6 +2,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { pick } from '../e2e/pick';
 import { resolve } from 'node:path';
+import { openSettings, share } from '../e2e/ui';
 
 const OUT = process.env.AUDIT_OUT ?? 'test-results/audit';
 const shot = (page: Page, name: string) => page.screenshot({ path: `${OUT}/${name}.png` });
@@ -62,7 +63,7 @@ test('audit', async ({ page }) => {
   await page.keyboard.press('ControlOrMeta+Alt+4');
   await page.keyboard.press('ControlOrMeta+Alt+l');
   // Réglages
-  await page.getByRole('button', { name: 'Réglages' }).click();
+  await openSettings(page);
   for (const tab of ['Projet', 'Caméras', 'Optiques', 'Listes de termes', 'Saisie des plans', 'Matériel']) {
     await page.getByRole('tab', { name: tab }).click();
     await shot(page, `10-reglages-${tab.replace(/ /g, '-')}`);
@@ -143,8 +144,8 @@ test('audit', async ({ page }) => {
   await shot(page, '22d-a-verifier');
   await page.getByRole('button', { name: 'À propos : À vérifier' }).click();
   await shot(page, '22e-a-verifier-info');
-  await page.getByRole('button', { name: 'Fermer À vérifier' }).click();
-  await page.getByRole('button', { name: 'Fermer les détails' }).click();
+  await page.locator('.verify-btn').click();
+  await page.getByRole('button', { name: 'Détails', exact: true }).click();
   await shot(page, '22f-tableau-sans-details');
   await page.getByRole('button', { name: 'Détails', exact: true }).click();
   // Tous les panneaux du Découpage ouverts (0.18)
@@ -152,13 +153,15 @@ test('audit', async ({ page }) => {
   await shot(page, '22g-tous-les-panneaux');
   for (const k of ['2', '3']) await page.keyboard.press(`ControlOrMeta+Alt+${k}`);
   // Dialogues
-  await page.getByRole('button', { name: 'Exporter…' }).last().click();
+  await share(page, 'Fichier');
   await shot(page, '23-export');
+  await share(page, 'Publier sur le drive');
+  await shot(page, '23b-partager');
   await page.keyboard.press('Escape');
   await page.keyboard.press('ControlOrMeta+Shift+S');
   await shot(page, '24-versions');
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Raccourcis clavier' }).click();
+  await page.keyboard.press('ControlOrMeta+/');
   await shot(page, '25-raccourcis');
   await page.keyboard.press('Escape');
   // Petite fenêtre

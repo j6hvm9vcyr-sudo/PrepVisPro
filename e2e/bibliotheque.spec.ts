@@ -79,7 +79,7 @@ test('bibliothèque : importer une fois, réutiliser dans plusieurs plans, jamai
   await drawer.getByRole('separator', { name: 'Hauteur du panneau Images' }).focus();
   await page.keyboard.press('ArrowUp');
   await expect.poll(async () => (await drawer.boundingBox())!.height).toBe(h0 + 20);
-  await lib.getByRole('button', { name: 'Fermer Images' }).click();
+  await page.getByRole('banner', { name: 'Barre du haut' }).getByRole('button', { name: 'Images', exact: true }).click();
   await expect(drawer).toHaveCount(0);
 });
 

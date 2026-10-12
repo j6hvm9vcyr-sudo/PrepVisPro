@@ -57,7 +57,7 @@ export function TournageDetails() {
   const seq = sel?.kind === 'seq' ? doc.sequences.find((s) => s.id === sel.id) : undefined;
   return (
     <aside className="side-panel tour-details" aria-label="Détails du tournage">
-      <PanelHead label={day ? 'Détails · jour' : seq ? 'Détails · séquence' : sel?.kind === 'all' ? 'Détails · tout le tournage' : 'Détails'} onClose={() => setPanel('details', false)} />
+      <PanelHead label={day ? 'Détails · jour' : seq ? 'Détails · séquence' : sel?.kind === 'all' ? 'Détails · tout le tournage' : 'Détails'} />
       <div className="side-body">
         {day ? (
           <DayPage key={day.id} doc={doc} day={day} label={labels.get(day.id)!} labels={labels} />

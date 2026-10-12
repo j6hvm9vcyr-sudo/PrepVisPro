@@ -18,8 +18,7 @@ import { useFloor } from '../floor/floorStore';
 import { addFolder, childFolders, deleteFolder, folderLabel, imageCount, isInside, moveFolder, moveImages, renameFolder, type FolderResult } from '../model/imageFolders';
 import { Picker, type PickItem } from './Picker';
 import { Info } from './Info';
-import { IconClose } from './Icons';
-import { setLayout, setPanel } from './panels';
+import { setLayout } from './panels';
 import { usePrefs } from '../state/prefs';
 import { defaultLayout, IMAGES_MAX_HEIGHT, IMAGES_MIN_HEIGHT } from '../model/prefs';
 
@@ -381,9 +380,6 @@ function LibraryView() {
           </button>
         </div>
         <ImportButton primary folderId={into} />
-        <button type="button" className="ibtn small" aria-label="Fermer Images" onClick={() => setPanel('images', false)}>
-          <IconClose />
-        </button>
       </div>
       {here.length === 0 && place !== 'all' ? (
         <div className="library-empty">

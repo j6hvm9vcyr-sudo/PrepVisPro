@@ -6,7 +6,7 @@ test('accueil : ouvrir l’exemple, puis le projet indique qu’il n’est pas e
   await page.screenshot({ path: 'test-results/00-accueil.png' });
   await page.getByRole('button', { name: 'Ouvrir l’exemple' }).click();
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeVisible();
-  await expect(page.locator('.save-state.unsaved')).toContainText('Non enregistré');
+  await expect(page.getByRole('button', { name: /^Non enregistré/ })).toBeVisible();
 });
 
 test('accueil : projet vierge prêt à saisir', async ({ page }) => {

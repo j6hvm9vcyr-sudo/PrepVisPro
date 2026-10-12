@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { resolve } from 'node:path';
 import { pick } from './pick';
+import { openSettings } from './ui';
 
 test('0.23 : axe des 180° entre deux personnages, saut d’axe dans À vérifier, « C’est voulu » ; personnages dans le champ', async ({ page }) => {
   await page.goto('/?exemple');
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
-  await page.getByRole('button', { name: 'Réglages' }).click();
+  await openSettings(page);
   await page.getByRole('tab', { name: 'Caméras' }).click();
   await page.getByLabel('Largeur capteur').first().fill('24,89');
   await page.getByRole('button', { name: 'Terminé' }).click();
@@ -66,7 +67,7 @@ test('0.23 : axe des 180° entre deux personnages, saut d’axe dans À vérifie
   await expect(item).toBeVisible();
   await item.click();
   await expect(page.locator('.floor-canvas text', { hasText: '1/2' })).toBeVisible();
-  await verif.getByRole('button', { name: 'Fermer À vérifier' }).click();
+  await page.locator('.verify-btn').click();
   const rac = page.getByRole('region', { name: 'Raccords' });
   await expect(rac).toContainText('côté 2');
   await rac.getByRole('button', { name: 'C’est voulu' }).click();

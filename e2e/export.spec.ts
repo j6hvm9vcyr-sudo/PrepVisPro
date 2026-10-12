@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import { openSettings, share } from './ui';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/?exemple');
@@ -13,7 +14,7 @@ for (const [label, magic] of [
 ] as const) {
   test(`export ${label} depuis la fenêtre d’export`, async ({ page }) => {
     await page.keyboard.press('ControlOrMeta+e');
-    const dlg = page.getByRole('dialog', { name: 'Exporter' });
+    const dlg = page.getByRole('dialog', { name: 'Partager' }).getByRole('tabpanel', { name: 'Fichier' });
     await expect(dlg).toBeVisible();
     if (label === 'PDF') await page.screenshot({ path: 'test-results/08-export.png' });
     const download = page.waitForEvent('download');
@@ -27,8 +28,7 @@ for (const [label, magic] of [
 }
 
 test('modèle personnalisé : colonnes, ordre, enregistrement', async ({ page }) => {
-  await page.getByRole('button', { name: 'Exporter…' }).click();
-  const dlg = page.getByRole('dialog', { name: 'Exporter' });
+  const dlg = await share(page, 'Fichier');
   await dlg.getByRole('radio', { name: 'Version réalisation' }).click();
   await dlg.getByLabel('Notes', { exact: true }).check();
   await expect(dlg.getByText('Personnalisé (non enregistré)')).toBeVisible();
@@ -38,7 +38,7 @@ test('modèle personnalisé : colonnes, ordre, enregistrement', async ({ page })
   await expect(dlg.getByRole('radio', { name: 'Réal + divers' })).toHaveAttribute('aria-checked', 'true');
   // Gardé dans le projet (Réglages › Matériel).
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Réglages' }).click();
+  await openSettings(page);
   await page.getByRole('tab', { name: 'Matériel' }).click();
   await expect(page.getByRole('region', { name: 'Matériel de ce projet' })).toContainText(/Modèles d’export\s*Réal \+ divers/);
 });

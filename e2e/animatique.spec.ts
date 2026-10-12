@@ -1,6 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { PNG_160x90_B64 } from '../src/test/fixtures';
+import { share } from './ui';
 
 type Memory = { exports: Map<string, Uint8Array> };
 const DIR = '/Drive/Le Quai/Image/Exemple — Le Quai — animatique';
@@ -23,9 +24,7 @@ test('0.22 : animatique pour le montage — une image par plan minuté, timeline
   const imgs = page.getByRole('region', { name: 'Images', exact: true });
   await imgs.locator('input[type=file]').setInputFiles([{ name: 'quai.png', mimeType: 'image/png', buffer: Buffer.from(PNG_160x90_B64, 'base64') }]);
   await expect(page.locator('.line').first().locator('img')).toHaveCount(1);
-  await page.getByRole('button', { name: /^Exemple — Le Quai/ }).click();
-  await page.getByRole('menuitem', { name: 'Animatique pour le montage…' }).click();
-  const dlg = page.getByRole('dialog', { name: 'Animatique pour le montage' });
+  const dlg = await share(page, 'Animatique');
   const strip = dlg.getByLabel('Aperçu de l’animatique');
   const timed = await strip.locator('.anim-clip').count();
   expect(timed).toBeGreaterThan(0);
@@ -70,5 +69,5 @@ test('0.22 : animatique pour le montage — une image par plan minuté, timeline
   // page (CI de la 0.22). Échap doit fermer la fenêtre quand même.
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await page.keyboard.press('Escape');
-  await expect(dlg).toHaveCount(0);
+  await expect(page.getByRole('dialog', { name: 'Partager' })).toHaveCount(0);
 });

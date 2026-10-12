@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('0.18 : barre du haut — panneaux du Découpage, une seule chose à droite, disposition gardée', async ({ page }) => {
-  const bar = page.getByRole('banner', { name: 'Panneaux' });
+  const bar = page.getByRole('banner', { name: 'Barre du haut' });
   const tog = (name: string) => bar.getByRole('button', { name, exact: true });
   const film = page.getByRole('navigation', { name: 'Le film' });
   const details = page.getByRole('complementary', { name: 'Détails du plan' });
@@ -16,9 +16,10 @@ test('0.18 : barre du haut — panneaux du Découpage, une seule chose à droite
   await expect(tog('Détails')).toHaveAttribute('aria-pressed', 'true');
   await expect(film).toBeVisible();
   await expect(details).toBeVisible();
-  // Le projet au centre de la barre.
+  // Le projet à gauche de la barre (0.24), les pages au centre ; la taille du film dans Le film.
   await expect(bar.locator('.proj-menu .lbl')).toHaveText('Exemple — Le Quai');
-  await expect(bar).toContainText('4 séquences · 8 plans');
+  await expect(bar.getByRole('navigation', { name: 'Pages' }).getByRole('button', { name: 'Découpage' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(film).toContainText('8 plans');
 
   // Boutons et raccourcis (⌥⌘1 à ⌥⌘4) ; le clavier reste au tableau.
   await tog('Le film').click();
@@ -49,7 +50,7 @@ test('0.18 : barre du haut — panneaux du Découpage, une seule chose à droite
   await page.getByRole('button', { name: /^À vérifier/ }).click();
   await expect(page.getByRole('complementary', { name: 'À vérifier' })).toBeVisible();
   await expect(details).toHaveCount(0);
-  await page.getByRole('button', { name: 'Fermer À vérifier' }).click();
+  await page.getByRole('button', { name: /^À vérifier/ }).click();
   await expect(details).toBeVisible();
 
   // Liste / Fiches (⌥⌘L), dans la barre de la surface.

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { pick } from './pick';
+import { openSettings } from './ui';
 
 test('matériel : propre au projet ; l’ancien « Mon matériel » du Mac se reprend élément par élément', async ({ page }) => {
   await page.goto('/');
@@ -9,7 +10,7 @@ test('matériel : propre au projet ; l’ancien « Mon matériel » du Mac se re
     localStorage.setItem('prepvispro.exportPresets', JSON.stringify([{ id: 'u1', name: 'Ancien modèle', options: { columns: ['plan', 'action'] } }]));
   });
   await page.getByRole('button', { name: 'Projet vierge' }).click();
-  await page.getByRole('button', { name: 'Réglages' }).click();
+  await openSettings(page);
   await page.getByRole('tab', { name: 'Matériel' }).click();
   const dlg = page.getByRole('dialog', { name: 'Réglages du projet' });
   await expect(dlg.getByRole('region', { name: 'Matériel de ce projet' })).toContainText(/Projecteurs\s*aucun/);
@@ -36,7 +37,7 @@ test('matériel : propre au projet ; l’ancien « Mon matériel » du Mac se re
 test('projet suivant : un nouveau projet reprend les réglages et l’équipe, pas les séquences', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Ouvrir l’exemple' }).click();
-  await page.getByRole('button', { name: 'Réglages' }).click();
+  await openSettings(page);
   await page.getByRole('button', { name: '+ Ajouter' }).click();
   await page.getByPlaceholder('Poste').fill('Chef opérateur');
   await page.getByPlaceholder('Nom').fill('Adrien Rousseau');
@@ -45,7 +46,7 @@ test('projet suivant : un nouveau projet reprend les réglages et l’équipe, p
   await expect(page.getByRole('dialog', { name: 'Réglages du projet' })).toHaveCount(0);
   await expect(page.locator('.line')).toHaveCount(1);
   await expect(page.locator('.proj-menu .lbl')).toContainText('Sans titre');
-  await page.getByRole('button', { name: 'Réglages' }).click();
+  await openSettings(page);
   await expect(page.getByPlaceholder('Poste')).toHaveValue('Chef opérateur');
   await expect(page.getByPlaceholder('Nom')).toHaveValue('Adrien Rousseau');
   await expect(page.getByPlaceholder('1,85:1')).toHaveValue('1,85:1');
@@ -56,7 +57,7 @@ test('abréviations : ajoutées dans les Préférences, reconnues à la saisie, 
   await page.goto('/');
   await page.getByRole('button', { name: 'Projet vierge' }).click();
   // Les réglages du projet renvoient vers les préférences.
-  await page.getByRole('button', { name: 'Réglages' }).click();
+  await openSettings(page);
   await page.getByRole('tab', { name: 'Listes de termes' }).click();
   await page.getByRole('button', { name: 'Préférences… (⌘,)' }).click();
   await expect(page.getByRole('dialog', { name: 'Réglages du projet' })).toHaveCount(0);

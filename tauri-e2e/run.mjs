@@ -304,7 +304,7 @@ try {
 
   // Panneaux (0.18) sous WebKit : barre du haut, minuteur logé dans le panneau Scénario, espace au clavier.
   {
-    ok(await exec('return !!document.querySelector("header.ibar [data-tauri-drag-region]") && !!document.querySelector(".ibar-proj .proj-menu");'), 'barre du haut : projet au centre, fenêtre déplaçable');
+    ok(await exec('return !!document.querySelector("header.ibar [data-tauri-drag-region]") && !!document.querySelector(".ibar-proj .proj-menu") && document.querySelectorAll(".pages-top .page-top").length === 3 && !document.querySelector(".pagebar");'), 'barre du haut (0.24) : projet, pages au centre, plus de barre en bas, fenêtre déplaçable');
     await exec(`const st = window.__prepvis.app(); window.__savedCursor = st.cursor; st.setView('table'); const s = window.__prepvis.doc().sequences.find((x) => x.plans.some((p) => !p.repriseOf)); st.goToPlan(s.plans[0].id); st.setTiming(s.id); await window.__prepvis.panel('scenario', true); return true;`);
     ok(await waitFor(async () => (await exec('return !!document.querySelector(".scene-panel .timer-dock");')) === true, 3000), 'minuteur dans le panneau Scénario');
     await exec('document.querySelector("[role=grid]").focus(); return true;');

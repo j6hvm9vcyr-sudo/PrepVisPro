@@ -11,7 +11,7 @@ import { stripColors } from './strip';
 import { imageStore } from '../platform/images';
 import { getBackend } from '../platform/backend';
 import type { AnimaticResult, AnimaticTarget } from '../export/animatic';
-import { focusGrid, useDialogFocus } from './focus';
+import { useShareBusy } from './shareBusy';
 import { Info } from './Info';
 import { Picker } from './Picker';
 
@@ -20,10 +20,10 @@ function pxPerSecond(total: number): number {
   return Math.max(3, Math.min(22, 1000 / Math.max(1, total)));
 }
 
-export function AnimaticDialog({ onClose }: { onClose: () => void }) {
+/** Partager › Animatique. */
+export function AnimaticPane() {
   const doc = useApp(selectDoc);
   const st = useApp.getState;
-  const dlg = useDialogFocus<HTMLDivElement>();
   const [target, setTarget] = useState<AnimaticTarget>('otio');
   const [rate, setRate] = useState<AnimaticRate | null>(() => rateOf(doc.settings.exposure.fps));
   const [withProvisional, setWithProvisional] = useState(false);
@@ -42,11 +42,7 @@ export function AnimaticDialog({ onClose }: { onClose: () => void }) {
   const px = pxPerSecond(total);
   const projectFps = doc.settings.exposure.fps;
 
-  const close = () => {
-    if (busy) return;
-    onClose();
-    focusGrid();
-  };
+  useShareBusy(!!busy);
   const run = async () => {
     if (!rate) return;
     setResult(null);
@@ -67,20 +63,7 @@ export function AnimaticDialog({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div
-      ref={dlg}
-      tabIndex={-1}
-      className="overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Animatique pour le montage"
-      onClick={close}
-      onKeyDown={(e) => {
-        e.stopPropagation();
-        if (e.key === 'Escape') close();
-      }}
-    >
-      <div className="dialog animatic" onClick={(e) => e.stopPropagation()}>
+    <section className="share-pane animatic" role="tabpanel" aria-label="Animatique">
         <div className="export-head">
           <h3>Animatique pour le montage</h3>
           <Info title="Animatique">
@@ -93,9 +76,6 @@ export function AnimaticDialog({ onClose }: { onClose: () => void }) {
             {events.length} plan{events.length > 1 ? 's' : ''} · {formatDuration(total)}
             {missing.length > 0 && ` · ${missing.length} sans durée`}
           </span>
-          <button type="button" className="btn" onClick={close} disabled={!!busy}>
-            Fermer
-          </button>
         </div>
 
         <div className="anim-strip" aria-label="Aperçu de l’animatique">
@@ -186,7 +166,6 @@ export function AnimaticDialog({ onClose }: { onClose: () => void }) {
             {busy ? 'Création…' : 'Créer l’animatique…'}
           </button>
         </div>
-      </div>
-    </div>
+    </section>
   );
 }
