@@ -9,8 +9,8 @@ Trois pages qui partagent la même sélection : **Découpage** (le tableau, en l
 - **Découpage** au clavier : valeur, axe, angle, focale, mouvement, machinerie ; plans évolutifs, multicaméra, reprises, numérotation automatique ; tampons entre séquences (TITRE, GÉNÉRIQUE DE FIN…) ; notes datées par séquence et par plan, à cocher, toutes relues dans le panneau Notes ; durée des plans (saisie, ou minutée à la lecture de la séquence) et totaux par séquence ; colonnes du tableau au choix, reprises par l’export.
 - **Import de scénario** : Final Draft, Fountain, Word, PDF, texte.
 - **Plans au sol** : fond (plan d'architecte PDF ou vue satellite), mise à l'échelle, caméras du découpage avec leur champ réel, personnages, positions de début et de fin.
-- **Lumière** : projecteurs d'après les fiches des fabricants, gélatines LEE, réflecteurs à taux de réflexion publiés, éclairement et diaph sur les personnages, puissance par circuit ; soleil du décor (position GPS, date, heure).
-- **Tournage** : installations, ordre de tournage, jours de tournage et matériel déduit.
+- **Lumière** : projecteurs d'après les fiches des fabricants, gélatines LEE, réflecteurs à taux de réflexion publiés, éclairement et diaph sur les personnages, puissance par circuit ; soleil du décor (position GPS, date, heure réglée sur une réglette de la journée : nuit, crépuscule, heure dorée, jour).
+- **Tournage** : les jours côte à côte avec leurs séquences, installations et plans ; ordre de tournage, matériel déduit.
 - **Images** : bibliothèque du projet, chaque image importée une seule fois et réutilisable partout ; glissée du panneau Images sur un plan du tableau.
 - **Travailler vite** : matériel du projet repris d’un autre projet, nouveau projet avec les réglages d’un autre, plans types ; dans les préférences de l’app (⌘,, pour tous les projets) : réglages repris par le plan suivant, abréviations ; figures du plan au sol dessinées avec les icônes PF_ICONES livrées avec l’app, ou vos propres icônes ; colonnes et rangées du tableau ajustables ; carte Caméra modifiable sur place.
 - **Exports** : découpage technique PDF et Excel, plans au sol, ordre de tournage, jours et matériel.

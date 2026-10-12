@@ -13,9 +13,10 @@ import { flushSave, saveAsDialog, useProject } from '../state/project';
 import { filmFlow } from '../model/stamps';
 import { useFloor } from '../floor/floorStore';
 import { IconClose, IconExport, IconGear, IconGrid, IconList, PanelIcons, SpaceIcons } from './Icons';
-import { PANEL_KEY, PANEL_LABEL, togglePanel, usePanelOpen, type PanelId } from './panels';
+import { PANEL_KEY, PANEL_LABEL, PANELS_OF, togglePanel, usePanelOpen, type PanelId } from './panels';
 import { isGridView, openSpace, SPACE_OF, SPACES, useVerifyPanel, type Space } from './spaces';
 import { Info } from './Info';
+import { useTournage } from './TournageView';
 
 /** Relevé « À vérifier », recalculé à chaque modification du projet. */
 export function useVerification() {
@@ -73,9 +74,6 @@ export function PageBar() {
   );
 }
 
-/** Panneaux qu'on ouvre ou ferme dans chaque page (0.18 ; Plans au sol en 0.19). */
-const PANELS_OF: Record<Space, PanelId[]> = { decoupage: ['film', 'scenario', 'images', 'notes'], sol: [], tournage: ['film'] };
-
 function PanelToggle({ id }: { id: PanelId }) {
   const on = usePanelOpen(id);
   const I = PanelIcons[id];
@@ -132,7 +130,7 @@ export function InterfaceBar() {
         </span>
       </div>
       <div className="ibar-side right" data-tauri-drag-region>
-        {space === 'decoupage' && <PanelToggle id="details" />}
+        <PanelToggle id="details" />
       </div>
     </header>
   );
@@ -363,6 +361,8 @@ export function FilmTree({ onPlan, head }: { onPlan?: (planId: Id) => void; head
 function goTo(it: VerifyItem) {
   const st = useApp.getState();
   if (it.kind === 'day') {
+    // Séquence sans jour : choisie dans le Tournage (colonne « Sans jour »), À vérifier reste ouvert.
+    useTournage.getState().set({ kind: 'seq', id: it.seqId });
     st.setView('days');
     return;
   }
@@ -378,7 +378,7 @@ function goTo(it: VerifyItem) {
   const f = links?.floors[0];
   if (!f) return;
   const cam = f.cameras.find((c) => !c.elementId);
-  useFloor.getState().set({ currentId: f.id, selection: [], tool: 'select', draft: [], panel: 'plan', ...(cam ? { placing: { planId: it.planId, setupId: cam.setupId } } : {}) });
+  useFloor.getState().set({ currentId: f.id, selection: [], tool: 'select', draft: [], ...(cam ? { placing: { planId: it.planId, setupId: cam.setupId } } : {}) });
   st.setView('floor');
 }
 

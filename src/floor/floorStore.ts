@@ -27,9 +27,6 @@ export interface FloorUi {
   /** Élément dont on trace le trajet. */
   pathFor: Id | null;
   viewports: Record<Id, Viewport>;
-  /** Onglet du panneau de droite : le plan (ou la sélection) ou la lumière (soleil, projecteurs, réflecteurs). */
-  /** Onglet de l'espace Plans au sol : plan (sélection, figures) ou lumière (soleil compris). */
-  panel: 'plan' | 'light';
   set(p: Partial<Omit<FloorUi, 'set'>>): void;
 }
 
@@ -42,7 +39,6 @@ export const useFloor = create<FloorUi>()((set) => ({
   placingIcon: null,
   pathFor: null,
   viewports: {},
-  panel: 'plan',
   set: (p) => set(p),
 }));
 

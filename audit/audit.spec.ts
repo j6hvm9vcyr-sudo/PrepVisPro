@@ -112,25 +112,22 @@ test('audit', async ({ page }) => {
   await canvas.press('Escape');
   await canvas.press('Escape');
   await shot(page, '18-plan-rien-selectionne');
-  await page.getByRole('tab', { name: 'Lumière' }).click();
-  await shot(page, '18b-plan-lumiere');
-  await page.getByRole('tab', { name: 'Plan' }).click();
-  // Tournage
+  // Soleil : réglette des heures (0.19)
+  const simulate = page.getByRole('button', { name: 'Simuler le soleil' });
+  if (await simulate.count()) await simulate.click();
+  await shot(page, '18b-plan-lumiere-soleil');
+  // Tournage (0.19 : jours et installations ensemble)
   await page.keyboard.press('ControlOrMeta+3');
-  await page.getByRole('button', { name: 'Installations', exact: true }).click();
   await shot(page, '19-tournage-vide');
+  await page.getByRole('button', { name: 'Installations de la séquence 1' }).click();
+  await shot(page, '19b-tournage-installations');
   await page.getByRole('button', { name: 'Proposer un ordre' }).click();
   await shot(page, '20-tournage-propose');
-  // Jours
-  await page.getByRole('button', { name: 'Jours', exact: true }).click();
-  await shot(page, '21-jours-vide');
   await page.getByRole('button', { name: '+ Jour', exact: true }).first().click();
   await pick(page, 'Ajouter une séquence au jour', 0);
   await shot(page, '22-jour');
-  await page.getByRole('button', { name: '← Tous les jours' }).click();
-  await page.getByRole('button', { name: '+ Jour', exact: true }).click();
-  await pick(page, 'Ajouter une séquence au jour', 1);
-  await page.getByRole('button', { name: '← Tous les jours' }).click();
+  await page.getByRole('button', { name: '+ Jour', exact: true }).first().click();
+  await pick(page, 'Ajouter une séquence au jour', 0);
   await shot(page, '22a-jours-tableau');
   // Images, tampons
   await page.keyboard.press('ControlOrMeta+1');

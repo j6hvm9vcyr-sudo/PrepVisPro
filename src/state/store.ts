@@ -49,7 +49,7 @@ export interface AppState {
   /** Début d'une sélection de plusieurs cellules (⇧ + flèches, ⇧ + clic). */
   anchor: Cursor | null;
   editing: EditState | null;
-  view: 'table' | 'cards' | 'floor' | 'shooting' | 'days';
+  view: 'table' | 'cards' | 'floor' | 'days';
   inspector: boolean;
   collapsed: Record<Id, boolean>;
   onlyIncomplete: boolean;
@@ -319,7 +319,7 @@ interface Actions {
   /** Sélectionne un plan (arbre du film, À vérifier) : déplie sa séquence et lève le filtre s'il le cache. */
   goToPlan(planId: Id): void;
   toggleOnlyIncomplete(): void;
-  setView(v: 'table' | 'cards' | 'floor' | 'shooting' | 'days'): void;
+  setView(v: 'table' | 'cards' | 'floor' | 'days'): void;
   /** Enregistre une nouvelle version du document (plan au sol…), annulable. */
   applyDoc(next: ProjectDoc, message?: string, mergeKey?: string): void;
   toggleInspector(): void;

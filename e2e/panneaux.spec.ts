@@ -61,14 +61,15 @@ test('0.18 : barre du haut — panneaux du Découpage, une seule chose à droite
   await view.getByRole('button', { name: 'Liste' }).click();
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeVisible();
 
-  // Pages : ⌘1 ⌘2 ⌘3. Tournage a son propre Le film ; Plans au sol n'a pas encore de panneaux (0.19).
+  // Pages : ⌘1 ⌘2 ⌘3. Tournage et Plans au sol ont chacun leur liste à gauche et leurs détails (0.19).
   await page.keyboard.press('ControlOrMeta+3');
-  await expect(page.getByRole('group', { name: 'Vues de l’espace Tournage' })).toBeVisible();
+  await expect(page.locator('.days-board')).toBeVisible();
   await expect(tog('Scénario')).toHaveCount(0);
   await tog('Le film').click();
   await expect(film).toHaveCount(0);
   await page.keyboard.press('ControlOrMeta+2');
-  await expect(tog('Le film')).toHaveCount(0);
+  await expect(tog('Le film')).toHaveAttribute('aria-pressed', 'true');
+  await expect(tog('Images')).toHaveCount(0);
   await page.keyboard.press('ControlOrMeta+1');
   await expect(film).toBeVisible();
 

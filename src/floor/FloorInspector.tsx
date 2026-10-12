@@ -1,4 +1,4 @@
-/** Panneau de droite du plan au sol : la sélection ; sans sélection, ce que montre l'onglet (Plan au sol, Lumière, Soleil). */
+/** Détails du plan au sol (0.19) : ils suivent la sélection ; sans sélection, le plan au sol lui-même, sa lumière et son soleil. */
 import { useMemo, useRef, useState } from 'react';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
@@ -112,8 +112,7 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
     .flatMap((s) => s.plans.flatMap((p) => p.cameras.map((c) => ({ planId: p.id, setupId: c.id, label: cameraLabel(doc, p.id, c.id, numbers) }))));
   const linked = el?.kind === 'camera' ? setupOptions.find((o) => o.planId === el.planId && o.setupId === el.setupId) : undefined;
 
-  const tab = selected.length === 0 ? ui.panel : 'plan';
-  const title = el ? { camera: 'Caméra', actor: 'Personnage', icon: 'Icône', text: 'Texte', light: 'Projecteur', reflector: 'Réflecteur' }[el.kind] : selected.length > 1 ? `${selected.length} éléments` : tab === 'light' ? 'Lumière' : fp.name || 'Plan au sol';
+  const title = el ? { camera: 'Caméra', actor: 'Personnage', icon: 'Icône', text: 'Texte', light: 'Projecteur', reflector: 'Réflecteur' }[el.kind] : selected.length > 1 ? `${selected.length} éléments` : fp.name || 'Plan au sol';
   return (
     <aside className="side-panel inspector floor-insp" aria-label="Détails du plan au sol">
       <div className="side-head">
@@ -121,9 +120,7 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
         {el?.kind === 'camera' && linked && <span className="mono accent">{linked.label.code}</span>}
       </div>
       <div className="side-body floor-body">
-        {tab === 'light' ? (
-          <LightingPanel fp={fp} />
-        ) : el ? (
+        {el ? (
           <section className="sec">
             {el.kind === 'camera' && (
               <>
@@ -296,8 +293,6 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
             </button>
           </Fold>
         )}
-        {tab === 'plan' && (
-          <>
         {/* Avec une sélection, seulement ce qui la concerne : caméras à placer après une caméra, icônes après une icône. */}
         {selected.every((x) => x.kind === 'camera') && (
         <Fold id="to-place" title="Caméras à placer" count={unplaced.length}>
@@ -322,13 +317,14 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
           {ui.placing && <p className="note" style={{ margin: 0, color: 'var(--accent)', fontWeight: 600 }}>Cliquez sur le plan pour placer la caméra (esc pour annuler).</p>}
         </Fold>
         )}
+        {selected.length === 0 && <LightingPanel fp={fp} />}
         {selected.length === 0 && (
         <Fold
           id="figures"
           title="Figures"
           info={
             <Info title="Figures">
-              <span>Icônes par défaut pour tout le projet. Une figure peut avoir la sienne (sélectionnez-la), un projecteur celle de son modèle (onglet Lumière).</span>
+              <span>Icônes par défaut pour tout le projet. Une figure peut avoir la sienne (sélectionnez-la), un projecteur celle de son modèle (Projecteurs › modèles du projet).</span>
               <span>Le sens : celui vers lequel regarde l’image (objectif, visage, faisceau).</span>
             </Info>
           }
@@ -341,8 +337,6 @@ export function FloorInspector({ fp }: { fp: FloorPlan }) {
         <Fold id="icons" title="Icônes" label="Bibliothèque d’icônes" count={iconCount || undefined}>
           <IconPalette />
         </Fold>
-        )}
-          </>
         )}
       </div>
     </aside>

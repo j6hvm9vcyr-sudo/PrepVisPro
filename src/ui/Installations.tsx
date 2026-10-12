@@ -1,11 +1,11 @@
 /**
- * Vue Tournage : installations et ordre de tournage, séquence par séquence.
+ * Installations et ordre de tournage d'une séquence (détails du Tournage, 0.19).
  * L'ordre est proposé d'après les plans au sol, puis ajusté à la main (glisser-déposer).
  */
+import { Info } from './Info';
 import { reorderKeys } from './reorder';
 import { DragRow } from './DragRow';
 import { useState, type DragEvent } from 'react';
-import { create } from 'zustand';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
 import { computeNumbers } from '../model/numbering';
@@ -15,8 +15,6 @@ import { addInstallation, effectiveShooting, moveInstallation, moveInstallationT
 import { getBackend } from '../platform/backend';
 import { sequenceTitle } from './strip';
 
-export const useShootingUi = create<{ seqId: Id | null; set(id: Id): void }>()((set) => ({ seqId: null, set: (seqId) => set({ seqId }) }));
-
 /** Plan en cours de glisser-déposer. */
 let dragged: Id | null = null;
 
@@ -25,23 +23,7 @@ const apply = (fn: (d: ProjectDoc) => ProjectDoc, message?: string, key?: string
   st.applyDoc(fn(selectDoc(st)), message, key);
 };
 
-export function ShootingView() {
-  const doc = useApp(selectDoc);
-  const cursorPlan = useApp((s) => s.cursor?.planId ?? null);
-  const chosen = useShootingUi((s) => s.seqId);
-  const seq = doc.sequences.find((s) => s.id === chosen) ?? doc.sequences.find((s) => s.plans.some((p) => p.id === cursorPlan)) ?? doc.sequences[0];
-  const numbers = computeNumbers(doc);
-  if (!seq) return null;
-  return (
-    <div className="shooting">
-      <main className="shooting-main">
-        <SequenceShooting key={seq.id} doc={doc} seq={seq} numbers={numbers} />
-      </main>
-    </div>
-  );
-}
-
-function SequenceShooting({ doc, seq, numbers }: { doc: ProjectDoc; seq: Sequence; numbers: ReturnType<typeof computeNumbers> }) {
+export function SequenceShooting({ doc, seq, numbers }: { doc: ProjectDoc; seq: Sequence; numbers: ReturnType<typeof computeNumbers> }) {
   const e = effectiveShooting(seq);
   const placedCount = seq.plans.filter((p) => doc.floorPlans.some((fp) => fp.sequenceIds.includes(seq.id) && fp.elements.some((el) => el.kind === 'camera' && el.planId === p.id))).length;
 
@@ -74,18 +56,14 @@ function SequenceShooting({ doc, seq, numbers }: { doc: ProjectDoc; seq: Sequenc
         <button type="button" className={`btn ${e ? '' : 'primary'}`} onClick={() => void propose()}>
           {e ? 'Refaire la proposition' : 'Proposer un ordre'}
         </button>
+        <Info title="Ordre de tournage">
+          <span>Les plans sont regroupés par installation (même position de caméra, même direction) d’après les plans au sol : d’abord le côté du plan le plus large (champ), puis l’autre (contrechamp), du plus large au plus serré dans chaque installation.</span>
+          <span>Un plan absent des plans au sol va dans une installation à part. Tout se réorganise ensuite en glissant les plans.</span>
+        </Info>
       </div>
 
       {!e ? (
-        <div className="shooting-empty">
-          <p>
-            L’app regroupe les plans par <b>installation</b> (même position de caméra, même direction) d’après les plans au sol, tourne d’abord le côté du plan le plus
-            large (champ) puis l’autre (contrechamp), et va du plus large au plus serré dans chaque installation.
-          </p>
-          <p className="note">
-            {placedCount === 0 ? 'Aucun plan de cette séquence n’est encore placé sur un plan au sol : tous les plans seront dans une seule installation, à organiser à la main.' : 'Vous pourrez ensuite tout réorganiser en glissant les plans.'}
-          </p>
-        </div>
+        <div className="empty-line">{placedCount === 0 ? 'Aucun plan placé sur un plan au sol : une seule installation, à organiser à la main' : 'Ordre de tournage à établir'}</div>
       ) : (
         <>
           {e.installations.map((ins, i) => (
@@ -191,10 +169,10 @@ function PlanRow({ p, code, order, seqId, installationId, index, count, doc }: {
       <span className="shot-order mono">{order ?? '–'}</span>
       <b className="shot-code mono">{code}</b>
       {multi ? <span className="camtag">{cams}</span> : <span />}
-      <span className="shot-v">{displayText('size', c) || '—'}</span>
-      <span className="shot-v">{displayText('axis', c) || '—'}</span>
+      <span className="shot-v" title={p.action || undefined}>{displayText('size', c) || '—'}</span>
+      <span className="shot-v shot-axis">{displayText('axis', c) || '—'}</span>
       <span className="shot-v qty">{displayText('focal', c) || '—'}</span>
-      <span className="shot-v">{displayText('movement', c) || '—'}</span>
+      <span className="shot-v shot-mvt">{displayText('movement', c) || '—'}</span>
       <span className="shot-action">{p.action || '—'}</span>
       {installationId && (
         <span className="shot-move mv">

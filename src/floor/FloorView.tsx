@@ -16,6 +16,9 @@ import { BarMenu, PanelHead, SpaceBar } from '../ui/Chrome';
 import { filmFlow } from '../model/stamps';
 import { stripColors } from '../ui/strip';
 import { ToolIcons } from '../ui/Icons';
+import { usePanelOpen } from '../ui/panels';
+import { planLocation } from '../model/sunPlan';
+import { SunRuler } from './SunRuler';
 
 const TOOLS: { id: Exclude<FloorTool, 'path'>; label: string; key: string }[] = [
   { id: 'select', label: 'Sélection', key: 'V' },
@@ -27,11 +30,6 @@ const TOOLS: { id: Exclude<FloorTool, 'path'>; label: string; key: string }[] = 
   { id: 'measure', label: 'Mesure', key: 'M' },
   { id: 'scale', label: 'Échelle', key: 'E' },
 ];
-
-const PANELS = [
-  { id: 'plan', label: 'Plan au sol' },
-  { id: 'light', label: 'Lumière' },
-] as const;
 
 /** Un plan du découpage choisi dans l'arbre : sa caméra est sélectionnée si elle est placée, sinon prête à placer. */
 function choosePlan(planId: Id) {
@@ -45,8 +43,8 @@ function choosePlan(planId: Id) {
   const fp = cur && cur.sequenceIds.includes(loc.seq.id) ? cur : doc.floorPlans.find((f) => f.sequenceIds.includes(loc.seq.id));
   if (!fp) return;
   const el = fp.elements.find((e) => e.kind === 'camera' && e.planId === planId);
-  if (el) useFloor.getState().set({ currentId: fp.id, selection: [el.id], placing: null, tool: 'select', panel: 'plan' });
-  else useFloor.getState().set({ currentId: fp.id, selection: [], placing: { planId, setupId: loc.plan.cameras[0]!.id }, tool: 'select', panel: 'plan' });
+  if (el) useFloor.getState().set({ currentId: fp.id, selection: [el.id], placing: null, tool: 'select' });
+  else useFloor.getState().set({ currentId: fp.id, selection: [], placing: { planId, setupId: loc.plan.cameras[0]!.id }, tool: 'select' });
 }
 
 export function FloorView() {
@@ -62,6 +60,10 @@ export function FloorView() {
     const fp = (seq && doc.floorPlans.find((f) => f.sequenceIds.includes(seq.id))) ?? doc.floorPlans[0]!;
     useFloor.getState().set({ currentId: fp.id, selection: [] });
   }, [current, doc.floorPlans, doc.sequences, cursorPlan]);
+
+  const film = usePanelOpen('film');
+  const details = usePanelOpen('details');
+  const ruler = !!current?.sunAt && planLocation(doc, current).ok;
 
   const create = async (seqId: string) => {
     const s = doc.sequences.find((x) => x.id === seqId);
@@ -92,17 +94,18 @@ export function FloorView() {
 
   return (
     <div className="space-body">
-      <FloorTree current={current} onCreate={create} />
+      {film && <FloorTree current={current} onCreate={create} />}
       <div className="center">
-        <SpaceBar views={false} left={current && <FloorTabs />}>
+        <SpaceBar views={false}>
           {current && <FloorBarRight fp={current} />}
         </SpaceBar>
         <main className="floor-main">
           {current ? (
-            <div className="floor-stage">
+            <div className={`floor-stage ${ruler ? 'with-ruler' : ''}`}>
               <FloorCanvas key={current.id} fp={current} />
               <ToolPalette />
               <PlanChips fp={current} />
+              {ruler && <SunRuler fp={current} />}
             </div>
           ) : (
             <div className="empty-state">
@@ -112,21 +115,7 @@ export function FloorView() {
           )}
         </main>
       </div>
-      {current && <FloorInspector fp={current} />}
-    </div>
-  );
-}
-
-/** Onglets de l'espace : Plan au sol, Lumière (soleil compris). */
-function FloorTabs() {
-  const panel = useFloor((s) => s.panel);
-  return (
-    <div className="seg floor-tabs" role="tablist" aria-label="Onglets du plan au sol">
-      {PANELS.map((p) => (
-        <button key={p.id} type="button" role="tab" aria-selected={panel === p.id} aria-pressed={panel === p.id} onClick={() => useFloor.getState().set({ panel: p.id, ...(p.id === 'plan' ? {} : { selection: [] }) })}>
-          {p.label}
-        </button>
-      ))}
+      {current && details && <FloorInspector fp={current} />}
     </div>
   );
 }
@@ -187,8 +176,8 @@ function PlanChips({ fp }: { fp: FloorPlan }) {
             title={`${lab.code} · ${lab.detail}${it.el ? '' : ' · pas encore placée'}`}
             onClick={() => {
               useApp.getState().goToPlan(it.planId);
-              if (it.el) useFloor.getState().set({ selection: [it.el.id], placing: null, tool: 'select', panel: 'plan' });
-              else useFloor.getState().set({ selection: [], placing: on ? null : { planId: it.planId, setupId: it.setupId }, tool: 'select', panel: 'plan' });
+              if (it.el) useFloor.getState().set({ selection: [it.el.id], placing: null, tool: 'select' });
+              else useFloor.getState().set({ selection: [], placing: on ? null : { planId: it.planId, setupId: it.setupId }, tool: 'select' });
             }}
           >
             {!it.el && <span className="st st-warn" aria-hidden />}

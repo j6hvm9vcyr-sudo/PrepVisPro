@@ -399,7 +399,7 @@ test('0.9 : trois espaces, arbre du film, détails refermables, aide ⌘/', asyn
   // Un espace rouvre la dernière vue utilisée dans cet espace.
   await page.getByRole('group', { name: 'Affichage du découpage' }).getByRole('button', { name: 'Fiches' }).click();
   await spaces.getByRole('button', { name: 'Tournage' }).click();
-  await expect(page.getByRole('group', { name: 'Vues de l’espace Tournage' }).getByRole('button', { name: 'Jours' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.days-board')).toBeVisible();
   await spaces.getByRole('button', { name: 'Plans au sol' }).click();
   await expect(page.getByRole('application', { name: 'Plan au sol' }).or(page.getByText('Aucun plan au sol'))).toBeVisible();
   await spaces.getByRole('button', { name: 'Découpage' }).click();

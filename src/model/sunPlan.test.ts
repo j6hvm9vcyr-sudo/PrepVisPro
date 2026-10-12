@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { produce } from 'immer';
-import { planLocation, planSun, shadowLength, sunForCamera } from './sunPlan';
+import { dayStrip, minutesToTime, planLocation, planSun, shadowLength, sunForCamera } from './sunPlan';
+import { sunDay } from './sun';
 import { addFloorPlan, newFloorPlan } from './floorOps';
 import { doc, plan, seq } from './testkit';
 import { sunLegend } from '../floor/render';
@@ -61,5 +62,29 @@ describe('soleil sur le plan au sol', () => {
     const { d, fp } = build([PARIS]);
     expect(sunLegend(d, fp)).toMatch(/^Soleil le 21 juin 2026 à 14:00 \(Europe\/Paris\) : direction 184° \(S\), hauteur 65° · lever 05:47, coucher 21:58$/);
     expect(sunLegend(d, { ...fp, sunAt: null })).toBeNull();
+  });
+});
+
+describe('réglette des heures (0.19)', () => {
+  it('une tranche par quart d’heure ; nuit, crépuscule, heure dorée et jour dans l’ordre, aux heures de sunDay', () => {
+    const strip = dayStrip('2026-06-21', 'Europe/Paris', PARIS);
+    expect(strip).toHaveLength(96);
+    expect(strip[0]).toEqual({ minute: 0, phase: 'night' });
+    expect(strip.find((x) => x.minute === 13 * 60)!.phase).toBe('day');
+    // Les changements de moment se suivent dans l'ordre attendu, le matin puis le soir.
+    const changes = strip.map((x) => x.phase).filter((v, i, a) => i === 0 || v !== a[i - 1]);
+    expect(changes).toEqual(['night', 'twilight', 'golden', 'day', 'golden', 'twilight', 'night']);
+    // Le début du jour sur la réglette suit la fin de l'heure dorée du matin calculée par sunDay (au quart d'heure près).
+    const day = sunDay('2026-06-21', 'Europe/Paris', PARIS)!;
+    const firstDay = strip.find((x) => x.phase === 'day')!.minute;
+    const goldenEnd = new Date(day.goldenMorning[1]!).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' });
+    const [h, m] = goldenEnd.split(':').map(Number);
+    expect(firstDay - (h! * 60 + m!)).toBeGreaterThanOrEqual(0);
+    expect(firstDay - (h! * 60 + m!)).toBeLessThan(15);
+  });
+
+  it('passage à l’heure d’été : les heures qui n’existent pas sont signalées, pas inventées', () => {
+    const strip = dayStrip('2026-03-29', 'Europe/Paris', PARIS);
+    expect(strip.filter((x) => x.phase === null).map((x) => minutesToTime(x.minute))).toEqual(['02:00', '02:15', '02:30', '02:45']);
   });
 });

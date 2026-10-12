@@ -5,7 +5,7 @@
 import type { ProjectDoc } from './types';
 import type { FloorPlan } from './floor';
 import { normalizeDeg } from './floor';
-import { isTimeZone, localToUtc, sunDay, sunPosition, systemTimeZone, type GeoPoint, type SunDay, type SunPosition } from './sun';
+import { isTimeZone, localToUtc, sunDay, sunPhase, sunPosition, systemTimeZone, type GeoPoint, type SunDay, type SunPhase, type SunPosition } from './sun';
 
 /** Fuseau du projet ; celui de l'ordinateur s'il n'est pas choisi (ou inconnu de ce système). */
 export function projectTimeZone(doc: ProjectDoc): string {
@@ -61,4 +61,23 @@ export function sunForCamera(cameraRotation: number, sunBearing: number, elevati
   if (off <= 110) return `latéral, à ${side}${high}`;
   if (off <= 150) return `trois-quarts face, à ${side}${high}`;
   return `de face (soleil dans le dos de la caméra)${high}`;
+}
+
+/** Heure « HH:MM » d'un nombre de minutes depuis minuit. */
+export function minutesToTime(n: number): string {
+  return `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
+}
+
+/**
+ * Journée du soleil en tranches (réglette des heures, 0.19) : pour chaque tranche de `stepMin` minutes
+ * de la journée légale, le moment au début de la tranche. null : heure qui n'existe pas ce jour-là
+ * (passage à l'heure d'été).
+ */
+export function dayStrip(date: string, tz: string, p: GeoPoint, stepMin = 15): { minute: number; phase: SunPhase | null }[] {
+  const out: { minute: number; phase: SunPhase | null }[] = [];
+  for (let m = 0; m < 1440; m += stepMin) {
+    const at = localToUtc(date, minutesToTime(m), tz);
+    out.push({ minute: m, phase: at === null ? null : sunPhase(sunPosition(at, p)) });
+  }
+  return out;
 }

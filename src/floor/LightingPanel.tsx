@@ -1,5 +1,5 @@
 /**
- * Onglet Lumière du plan au sol : tout ce qui éclaire, au même endroit. Soleil du décor, projecteurs (puissance de ce plan et liste du projet), réflecteurs
+ * Lumière du plan au sol (détails du plan, sans sélection, depuis la 0.19) : tout ce qui éclaire, au même endroit. Soleil du décor, projecteurs (puissance de ce plan et liste du projet), réflecteurs
  * (matières du projet) et exposition de référence pour les diaphs.
  */
 import { Fold } from '../ui/Fold';
@@ -15,7 +15,6 @@ export function LightingPanel({ fp }: { fp: FloorPlan }) {
   const doc = useApp(selectDoc);
   const lights = fp.elements.filter((e) => e.kind === 'light').length;
   const refl = fp.elements.filter((e) => e.kind === 'reflector').length;
-  // Ouvertes d'emblée : seulement les sections qui servent sur ce plan (le reste se déplie au clic).
   // Ouvertes d'emblée : seulement les sections qui servent sur ce plan (le reste se déplie au clic).
   const seqs = doc.sequences.filter((s) => fp.sequenceIds.includes(s.id));
   const sunUsed = seqs.some((s) => s.intExt !== 'INT' || s.gps !== null) || fp.northDeg !== null || fp.sunAt !== null;

@@ -1,4 +1,4 @@
-import { DaysBar, DaysView } from './DaysView';
+import { showInTournage, TournageBar, TournageDetails, TournageView } from './TournageView';
 import { ScenePanel } from './ScenePanel';
 import { NotesPanel } from './NotesPanel';
 import { useEffect } from 'react';
@@ -24,7 +24,6 @@ import { focusGrid, installFocusRescue, isTypingTarget } from './focus';
 import { isMenuShortcut, isTauri } from '../platform/menu';
 import { ErrorBoundary } from './ErrorBoundary';
 import { VersionsDialog } from './VersionsDialog';
-import { ShootingView, useShootingUi } from './ShootingView';
 import { ImagesDrawer, LibraryPicker } from './Library';
 
 /** Raccourcis valables partout dans la fenêtre (hors saisie de texte). */
@@ -160,7 +159,7 @@ function useGlobalShortcuts(settingsOpen: boolean) {
         return;
       }
       // En vue Plans au sol, ces touches agissent sur le plan au sol, jamais sur le découpage caché.
-      if ((st.view === 'floor' || st.view === 'shooting' || st.view === 'days') && (e.key === 'Backspace' || e.altKey || (meta && e.shiftKey))) return;
+      if ((st.view === 'floor' || st.view === 'days') && (e.key === 'Backspace' || e.altKey || (meta && e.shiftKey))) return;
       if (meta && e.key === 'Backspace') {
         e.preventDefault();
         st.deletePlan();
@@ -224,15 +223,15 @@ function useWindowTitle() {
   }, [title, mode]);
 }
 
-/** Tournage : un plan choisi dans l'arbre ouvre aussi sa séquence dans Installations. */
+/** Tournage : un plan choisi dans l'arbre montre aussi les installations de sa séquence. */
 function chooseInTournage(planId: string) {
   const st = useApp.getState();
   st.goToPlan(planId);
   const seq = st.hist.present.doc.sequences.find((s) => s.plans.some((p) => p.id === planId));
-  if (seq) useShootingUi.getState().set(seq.id);
+  if (seq) showInTournage({ kind: 'seq', id: seq.id });
 }
 
-const VIEW_LABEL = { floor: 'plans au sol', days: 'jours de tournage', shooting: 'installations', table: 'tableau', cards: 'fiches' } as const;
+const VIEW_LABEL = { floor: 'plans au sol', days: 'tournage', table: 'tableau', cards: 'fiches' } as const;
 
 function Workspace() {
   useWindowTitle();
@@ -321,11 +320,20 @@ function Workspace() {
           <>
             {film && <FilmTree onPlan={chooseInTournage} />}
             <main className="center">
-              <SpaceBar>{view === 'days' && <DaysBar />}</SpaceBar>
+              <SpaceBar>
+                <TournageBar />
+              </SpaceBar>
               <ErrorBoundary label={VIEW_LABEL[view]} key={view}>
-                <div className="space-main">{view === 'days' ? <DaysView /> : <ShootingView />}</div>
+                <div className="space-main">
+                  <TournageView />
+                </div>
               </ErrorBoundary>
             </main>
+            {details && (
+              <ErrorBoundary label="détails">
+                <TournageDetails />
+              </ErrorBoundary>
+            )}
           </>
         )}
         {verifying && space !== 'decoupage' && (

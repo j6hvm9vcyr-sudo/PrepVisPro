@@ -1,18 +1,39 @@
 /**
- * Panneaux (0.18) : une surface fixe par page, des panneaux qu'on ouvre ou ferme autour, comme
+ * Panneaux (0.18–0.19) : une surface fixe par page, des panneaux qu'on ouvre ou ferme autour, comme
  * dans Resolve. Leur disposition est gardée sur ce Mac (préférences, `layout`).
  * Découpage : Le film et Scénario à gauche, Images en bas, Notes ou Détails à droite.
+ * Plans au sol : la liste des plans au sol à gauche, Détails (la sélection) à droite.
+ * Tournage : Le film à gauche, Détails (le jour ou la séquence choisis) à droite.
  */
-import { useApp } from '../state/appStore';
 import { produce, type Draft } from 'immer';
+import { useApp } from '../state/appStore';
 import { getPrefs, updatePrefs, usePrefs } from '../state/prefs';
-import type { AppPrefs } from '../model/prefs';
-import { SPACE_OF, useVerifyPanel } from './spaces';
+import type { AppPrefs, PanelLayout } from '../model/prefs';
+import { SPACE_OF, useVerifyPanel, type Space } from './spaces';
 
 export type PanelId = 'film' | 'scenario' | 'images' | 'notes' | 'details';
 
 export const PANEL_LABEL: Record<PanelId, string> = { film: 'Le film', scenario: 'Scénario', images: 'Images', notes: 'Notes', details: 'Détails' };
 export const PANEL_KEY: Record<PanelId, string> = { film: '⌥⌘1', scenario: '⌥⌘2', images: '⌥⌘3', notes: '⌥⌘4', details: '⌘I' };
+
+/** Panneaux de chaque page, dans l'ordre de la barre du haut (Détails à part, à droite). */
+export const PANELS_OF: Record<Space, PanelId[]> = { decoupage: ['film', 'scenario', 'images', 'notes'], sol: ['film'], tournage: ['film'] };
+
+/** Interrupteur de la disposition qui porte ce panneau dans cette page ; null : géré à part (Détails du Découpage) ou absent. */
+function layoutKey(space: Space, id: PanelId): keyof PanelLayout | null {
+  if (space === 'sol') return id === 'film' ? 'solFilm' : id === 'details' ? 'solDetails' : null;
+  if (space === 'tournage') return id === 'film' ? 'tournageFilm' : id === 'details' ? 'tournageDetails' : null;
+  return id === 'details' ? null : id;
+}
+
+function openIn(space: Space, id: PanelId, layout: PanelLayout, inspector: boolean, verifying: boolean): boolean {
+  if (id !== 'details' && !PANELS_OF[space].includes(id)) return false;
+  // À droite, une seule chose : À vérifier passe devant Notes et Détails.
+  if ((id === 'details' || id === 'notes') && verifying) return false;
+  if (space === 'decoupage' && id === 'details') return inspector && !layout.notes;
+  const k = layoutKey(space, id);
+  return k ? (layout[k] as boolean) : false;
+}
 
 /** Le panneau est-il ouvert (dans la page en cours) ? */
 export function usePanelOpen(id: PanelId): boolean {
@@ -20,20 +41,12 @@ export function usePanelOpen(id: PanelId): boolean {
   const view = useApp((s) => s.view);
   const inspector = useApp((s) => s.inspector);
   const verifying = useVerifyPanel((s) => s.open);
-  if (id === 'details') return inspector && !layout.notes && !verifying;
-  if (id === 'notes') return layout.notes && !verifying;
-  if (id === 'film' && SPACE_OF[view] === 'tournage') return layout.tournageFilm;
-  return layout[id];
+  return openIn(SPACE_OF[view], id, layout, inspector, verifying);
 }
 
 function isOpen(id: PanelId): boolean {
-  const { layout } = getPrefs();
   const st = useApp.getState();
-  const verifying = useVerifyPanel.getState().open;
-  if (id === 'details') return st.inspector && !layout.notes && !verifying;
-  if (id === 'notes') return layout.notes && !verifying;
-  if (id === 'film' && SPACE_OF[st.view] === 'tournage') return layout.tournageFilm;
-  return layout[id];
+  return openIn(SPACE_OF[st.view], id, getPrefs().layout, st.inspector, useVerifyPanel.getState().open);
 }
 
 /** Change la disposition ; préférences illisibles : en mémoire seulement (le fichier n'est pas écrasé). */
@@ -43,23 +56,18 @@ export function setLayout(recipe: (d: Draft<AppPrefs>) => void) {
 
 export function setPanel(id: PanelId, on: boolean) {
   const st = useApp.getState();
+  const space = SPACE_OF[st.view];
   // À droite, une seule chose à la fois : À vérifier, Notes ou Détails.
   if ((id === 'notes' || id === 'details') && on) useVerifyPanel.getState().set(false);
-  if (id === 'details') {
+  if (space === 'decoupage' && id === 'details') {
     if (on) setLayout((d) => void (d.layout.notes = false));
     if (st.inspector !== on) st.toggleInspector();
     return;
   }
-  if (id === 'notes') {
-    // Détails (s'il était ouvert) revient quand on ferme les notes.
-    setLayout((d) => void (d.layout.notes = on));
-    return;
-  }
-  if (id === 'film' && SPACE_OF[st.view] === 'tournage') {
-    setLayout((d) => void (d.layout.tournageFilm = on));
-    return;
-  }
-  setLayout((d) => void (d.layout[id] = on));
+  const k = layoutKey(space, id);
+  if (!k) return;
+  // Notes : Détails (s'il était ouvert) revient quand on les ferme.
+  setLayout((d) => void ((d.layout[k] as boolean) = on));
 }
 
 export function togglePanel(id: PanelId) {

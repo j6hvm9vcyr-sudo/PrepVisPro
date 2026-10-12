@@ -10,7 +10,7 @@ import type { AppState } from '../state/store';
 export type View = AppState['view'];
 export type Space = 'decoupage' | 'sol' | 'tournage';
 
-export const SPACE_OF: Record<View, Space> = { table: 'decoupage', cards: 'decoupage', floor: 'sol', days: 'tournage', shooting: 'tournage' };
+export const SPACE_OF: Record<View, Space> = { table: 'decoupage', cards: 'decoupage', floor: 'sol', days: 'tournage' };
 
 export const SPACES: { id: Space; label: string; views: { view: View; label: string; key: string; title: string }[] }[] = [
   {
@@ -22,14 +22,7 @@ export const SPACES: { id: Space; label: string; views: { view: View; label: str
     ],
   },
   { id: 'sol', label: 'Plans au sol', views: [{ view: 'floor', label: 'Plans au sol', key: '⌘2', title: 'Plans au sol, lumière, soleil' }] },
-  {
-    id: 'tournage',
-    label: 'Tournage',
-    views: [
-      { view: 'days', label: 'Jours', key: '', title: 'Jours de tournage et matériel' },
-      { view: 'shooting', label: 'Installations', key: '', title: 'Installations et ordre de tournage, séquence par séquence' },
-    ],
-  },
+  { id: 'tournage', label: 'Tournage', views: [{ view: 'days', label: 'Tournage', key: '⌘3', title: 'Jours de tournage, installations et matériel' }] },
 ];
 
 /** Dernière vue utilisée dans chaque espace (le temps de la session). */

@@ -33,13 +33,8 @@ function shortDay(date: string): string {
   return new Date(Date.UTC(y!, m! - 1, d!)).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 }
 
-const toMinutes = (t: string) => {
-  const [h, m] = t.split(':').map(Number);
-  return h! * 60 + m!;
-};
-const fromMinutes = (n: number) => `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
 
-/** Soleil du plan au sol (section de l'onglet Lumière). */
+/** Soleil du plan au sol (détails du plan ; l'heure se règle sur la réglette, `SunRuler`). */
 export function SunSection({ fp }: { fp: FloorPlan }) {
   const doc = useApp(selectDoc);
   const tz = projectTimeZone(doc);
@@ -131,15 +126,6 @@ export function SunSection({ fp }: { fp: FloorPlan }) {
               ))}
             </div>
           )}
-          <input
-            type="range"
-            aria-label="Heure de la journée"
-            min={0}
-            max={1435}
-            step={5}
-            value={toMinutes(fp.sunAt.time)}
-            onChange={(e) => setPlan((x) => void (x.sunAt = { ...x.sunAt!, time: fromMinutes(Number(e.target.value)) }), 'suntime')}
-          />
           {!sun.ok ? (
             sun.reason === 'bad-time' && <p className="note" style={{ margin: 0, color: 'var(--warn-text)' }}>Cette heure n’existe pas ce jour-là (passage à l’heure d’été).</p>
           ) : (

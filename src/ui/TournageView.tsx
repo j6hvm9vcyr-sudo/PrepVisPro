@@ -1,6 +1,8 @@
 /**
- * Vue Jours : jours de tournage (J1, J2…), et pour chacun ses séquences, l'ordre de tournage,
- * les horaires du soleil, les plans au sol et le matériel — tout est déduit, rien n'est ressaisi.
+ * Tournage (0.19 : Jours et Installations ensemble). Au centre, les jours côte à côte : séquences,
+ * installations et plans de chaque jour, et les séquences sans jour. À droite, les détails de ce qu'on
+ * choisit : un jour (date, note, ordre des séquences, soleil, plans au sol, matériel), une séquence
+ * (installations et ordre de tournage) ou le matériel de tout le tournage. Rien n'est ressaisi.
  */
 import { Picker } from './Picker';
 import { reorderKeys } from './reorder';
@@ -17,24 +19,58 @@ import { utcToLocal } from '../model/sun';
 import { projectTimeZone } from '../model/sunPlan';
 import { useFloor } from '../floor/floorStore';
 import { sequenceTitle, stripColors } from './strip';
-import { useShootingUi } from './ShootingView';
+import { SequenceShooting } from './Installations';
+import { PanelHead } from './Chrome';
+import { setPanel } from './panels';
 
-const ALL = '__tout';
-export const useDaysUi = create<{ dayId: Id | null; set(id: Id | null): void }>()((set) => ({ dayId: null, set: (dayId) => set({ dayId }) }));
+/** Ce qui est choisi dans le Tournage : un jour, une séquence, ou tout le tournage (matériel). */
+export type TourSel = { kind: 'day'; id: Id } | { kind: 'seq'; id: Id } | { kind: 'all' } | null;
+export const useTournage = create<{ sel: TourSel; set(sel: TourSel): void }>()((set) => ({ sel: null, set: (sel) => set({ sel }) }));
+
+/** Choisit un jour, une séquence ou tout le tournage, et montre ses détails (depuis une autre page aussi). */
+export function showInTournage(sel: TourSel) {
+  useTournage.getState().set(sel);
+  const st = useApp.getState();
+  if (st.view !== 'days') st.setView('days');
+  if (sel) setPanel('details', true);
+}
+
+const same = (a: TourSel, b: TourSel) => !!a && !!b && a.kind === b.kind && (a.kind === 'all' || (b.kind !== 'all' && a.id === b.id));
 
 const apply = (fn: (d: ProjectDoc) => ProjectDoc, message?: string, key?: string) => {
   const st = useApp.getState();
   st.applyDoc(fn(selectDoc(st)), message, key);
 };
 
-export function DaysView() {
+export function TournageView() {
   const doc = useApp(selectDoc);
-  const chosen = useDaysUi((s) => s.dayId);
+  return <DaysBoard doc={doc} labels={dayLabels(doc)} />;
+}
+
+/** Détails du Tournage (à droite) : le jour, la séquence ou le matériel choisis. */
+export function TournageDetails() {
+  const doc = useApp(selectDoc);
+  const sel = useTournage((s) => s.sel);
   const labels = dayLabels(doc);
-  if (chosen === ALL) return <WholeShoot doc={doc} />;
-  const day = doc.shootingDays.find((d) => d.id === chosen);
-  if (day) return <DayPage key={day.id} doc={doc} day={day} label={labels.get(day.id)!} labels={labels} />;
-  return <DaysBoard doc={doc} labels={labels} />;
+  const numbers = computeNumbers(doc);
+  const day = sel?.kind === 'day' ? doc.shootingDays.find((d) => d.id === sel.id) : undefined;
+  const seq = sel?.kind === 'seq' ? doc.sequences.find((s) => s.id === sel.id) : undefined;
+  return (
+    <aside className="side-panel tour-details" aria-label="Détails du tournage">
+      <PanelHead label={day ? 'Détails · jour' : seq ? 'Détails · séquence' : sel?.kind === 'all' ? 'Détails · tout le tournage' : 'Détails'} onClose={() => setPanel('details', false)} />
+      <div className="side-body">
+        {day ? (
+          <DayPage key={day.id} doc={doc} day={day} label={labels.get(day.id)!} labels={labels} />
+        ) : seq ? (
+          <SequenceShooting key={seq.id} doc={doc} seq={seq} numbers={numbers} />
+        ) : sel?.kind === 'all' ? (
+          <WholeShoot doc={doc} />
+        ) : (
+          <div className="empty-line">Choisissez un jour ou une séquence</div>
+        )}
+      </div>
+    </aside>
+  );
 }
 
 /** Ajoute un jour de tournage et l'ouvre. */
@@ -42,27 +78,21 @@ export function addShootingDay() {
   const doc = selectDoc(useApp.getState());
   const r = addDay(doc);
   apply(() => r.doc, `Jour ${doc.shootingDays.length + 1} ajouté`);
-  useDaysUi.getState().set(r.id);
+  showInTournage({ kind: 'day', id: r.id });
 }
 
-/** Barre de l'onglet Jours : retour au tableau des jours, matériel de tout le tournage, nouveau jour. */
-export function DaysBar() {
+/** Barre du Tournage : trier les jours, matériel de tout le tournage, nouveau jour. */
+export function TournageBar() {
   const doc = useApp(selectDoc);
-  const chosen = useDaysUi((s) => s.dayId);
-  const open = chosen !== null && (chosen === ALL || doc.shootingDays.some((d) => d.id === chosen));
+  const sel = useTournage((s) => s.sel);
   return (
     <>
-      {open && (
-        <button type="button" className="tool-b" onClick={() => useDaysUi.getState().set(null)}>
-          ← Tous les jours
-        </button>
-      )}
       {doc.shootingDays.some((d) => d.date) && (
         <button type="button" className="tool-b" onClick={() => apply(sortDaysByDate, 'Jours triés par date')}>
           Trier par date
         </button>
       )}
-      <button type="button" className={`tool-b ${chosen === ALL ? 'on' : ''}`} aria-pressed={chosen === ALL} onClick={() => useDaysUi.getState().set(chosen === ALL ? null : ALL)}>
+      <button type="button" className={`tool-b ${sel?.kind === 'all' ? 'on' : ''}`} aria-pressed={sel?.kind === 'all'} onClick={() => showInTournage(sel?.kind === 'all' ? null : { kind: 'all' })}>
         Matériel du tournage
       </button>
       <button type="button" className="tool-b" onClick={addShootingDay}>
@@ -72,42 +102,83 @@ export function DaysBar() {
   );
 }
 
-/** Tous les jours côte à côte : séquences, installations et plans de chaque jour. */
+/** Tous les jours côte à côte : séquences, installations et plans de chaque jour ; puis les séquences sans jour. */
 function DaysBoard({ doc, labels }: { doc: ProjectDoc; labels: Map<Id, string> }) {
   const numbers = computeNumbers(doc);
   const cursorPlan = useApp((s) => s.cursor?.planId ?? null);
+  const sel = useTournage((s) => s.sel);
   const tz = projectTimeZone(doc);
   const t = (ms: number | null) => (ms === null ? '—' : utcToLocal(Math.round(ms / 60000) * 60000, tz).time);
-  if (!doc.shootingDays.length)
-    return (
-      <div className="empty-state">
-        <span>Aucun jour de tournage</span>
-        <button type="button" className="btn primary" onClick={addShootingDay}>
-          + Jour
-        </button>
-      </div>
-    );
-  const row = (p: { id: Id }, detail: string) => (
-    <button key={p.id} type="button" className={`board-row ${p.id === cursorPlan ? 'here' : ''}`} onClick={() => useApp.getState().goToPlan(p.id)}>
-      <span className="mono">{numbers.get(p.id)?.code ?? '?'}</span>
-      <span className="detail">{detail}</span>
-    </button>
-  );
   const detailOf = (plan: ProjectDoc['sequences'][number]['plans'][number]) => {
     const c = plan.cameras[0]!;
     return [c.start.size, c.start.focalMm !== null ? formatNumber(c.start.focalMm) : ''].filter(Boolean).join(' · ');
   };
+  const row = (p: { id: Id; repriseOf: Id | null }, seqId: Id, detail: string) => (
+    <button
+      key={p.id}
+      type="button"
+      className={`board-row ${p.id === cursorPlan ? 'here' : ''}`}
+      onClick={() => {
+        useApp.getState().goToPlan(p.id);
+        showInTournage({ kind: 'seq', id: seqId });
+      }}
+    >
+      <span className="mono">{numbers.get(p.id)?.code ?? '?'}</span>
+      <span className="detail">{p.repriseOf ? 'Reprise' : detail}</span>
+    </button>
+  );
+  // Une séquence : son en-tête (choisir ses installations), ses installations et ses plans dans l'ordre de tournage.
+  const seqBlock = (s: ProjectDoc['sequences'][number], key: string) => {
+    const e = effectiveShooting(s);
+    const c = stripColors(s);
+    const on = same(sel, { kind: 'seq', id: s.id });
+    const installs = e ? e.installations.filter((i) => i.plans.length) : [];
+    return (
+      <div key={key} className={`board-group ${on ? 'on' : ''}`}>
+        <button type="button" className="board-group-h" aria-pressed={on} aria-label={`Installations de la séquence ${s.number || '?'}`} onClick={() => showInTournage({ kind: 'seq', id: s.id })}>
+          <span className="strip" style={{ background: c.fill, borderColor: c.edge }} />
+          <span className="lbl">
+            Séq. {s.number || '?'} · {s.location || 'Décor à préciser'}
+          </span>
+          {!e && s.plans.length > 0 && <span className="board-todo">ordre à établir</span>}
+        </button>
+        {!e && s.plans.map((p) => row(p, s.id, detailOf(p)))}
+        {installs.map((ins, k) => (
+          <div key={ins.id} className="board-ins">
+            <div className="board-ins-h">{ins.name || `Installation ${k + 1}`}</div>
+            {ins.plans.map((p) => row(p, s.id, detailOf(p)))}
+          </div>
+        ))}
+        {e && e.loose.length > 0 && (
+          <div className="board-ins">
+            <div className="board-ins-h warn">À ranger</div>
+            {e.loose.map((p) => row(p, s.id, detailOf(p)))}
+          </div>
+        )}
+      </div>
+    );
+  };
+  const without = doc.sequences.filter((s) => !daysOfSequence(doc, s.id).length);
   return (
     <div className="days-board" aria-label="Jours de tournage">
+      {doc.shootingDays.length === 0 && (
+        <section className="day-col day-empty">
+          <div className="empty-line">Aucun jour de tournage</div>
+          <button type="button" className="btn primary" onClick={addShootingDay}>
+            + Jour
+          </button>
+        </section>
+      )}
       {doc.shootingDays.map((d) => {
         const label = labels.get(d.id)!;
         const seqs = d.sequenceIds.map((id) => doc.sequences.find((s) => s.id === id)).filter((s): s is NonNullable<typeof s> => !!s);
         const plans = seqs.reduce((n, s) => n + s.plans.length, 0);
         const installs = seqs.reduce((n, s) => n + (effectiveShooting(s)?.installations.filter((i) => i.plans.length).length ?? 0), 0);
         const sun = d.date ? daySun(doc, d)[0] : undefined;
+        const on = same(sel, { kind: 'day', id: d.id });
         return (
-          <section key={d.id} className="day-col" aria-label={label}>
-            <button type="button" className="day-col-h" aria-label={`Ouvrir ${label}`} onClick={() => useDaysUi.getState().set(d.id)}>
+          <section key={d.id} className={`day-col ${on ? 'on' : ''}`} aria-label={label}>
+            <button type="button" className="day-col-h" aria-pressed={on} aria-label={`Ouvrir ${label}`} onClick={() => showInTournage({ kind: 'day', id: d.id })}>
               <strong>
                 {label} · {d.date ? shortDate(d.date) : 'date à fixer'}
               </strong>
@@ -122,47 +193,21 @@ function DaysBoard({ doc, labels }: { doc: ProjectDoc; labels: Map<Id, string> }
               </span>
             </button>
             {seqs.length === 0 && <div className="empty-line small">Aucune séquence</div>}
-            {seqs.map((s) => {
-              const e = effectiveShooting(s);
-              const c = stripColors(s);
-              if (!e)
-                return (
-                  <div key={s.id} className="board-group">
-                    <div className="board-group-h">
-                      <span className="strip" style={{ background: c.fill, borderColor: c.edge }} />
-                      Séq. {s.number || '?'}
-                    </div>
-                    {s.plans.map((p) => row(p, detailOf(p)))}
-                  </div>
-                );
-              return (
-                <div key={s.id} className="board-seq">
-                  {e.installations
-                    .filter((i) => i.plans.length)
-                    .map((ins, k) => (
-                      <div key={ins.id} className="board-group">
-                        <div className="board-group-h">
-                          <span className="strip" style={{ background: c.fill, borderColor: c.edge }} />
-                          {ins.name || `Installation ${k + 1}`}
-                        </div>
-                        {ins.plans.map((p) => row(p, p.repriseOf ? 'Reprise' : detailOf(p)))}
-                      </div>
-                    ))}
-                  {e.loose.length > 0 && (
-                    <div className="board-group">
-                      <div className="board-group-h">
-                        <span className="strip" style={{ background: c.fill, borderColor: c.edge }} />
-                        Séq. {s.number || '?'} · à ranger
-                      </div>
-                      {e.loose.map((p) => row(p, detailOf(p)))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {seqs.map((s) => seqBlock(s, s.id))}
           </section>
         );
       })}
+      {without.length > 0 && (
+        <section className="day-col no-day" aria-label="Sans jour">
+          <div className="day-col-h static">
+            <strong>Sans jour</strong>
+            <span className="sub mono">
+              {without.length} séquence{without.length > 1 ? 's' : ''}
+            </span>
+          </div>
+          {without.map((s) => seqBlock(s, s.id))}
+        </section>
+      )}
     </div>
   );
 }
@@ -235,7 +280,7 @@ function DayPage({ doc, day, label, labels }: { doc: ProjectDoc; day: ShootingDa
             const r = duplicateDay(selectDoc(useApp.getState()), day.id);
             if (!r) return;
             apply(() => r.doc, `${label} dupliqué`);
-            useDaysUi.getState().set(r.id);
+            showInTournage({ kind: 'day', id: r.id });
           }}
         >
           Dupliquer
@@ -245,7 +290,7 @@ function DayPage({ doc, day, label, labels }: { doc: ProjectDoc; day: ShootingDa
           className="linkbtn danger"
           onClick={() => {
             apply((d) => removeDay(d, day.id), `${label} supprimé`);
-            useDaysUi.getState().set(null);
+            useTournage.getState().set(null);
           }}
         >
           Supprimer ce jour
@@ -289,9 +334,11 @@ function DayPage({ doc, day, label, labels }: { doc: ProjectDoc; day: ShootingDa
               <div className="day-seq-h reorder" onKeyDown={reorderKeys((d) => upd((x) => void x.sequenceIds.splice(k + d, 0, x.sequenceIds.splice(k, 1)[0]!)), { up: k > 0, down: k < seqs.length - 1 })}>
                 {grip}
                 <span className="strip" style={{ background: c.fill, borderColor: c.edge }} />
-                <b>
-                  SÉQ. {s.number || '?'} — {sequenceTitle(s)}
-                </b>
+                <button type="button" className="linkbtn day-seq-name" title="Installations et ordre de tournage de cette séquence" onClick={() => showInTournage({ kind: 'seq', id: s.id })}>
+                  <b>
+                    SÉQ. {s.number || '?'} — {sequenceTitle(s)}
+                  </b>
+                </button>
                 <span className="note">
                   {s.plans.length} plan{s.plans.length > 1 ? 's' : ''}
                 </span>
@@ -328,10 +375,7 @@ function DayPage({ doc, day, label, labels }: { doc: ProjectDoc; day: ShootingDa
                   type="button"
                   className="linkbtn"
                   style={{ alignSelf: 'flex-start' }}
-                  onClick={() => {
-                    useShootingUi.getState().set(s.id);
-                    useApp.getState().setView('shooting');
-                  }}
+                  onClick={() => showInTournage({ kind: 'seq', id: s.id })}
                 >
                   Ordre de tournage à établir (Installations)
                 </button>
@@ -352,42 +396,43 @@ function DayPage({ doc, day, label, labels }: { doc: ProjectDoc; day: ShootingDa
         ) : sun.length === 0 ? (
           <p className="note" style={{ margin: 0 }}>Aucun décor de ce jour n’a de position GPS (fiche de la séquence).</p>
         ) : (
-          <table className="day-table">
-            <thead>
-              <tr>
-                <th>Décor</th>
-                <th>Lever</th>
-                <th>Coucher</th>
-                <th>Heure dorée du matin</th>
-                <th>Heure dorée du soir</th>
-                <th>Crépuscule civil</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sun.map((x) => (
-                <tr key={x.location + x.sequences.join()}>
-                  <td>
-                    {x.location} <span className="note">(séq. {x.sequences.join(', ')})</span>
-                  </td>
-                  {x.sun.polar ? (
-                    <td colSpan={5}>{x.sun.polar === 'day' ? 'Soleil levé toute la journée' : 'Soleil couché toute la journée'}</td>
-                  ) : (
-                    <>
-                      <td className="mono">{t(x.sun.sunrise)}</td>
-                      <td className="mono">{t(x.sun.sunset)}</td>
-                      <td className="mono">
-                        {t(x.sun.goldenMorning[0])}–{t(x.sun.goldenMorning[1])}
-                      </td>
-                      <td className="mono">
-                        {t(x.sun.goldenEvening[0])}–{t(x.sun.goldenEvening[1])}
-                      </td>
-                      <td className="mono">{t(x.sun.dusk)}</td>
-                    </>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          sun.map((x) => (
+            <div key={x.location + x.sequences.join()} className="light-readings day-sun">
+              <div className="day-sun-h">
+                {x.location} <span className="note">(séq. {x.sequences.join(', ')})</span>
+              </div>
+              {x.sun.polar ? (
+                <div className="reading">
+                  <span>{x.sun.polar === 'day' ? 'Soleil levé toute la journée' : 'Soleil couché toute la journée'}</span>
+                </div>
+              ) : (
+                <>
+                  <div className="reading">
+                    <span>Lever · coucher</span>
+                    <b className="mono">
+                      {t(x.sun.sunrise)} · {t(x.sun.sunset)}
+                    </b>
+                  </div>
+                  <div className="reading">
+                    <span>Heure dorée du matin</span>
+                    <b className="mono">
+                      {t(x.sun.goldenMorning[0])} – {t(x.sun.goldenMorning[1])}
+                    </b>
+                  </div>
+                  <div className="reading">
+                    <span>Heure dorée du soir</span>
+                    <b className="mono">
+                      {t(x.sun.goldenEvening[0])} – {t(x.sun.goldenEvening[1])}
+                    </b>
+                  </div>
+                  <div className="reading">
+                    <span>Crépuscule civil</span>
+                    <b className="mono">{t(x.sun.dusk)}</b>
+                  </div>
+                </>
+              )}
+            </div>
+          ))
         )}
       </section>
 

@@ -38,12 +38,13 @@ test('documents liés : un plan modifié se retrouve partout, « ce plan ailleur
   await page.screenshot({ path: 'test-results/32-ce-plan-ailleurs.png' });
   await links.getByRole('button', { name: /caméra placée/ }).click();
   await expect(page.locator('.floor-canvas text', { hasText: '40 mm' })).toBeVisible();
-  // La caméra est sélectionnée sur le plan.
-  await expect(page.getByRole('tab', { name: 'Plan au sol' })).toHaveAttribute('aria-selected', 'true');
+  // La caméra est sélectionnée sur le plan : ses détails sont ouverts.
+  await expect(page.getByRole('complementary', { name: 'Détails du plan au sol' }).locator('.side-head')).toContainText('Caméra');
 
   // Lumière du même plan au sol.
   await page.keyboard.press('ControlOrMeta+1');
   await links.getByRole('button', { name: /Lumière : aucun projecteur/ }).click();
-  await expect(page.getByRole('tab', { name: 'Lumière' })).toHaveAttribute('aria-selected', 'true');
-  await expect(page.getByRole('region', { name: 'Soleil' })).toBeVisible();
+  // Rien n'est sélectionné : les détails montrent la lumière du plan.
+  await expect(page.getByRole('region', { name: 'Soleil', exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Projecteurs', exact: true })).toBeVisible();
 });

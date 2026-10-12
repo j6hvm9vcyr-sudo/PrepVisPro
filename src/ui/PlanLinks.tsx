@@ -4,8 +4,7 @@ import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
 import { planLinks } from '../model/links';
 import { useFloor } from '../floor/floorStore';
-import { useShootingUi } from './ShootingView';
-import { useDaysUi } from './DaysView';
+import { showInTournage } from './TournageView';
 import { locatePlan } from '../model/ops';
 import { Info } from './Info';
 import { openDecoupagePanel } from './panels';
@@ -29,7 +28,7 @@ export function PlanLinksSection({ planId }: { planId: Id }) {
   const seq = locatePlan(doc, planId)!.seq;
   const multi = links.floors[0] ? links.floors[0].cameras.length > 1 : false;
   const toFloor = (floorId: Id, patch: Partial<Parameters<ReturnType<typeof useFloor.getState>['set']>[0]> = {}) => {
-    useFloor.getState().set({ currentId: floorId, selection: [], tool: 'select', draft: [], panel: 'plan', ...patch });
+    useFloor.getState().set({ currentId: floorId, selection: [], tool: 'select', draft: [], ...patch });
     st().setView('floor');
   };
   const multiFloor = links.floors.length > 1;
@@ -72,7 +71,7 @@ export function PlanLinksSection({ planId }: { planId: Id }) {
               )}
               <Chip
                 full={`Lumière : ${f.lights ? `${f.lights} projecteur${f.lights > 1 ? 's' : ''}` : 'aucun projecteur'}${f.reflectors ? `, ${f.reflectors} réflecteur${f.reflectors > 1 ? 's' : ''}` : ''}`}
-                onClick={() => toFloor(f.id, { panel: 'light' })}
+                onClick={() => toFloor(f.id)}
               >
                 Lumière
               </Chip>
@@ -82,10 +81,7 @@ export function PlanLinksSection({ planId }: { planId: Id }) {
         <Chip
           warn={shoot.kind !== 'installation'}
           full={shootFull}
-          onClick={() => {
-            useShootingUi.getState().set(seq.id);
-            st().setView('shooting');
-          }}
+          onClick={() => showInTournage({ kind: 'seq', id: seq.id })}
         >
           {shoot.kind === 'installation' ? `Inst. ${shoot.index}` : 'Installation'}
         </Chip>
@@ -94,8 +90,7 @@ export function PlanLinksSection({ planId }: { planId: Id }) {
           full={links.days.length ? `Jour${links.days.length > 1 ? 's' : ''} de tournage : ${links.days.join(', ')}` : 'Pas encore dans un jour de tournage'}
           onClick={() => {
             const d = doc.shootingDays.find((x) => x.sequenceIds.includes(seq.id));
-            if (d) useDaysUi.getState().set(d.id);
-            st().setView('days');
+            showInTournage(d ? { kind: 'day', id: d.id } : { kind: 'seq', id: seq.id });
           }}
         >
           {links.days.length ? links.days.join(', ') : 'Jour'}

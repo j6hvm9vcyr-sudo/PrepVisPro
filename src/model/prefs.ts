@@ -50,13 +50,17 @@ export interface PanelLayout {
   /** Hauteur du tiroir Images (px). */
   imagesHeight: number;
   tournageFilm: boolean;
+  /** Plans au sol et Tournage (0.19) : leur liste à gauche, leurs détails à droite. */
+  solFilm: boolean;
+  solDetails: boolean;
+  tournageDetails: boolean;
 }
 
 export const IMAGES_MIN_HEIGHT = 150;
 export const IMAGES_MAX_HEIGHT = 600;
 
 export function defaultLayout(): PanelLayout {
-  return { film: true, scenario: false, images: false, notes: false, imagesHeight: 300, tournageFilm: true };
+  return { film: true, scenario: false, images: false, notes: false, imagesHeight: 300, tournageFilm: true, solFilm: true, solDetails: true, tournageDetails: true };
 }
 
 export interface AppPrefs {
@@ -98,6 +102,10 @@ const layoutSchema = z.object({
   notes: z.boolean(),
   imagesHeight: z.number().min(IMAGES_MIN_HEIGHT).max(IMAGES_MAX_HEIGHT),
   tournageFilm: z.boolean(),
+  // Apparus en 0.19 : absents d'un fichier de la 0.18, ils sont ouverts.
+  solFilm: z.boolean().default(true),
+  solDetails: z.boolean().default(true),
+  tournageDetails: z.boolean().default(true),
 });
 // `table` (0.11.1) et `layout` (0.18) sont apparus après la première version des préférences : absents, ils prennent leur valeur par défaut.
 const prefsSchema = z.object({ version: z.literal(PREFS_VERSION), carryOver: carrySchema, aliases: aliasesSchema, table: tableSchema.default({ widths: {}, rowHeight: null }), layout: layoutSchema.default(defaultLayout) });

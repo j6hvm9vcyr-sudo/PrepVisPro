@@ -16,10 +16,32 @@ import { newProjectFromCurrent } from '../state/project';
 
 export const CAT_LABEL: Record<TermCategory, string> = { size: 'Valeurs', axis: 'Axes', angle: 'Angles', movement: 'Mouvements', grip: 'Machinerie' };
 
+type Section = 'projet' | 'cameras' | 'optiques' | 'termes' | 'complet' | 'materiel';
+
+/** Sections des réglages (0.19) : une liste à gauche, groupée comme le travail. */
+const SECTIONS: { group: string; items: [Section, string][] }[] = [
+  { group: 'Projet', items: [['projet', 'Projet']] },
+  {
+    group: 'Image',
+    items: [
+      ['cameras', 'Caméras'],
+      ['optiques', 'Optiques'],
+    ],
+  },
+  {
+    group: 'Saisie',
+    items: [
+      ['termes', 'Listes de termes'],
+      ['complet', 'Saisie des plans'],
+    ],
+  },
+  { group: 'Matériel', items: [['materiel', 'Matériel']] },
+];
+
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const doc = useApp(selectDoc);
   const st = useApp.getState;
-  const [tab, setTab] = useState<'projet' | 'cameras' | 'optiques' | 'termes' | 'complet' | 'materiel'>('projet');
+  const [tab, setTab] = useState<Section>('projet');
   const dlg = useDialogFocus<HTMLDivElement>();
   const close = () => {
     onClose();
@@ -41,35 +63,32 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
       }}
     >
       <div className="dialog settings-dialog" onClick={(e) => e.stopPropagation()}>
-        <div className="settings-head">
-          <h3>Réglages du projet</h3>
-          <span className="scope-badge">Fichier</span>
-          <Info title="Réglages du projet">
-            <span>Gardés dans le fichier du projet : il s’ouvre à l’identique sur un autre Mac.</span>
-            <span>Ce qui vaut pour tous vos projets est dans les Préférences (⌘,).</span>
-          </Info>
-          <span className="spacer" />
-          <button type="button" className="btn primary" onClick={close}>
-            Terminé
-          </button>
-        </div>
         <div className="settings-body">
-          <nav className="settings-nav" role="tablist" aria-orientation="vertical">
-            {(
-              [
-                ['projet', 'Projet'],
-                ['cameras', 'Caméras'],
-                ['optiques', 'Optiques'],
-                ['termes', 'Listes de termes'],
-                ['complet', 'Saisie des plans'],
-                ['materiel', 'Matériel'],
-              ] as const
-            ).map(([k, l]) => (
-              <button key={k} type="button" role="tab" aria-pressed={tab === k} aria-selected={tab === k} onClick={() => setTab(k)}>
-                {l}
-              </button>
+          <nav className="settings-nav" role="tablist" aria-orientation="vertical" aria-label="Sections des réglages">
+            <h3 className="settings-title">Réglages du projet</h3>
+            {SECTIONS.map((g) => (
+              <div key={g.group} className="settings-group" role="presentation">
+                <div className="settings-group-h" role="presentation">
+                  {g.group}
+                </div>
+                {g.items.map(([k, l]) => (
+                  <button key={k} type="button" role="tab" aria-pressed={tab === k} aria-selected={tab === k} onClick={() => setTab(k)}>
+                    {l}
+                  </button>
+                ))}
+              </div>
             ))}
           </nav>
+          <div className="settings-main">
+          <div className="settings-head">
+            <h4>{SECTIONS.flatMap((g) => g.items).find(([k]) => k === tab)![1]}</h4>
+            <Info title="Réglages du projet">
+              <span>Gardés dans le fichier du projet : il s’ouvre à l’identique sur un autre Mac.</span>
+              <span>Ce qui vaut pour tous vos projets est dans les Préférences (⌘,).</span>
+            </Info>
+            <span className="spacer" />
+            <span className="scope-badge">Fichier</span>
+          </div>
           <div className="settings-content">
         {tab === 'projet' && (
           <>
@@ -199,6 +218,12 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
             </div>
           </>
         )}
+          </div>
+          <div className="settings-foot">
+            <button type="button" className="btn primary" onClick={close}>
+              Terminé
+            </button>
+          </div>
           </div>
         </div>
       </div>

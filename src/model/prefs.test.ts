@@ -87,5 +87,8 @@ describe('mise en page du tableau (préférences)', () => {
     const lay = parsePrefs({ version: 1, carryOver: DEFAULT_CARRY, aliases: {}, layout: { ...defaultLayout(), scenario: true, imagesHeight: 320 } });
     expect(lay.ok && lay.prefs.layout.scenario && lay.prefs.layout.imagesHeight).toBe(320);
     expect(parsePrefs({ version: 1, carryOver: DEFAULT_CARRY, aliases: {}, layout: { ...defaultLayout(), imagesHeight: 5 } }).ok).toBe(false);
+    // Disposition de la 0.18 (sans Plans au sol ni Tournage) : leurs panneaux sont ouverts.
+    const v18 = parsePrefs({ version: 1, carryOver: DEFAULT_CARRY, aliases: {}, layout: { film: false, scenario: true, images: false, notes: false, imagesHeight: 300, tournageFilm: true } });
+    expect(v18.ok && v18.prefs.layout).toEqual({ ...defaultLayout(), film: false, scenario: true });
   });
 });

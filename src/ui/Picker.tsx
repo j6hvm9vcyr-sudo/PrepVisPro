@@ -64,6 +64,8 @@ export function Picker({ label, groups, actions = [], onPick, children, variant 
   const [pos, setPos] = useState<{ left: number; top?: number; bottom?: number; width: number; maxHeight: number } | null>(null);
   const btn = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
+  /** Place du bouton à l'ouverture : la liste se ferme si un défilement le déplace. */
+  const at = useRef({ top: 0, left: 0 });
   const total = groups.reduce((n, g) => n + g.items.length, 0);
   const searchable = total >= SEARCH_FROM;
   const shown = useMemo(() => filterGroups(groups, query), [groups, query]);
@@ -82,6 +84,7 @@ export function Picker({ label, groups, actions = [], onPick, children, variant 
   const openList = () => {
     const r = btn.current?.getBoundingClientRect();
     if (!r) return;
+    at.current = { top: r.top, left: r.left };
     const below = window.innerHeight - r.bottom - 12;
     const above = r.top - 12;
     const width = Math.max(r.width, 320);
@@ -100,7 +103,10 @@ export function Picker({ label, groups, actions = [], onPick, children, variant 
       if (!list.current?.contains(t) && !btn.current?.contains(t)) close(false);
     };
     const onScroll = (e: Event) => {
-      if (!list.current?.contains(e.target as Node)) close(false);
+      if (list.current?.contains(e.target as Node)) return;
+      // Un défilement qui ne déplace pas le bouton (déjà fini à l'ouverture) laisse la liste ouverte.
+      const r = btn.current?.getBoundingClientRect();
+      if (!r || Math.abs(r.top - at.current.top) > 1 || Math.abs(r.left - at.current.left) > 1) close(false);
     };
     const onResize = () => close(false);
     document.addEventListener('mousedown', onDown, true);

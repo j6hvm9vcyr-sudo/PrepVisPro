@@ -143,6 +143,16 @@ export interface SunDay {
   polar: 'day' | 'night' | null;
 }
 
+/** Moment de la journée, avec les mêmes seuils que `sunDay` (heure dorée, crépuscule civil). */
+export type SunPhase = 'night' | 'twilight' | 'golden' | 'day';
+
+export function sunPhase(pos: SunPosition): SunPhase {
+  if (pos.elevation >= GOLDEN_HIGH) return 'day';
+  if (pos.elevation >= GOLDEN_LOW) return 'golden';
+  if (pos.trueElevation >= CIVIL_ELEV) return 'twilight';
+  return 'night';
+}
+
 /** Recherche par dichotomie de l'instant où f change de signe entre a et b. */
 function cross(f: (t: number) => number, a: number, b: number): number {
   let fa = f(a);
