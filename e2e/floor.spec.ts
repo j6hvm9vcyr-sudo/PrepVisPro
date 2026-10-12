@@ -3,7 +3,7 @@ import { pick } from './pick';
 import { resolve } from 'node:path';
 import { copyFileSync, readFileSync } from 'node:fs';
 import ExcelJS from 'exceljs';
-import { openSettings, share } from './ui';
+import { openSettings, sequenceDetails, share } from './ui';
 
 test('plan au sol : fond, mise à l’échelle, caméra du découpage avec son champ, mesure', async ({ page }) => {
   await page.goto('/?exemple');
@@ -472,18 +472,16 @@ test('soleil : position GPS du décor, nord du plan, heure simulée, rapport ave
   await page.getByRole('button', { name: 'Terminé' }).click();
 
   // Position GPS du décor, collée depuis une carte. Un texte qui n'est pas une position est refusé.
-  await page.getByRole('button', { name: 'Modifier la séquence 2' }).click();
-  const dlg = page.getByRole('dialog', { name: /Séquence/ });
-  const gps = dlg.getByLabel('Coordonnées GPS');
+  const dlg = await sequenceDetails(page, '2');
+  const gps = dlg.getByLabel('Coordonnées GPS', { exact: true });
   await gps.fill('rue de Rivoli');
   await expect(dlg.getByText(/Format non reconnu/)).toBeVisible();
   await gps.fill('48°51\'23.8"N 2°21\'7.9"E');
-  // ↩ ferme la fiche : la position est déjà enregistrée.
-  await gps.press('Enter');
+  // Enregistrée dès qu'elle est sûre : un autre plan choisi, puis la séquence de nouveau.
+  await page.locator('.line [id$="-action"]').first().click();
   await expect(dlg).toBeHidden();
-  await page.getByRole('button', { name: 'Modifier la séquence 2' }).click();
+  await sequenceDetails(page, '2');
   await expect(gps).toHaveValue('48.85661, 2.35219');
-  await dlg.getByRole('button', { name: 'Terminé' }).click();
 
   await page.keyboard.press('ControlOrMeta+2');
   await pick(page, 'Créer un plan au sol pour la séquence', '2 — Wagon');

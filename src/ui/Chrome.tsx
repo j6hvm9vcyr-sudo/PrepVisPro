@@ -19,6 +19,8 @@ import { PANEL_KEY, PANEL_LABEL, PANELS_OF, togglePanel, usePanelOpen, useRetour
 import { useRetoursCount } from './RetoursPanel';
 import { isGridView, openSpace, SPACE_OF, SPACES, useVerifyPanel, type Space } from './spaces';
 import { Info } from './Info';
+import { ActionMenu, type MenuItems } from './ActionMenu';
+import { startScriptImport } from '../import/flow';
 import { useTournage } from './TournageView';
 
 /** Relevé « À vérifier », recalculé à chaque modification du projet. */
@@ -288,6 +290,7 @@ export function SpaceBar({ left, children, views = true }: { left?: ReactNode; c
           ))}
         </div>
       )}
+      {decoupage && <NewMenu />}
       {left}
       <span className="spacer" />
       {children}
@@ -311,6 +314,34 @@ export function SpaceBar({ left, children, views = true }: { left?: ReactNode; c
       )}
       {isGridView(view) && <ColumnsMenu />}
     </div>
+  );
+}
+
+/**
+ * « + Nouveau ▾ » (0.24), dans la barre du tableau : créer se fait sur la surface, jamais dans un
+ * panneau qu'on peut fermer. Plan et reprise après le plan choisi ; séquence et tampon après sa séquence.
+ */
+function NewMenu() {
+  const doc = useApp(selectDoc);
+  const cursor = useApp(selectCursor);
+  const st = useApp.getState;
+  const loc = cursor ? locatePlan(doc, cursor.planId) : null;
+  const code = loc ? computeNumbers(doc).get(loc.plan.id)?.code : null;
+  const seqNo = loc?.seq.number || '?';
+  const items: MenuItems = [
+    { label: code ? `Plan après ${code}` : 'Plan', key: '⌘↩', run: () => st().newPlan(false), disabled: !loc },
+    { label: code ? `Reprise de ${code}` : 'Reprise', key: '⇧⌘↩', run: () => st().newPlan(true), disabled: !loc },
+    { label: code ? `Caméra sur ${code}` : 'Caméra', key: '⇧⌘C', run: () => loc && st().addCamera(loc.plan.id), disabled: !loc },
+    null,
+    { label: loc ? `Séquence après la ${seqNo}` : 'Séquence', run: () => st().addSequence(loc?.seq.id ?? null) },
+    { label: loc ? `Tampon après la séquence ${seqNo}` : 'Tampon (TITRE, GÉNÉRIQUE…)', run: () => st().addStamp('', loc ? { after: loc.seq.id } : null) },
+    null,
+    { label: 'Importer un scénario…', key: '⇧⌘I', run: () => void startScriptImport() },
+  ];
+  return (
+    <ActionMenu label="Nouveau" items={items} className="tool-b new-btn">
+      + Nouveau <span className="chev" aria-hidden>▾</span>
+    </ActionMenu>
   );
 }
 
@@ -384,14 +415,6 @@ export function FilmTree({ onPlan, head }: { onPlan?: (planId: Id) => void; head
           </div>
         );
       })}
-      <div className="tree-actions">
-        <button type="button" className="linkbtn" title="Nouvelle séquence après la séquence en cours" onClick={() => st().addSequence(hereSeq ?? null)}>
-          + Séquence
-        </button>
-        <button type="button" className="linkbtn" title="TITRE, GÉNÉRIQUE DE FIN… après la séquence en cours" onClick={() => st().addStamp('', hereSeq ? { after: hereSeq } : null)}>
-          + Tampon
-        </button>
-      </div>
     </nav>
   );
 }

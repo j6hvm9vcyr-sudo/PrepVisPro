@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { sequenceDetails } from './ui';
 
 const cell = (page: import('@playwright/test').Page, row: number, col: string) => page.locator(`.line [id$="-${col}"]`).nth(row);
 
@@ -78,6 +79,6 @@ test('0.13 : notes datées par plan et par séquence, cochées, rassemblées dan
   await seq1.getByRole('button', { name: 'Ouvrir le plan 1/3' }).click();
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeVisible();
   await expect(page.locator('.line.sel .c.code b')).toHaveText('1/3');
-  await page.getByRole('button', { name: 'Modifier la séquence 3' }).click();
-  await expect(page.getByRole('dialog', { name: 'Séquence' }).getByRole('region', { name: 'Notes de la séquence' }).getByRole('textbox', { name: 'Note : Lampe de jeu : 60 W, à vérifier' })).toBeVisible();
+  const seqDetails = await sequenceDetails(page, '3');
+  await expect(seqDetails.getByRole('region', { name: 'Notes de la séquence' }).getByRole('textbox', { name: 'Note : Lampe de jeu : 60 W, à vérifier' })).toBeVisible();
 });

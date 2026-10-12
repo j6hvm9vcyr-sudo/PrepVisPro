@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { newItem, sequenceAction } from './ui';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/?exemple');
@@ -6,9 +7,8 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('tampons : TITRE entre deux séquences, GÉNÉRIQUE DE FIN, déplacement, suppression, ⌘Z', async ({ page }) => {
-  // Depuis la fiche de la séquence 1 : tampon inséré après.
-  await page.getByRole('button', { name: 'Modifier la séquence 1' }).click();
-  await page.getByRole('dialog', { name: /Séquence/ }).getByRole('button', { name: 'Insérer après' }).click();
+  // Depuis le « ··· » de la séquence 1 : tampon inséré après.
+  await sequenceAction(page, '1', 'Insérer un tampon après');
   const dlg = page.getByRole('dialog', { name: 'Tampon' });
   await expect(dlg.getByLabel('Texte')).toBeFocused();
   await dlg.getByRole('button', { name: 'TITRE', exact: true }).click();
@@ -23,9 +23,9 @@ test('tampons : TITRE entre deux séquences, GÉNÉRIQUE DE FIN, déplacement, s
   // La numérotation des plans ne bouge pas.
   await expect(page.locator('.line.first .c.code b').first()).toHaveText('1/1');
 
-  // Barre latérale : générique de fin après la dernière séquence (le curseur est sur la 1 : on va à la 4).
+  // « + Nouveau » : générique de fin après la dernière séquence (le curseur est sur la 1 : on va à la 4).
   await page.getByRole('navigation', { name: 'Le film' }).getByRole('button', { name: /^4 · / }).click();
-  await page.getByRole('navigation', { name: 'Le film' }).getByRole('button', { name: '+ Tampon' }).click();
+  await newItem(page, 'Tampon après la séquence 4');
   await dlg.getByLabel('Texte').fill('Générique de fin');
   await expect(dlg).toContainText('Placé en fin de film');
   await dlg.getByLabel('Texte').press('Enter');
@@ -45,7 +45,8 @@ test('tampons : TITRE entre deux séquences, GÉNÉRIQUE DE FIN, déplacement, s
 
   // Une séquence ajoutée à la fin se place avant le générique.
   await page.getByRole('navigation', { name: 'Le film' }).getByRole('button', { name: /^4 · / }).click();
-  await page.getByRole('navigation', { name: 'Le film' }).getByRole('button', { name: '+ Séquence' }).click();
-  await page.getByRole('dialog', { name: /Séquence/ }).getByRole('button', { name: 'Terminé' }).click();
+  await newItem(page, 'Séquence après la 4');
+  // La nouvelle séquence s'ouvre dans les détails, numéro proposé.
+  await expect(page.getByRole('complementary', { name: 'Détails de la séquence' }).getByLabel('Numéro')).toHaveValue('5');
   await expect(bands).toHaveText(['SÉQ. 1', 'SÉQ. 2', 'TITRE', 'SÉQ. 3', 'SÉQ. 4', 'SÉQ. 5', 'Générique de fin']);
 });

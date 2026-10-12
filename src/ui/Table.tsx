@@ -27,7 +27,9 @@ import { StampBand } from './StampBand';
 import { DRAG_IMAGE } from './Library';
 import { useChangesSincePublication } from './PublishDialog';
 import { usePublish } from '../state/publish';
-import { startTiming } from './panels';
+import { setPanel } from './panels';
+import { ActionMenu } from './ActionMenu';
+import { useSequenceActions } from './sequenceActions';
 
 const TECH: { col: Exclude<EditableField, 'action'>; label: string }[] = [
   { col: 'size', label: 'Valeur' },
@@ -70,6 +72,7 @@ export function DecoupageTable() {
   const editHost = useEditHost((s) => s.host);
   const collapsed = useApp((s) => s.collapsed);
   const onlyIncomplete = useApp((s) => s.onlyIncomplete);
+  const chosenSeq = useApp((s) => s.editingSequenceId);
   const numbers = useMemo(() => computeNumbers(doc), [doc]);
   const states = useMemo(() => verify(doc).states, [doc]);
   // Largeurs des colonnes et hauteur des rangées : préférences de ce Mac (jamais l'export).
@@ -331,6 +334,7 @@ export function DecoupageTable() {
               cursorCol={cursor ? (visibleColumns(doc.settings).includes(cursor.col) ? cursor.col : 'action') : null}
               editing={!!editing && editHost === 'grid'}
               selection={selection?.map ?? null}
+              chosen={chosenSeq === it.seq.id}
               days={doc.shootingDays
                 .filter((d) => d.sequenceIds.includes(it.seq.id))
                 .map((d) => `J${doc.shootingDays.indexOf(d) + 1}`)
@@ -361,6 +365,25 @@ interface BlockProps {
   selection: Map<string, Record<string, [number, number]>> | null;
   /** Jours de tournage de la séquence (« J2, J3 »), vide sinon. */
   days: string;
+  /** Séquence choisie : ses détails sont à droite. */
+  chosen: boolean;
+}
+
+/** Choisir une séquence (clic sur son bandeau) : ses détails à droite, le clavier reste au tableau. */
+function chooseSequence(seqId: string) {
+  useApp.getState().setEditingSequence(seqId);
+  setPanel('details', true);
+  focusGrid();
+}
+
+/** « ··· » d'un bandeau de séquence (0.24) : les actions de la séquence. */
+function BandMenu({ seq }: { seq: Sequence }) {
+  const { all } = useSequenceActions(seq);
+  return (
+    <ActionMenu label={`Séquence ${seq.number} : plus d’actions`} items={all} className="more-btn" align="right" tabIndex={-1}>
+      ···
+    </ActionMenu>
+  );
 }
 
 function SequenceBlock(p: BlockProps) {
@@ -372,7 +395,7 @@ function SequenceBlock(p: BlockProps) {
   const dur = totalLabel(sequenceDuration(seq));
   return (
     <>
-      <div className="band" id={`seq-${seq.id}`} role="row">
+      <div className={`band ${p.chosen ? 'chosen' : ''}`} id={`seq-${seq.id}`} role="row">
         <button
           type="button"
           className="chev"
@@ -383,9 +406,11 @@ function SequenceBlock(p: BlockProps) {
         >
           {p.collapsed ? '▸' : '▾'}
         </button>
-        <span className="strip wide" style={{ background: colors.fill, borderColor: colors.edge }} />
-        <span className="num mono">SÉQ. {seq.number || '?'}</span>
-        <span className="ttl">{sequenceTitle(seq)}</span>
+        <button type="button" className="band-pick" tabIndex={-1} aria-pressed={p.chosen} aria-label={`Séquence ${seq.number} : détails`} title="Détails de la séquence" onClick={() => chooseSequence(seq.id)}>
+          <span className="strip wide" style={{ background: colors.fill, borderColor: colors.edge }} />
+          <span className="num mono">SÉQ. {seq.number || '?'}</span>
+          <span className="ttl">{sequenceTitle(seq)}</span>
+        </button>
         <span className="cnt">
           {seq.plans.length} plan{seq.plans.length > 1 ? 's' : ''}
           {p.onlyIncomplete ? ` · ${plans.length} à compléter` : ''}
@@ -397,14 +422,7 @@ function SequenceBlock(p: BlockProps) {
           </span>
         )}
         <span className="spacer" />
-        {seq.plans.some((x) => !x.repriseOf) && (
-          <button type="button" className="linkbtn" tabIndex={-1} aria-label={`Minuter la séquence ${seq.number}`} title="Minuter à la lecture : espace à chaque changement de plan" onClick={() => startTiming(seq.id)}>
-            Minuter
-          </button>
-        )}
-        <button type="button" className="linkbtn" tabIndex={-1} aria-label={`Modifier la séquence ${seq.number}`} onClick={() => st().setEditingSequence(seq.id)}>
-          Modifier
-        </button>
+        <BandMenu seq={seq} />
       </div>
       {!p.collapsed &&
         plans.map((plan) => {

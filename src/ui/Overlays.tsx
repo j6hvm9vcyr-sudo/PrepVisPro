@@ -1,17 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
-import { NotesList } from './Notes';
+import { useEffect, useId, useRef, useState } from 'react';
 import { APP_VERSION } from '../version';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
 import { locatePlan } from '../model/ops';
 import { computeNumbers } from '../model/numbering';
 import { imageStore } from '../platform/images';
-import type { DayNight, IntExt, Sequence } from '../model/types';
+import type { Sequence } from '../model/types';
 import { formatCoordinates, parseCoordinates } from '../model/sun';
 import { focusGrid, isComposing, useDialogFocus } from './focus';
-import { norm } from '../model/text';
-import { summarizeSequence } from '../model/summary';
 import { flowBounds, STAMP_SUGGESTIONS } from '../model/stamps';
+import { Info } from './Info';
 
 export function Preview() {
   const preview = useApp((s) => s.preview);
@@ -215,182 +213,6 @@ export function DropChoice() {
   );
 }
 
-export function SequenceDialog() {
-  const id = useApp((s) => s.editingSequenceId);
-  const doc = useApp(selectDoc);
-  const seq = doc.sequences.find((s) => s.id === id);
-  const firstField = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    firstField.current?.focus();
-    firstField.current?.select();
-  }, [id]);
-  const dlg = useDialogFocus<HTMLDivElement>(!!id);
-  if (!id || !seq) return null;
-  const st = useApp.getState;
-  const bounds = flowBounds(doc, seq.id);
-  const summary = summarizeSequence(seq);
-  const close = () => {
-    st().setEditingSequence(null);
-    focusGrid();
-  };
-  const upd = (key: string, fn: Parameters<ReturnType<typeof st>['updateSequence']>[1]) => st().updateSequence(seq.id, fn, `seq:${seq.id}:${key}`);
-  return (
-    <div
-      ref={dlg}
-      tabIndex={-1}
-      className="overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Séquence ${seq.number}`}
-      onKeyDown={(e) => {
-        e.stopPropagation();
-        if (e.key === 'Escape') close();
-        else if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
-          if (isComposing(e)) setTimeout(close, 60);
-          else close();
-        }
-      }}
-      onClick={close}
-    >
-      <div className="dialog" onClick={(e) => e.stopPropagation()}>
-        <h3>Séquence {seq.number || '(sans numéro)'}</h3>
-        {seq.number.trim() !== '' && doc.sequences.some((s) => s.id !== seq.id && s.number.trim().toUpperCase() === seq.number.trim().toUpperCase()) && (
-          <div className="welcome-error" role="alert">
-            Une autre séquence porte déjà le numéro {seq.number} : les numéros de plan seraient identiques. Choisissez un autre numéro (ex. {seq.number}A).
-          </div>
-        )}
-        <div className="row">
-          <label className="field small">
-            Numéro
-            <input ref={firstField} value={seq.number} onChange={(e) => upd('number', (s) => void (s.number = e.target.value.trim().toUpperCase()))} placeholder="ex. 3A" />
-          </label>
-          <label className="field small">
-            INT / EXT
-            <select value={seq.intExt} onChange={(e) => upd('ie', (s) => void (s.intExt = e.target.value as IntExt))}>
-              <option value="INT">INT</option>
-              <option value="EXT">EXT</option>
-              <option value="INT/EXT">INT/EXT</option>
-            </select>
-          </label>
-          <label className="field small">
-            Effet
-            <select value={seq.dayNight} onChange={(e) => upd('dn', (s) => void (s.dayNight = e.target.value as DayNight))}>
-              <option value="JOUR">JOUR</option>
-              <option value="NUIT">NUIT</option>
-            </select>
-          </label>
-          <label className="field">
-            Décor
-            <input
-              list="known-locations"
-              value={seq.location}
-              placeholder="ex. Chambre d’Axel"
-              onChange={(e) => {
-                const v = e.target.value;
-                // Décor déjà utilisé : son adresse est reprise (jamais saisie deux fois).
-                const twin = doc.sequences.find((x) => x.id !== seq.id && (x.address.trim() || x.gps) && norm(x.location) === norm(v) && norm(v) !== '');
-                upd('loc', (s) => {
-                  s.location = v;
-                  if (twin && !s.address.trim()) s.address = twin.address;
-                  if (twin && !s.gps && twin.gps) s.gps = { ...twin.gps };
-                });
-              }}
-            />
-            <datalist id="known-locations">
-              {[...new Set(doc.sequences.filter((x) => x.id !== seq.id && x.location.trim()).map((x) => x.location.trim()))].map((l) => (
-                <option key={l} value={l} />
-              ))}
-            </datalist>
-          </label>
-        </div>
-        <label className="field">
-          Adresse
-          <input value={seq.address} onChange={(e) => upd('addr', (s) => void (s.address = e.target.value))} />
-        </label>
-        <GpsField value={seq.gps} onChange={(g) => upd('gps', (s) => void (s.gps = g))} />
-        {(() => {
-          const sameGps = (x: Sequence) => (x.gps && seq.gps ? x.gps.lat === seq.gps.lat && x.gps.lon === seq.gps.lon : !x.gps && !seq.gps);
-          const others = doc.sequences.filter((x) => x.id !== seq.id && norm(seq.location) !== '' && norm(x.location) === norm(seq.location) && (x.address !== seq.address || !sameGps(x)));
-          if (!others.length || (!seq.address.trim() && !seq.gps)) return null;
-          const what = seq.address.trim() && seq.gps ? 'cette adresse et cette position' : seq.gps ? 'cette position GPS' : 'cette adresse';
-          return (
-            <button
-              type="button"
-              className="linkbtn"
-              style={{ alignSelf: 'flex-start' }}
-              onClick={() =>
-                st().updateDoc((d) => {
-                  for (const x of d.sequences)
-                    if (others.some((o) => o.id === x.id)) {
-                      if (seq.address.trim()) x.address = seq.address;
-                      if (seq.gps) x.gps = { ...seq.gps };
-                    }
-                }, undefined)
-              }
-            >
-              {others.length > 1 ? `Reporter ${what} aux ${others.length} autres séquences « ${seq.location.trim()} »` : `Reporter ${what} à l’autre séquence « ${seq.location.trim()} »`}
-            </button>
-          );
-        })()}
-        <section className="field" aria-label="Notes de la séquence">
-          Notes
-          <NotesList owner={{ seqId: seq.id }} notes={seq.notes} addLabel="Nouvelle note de la séquence" />
-        </section>
-        <div className="sec">
-          <div className="sec-h">Dépouillement image</div>
-          <p className="note" style={{ margin: 0 }}>
-            D’après les plans : {summary.focals || 'aucune focale'} · {summary.grip || 'aucune machinerie'}
-          </p>
-          <div className="breakdown-grid">
-            {(
-              [
-                ['camera', 'Caméra'],
-                ['grip', 'Machinerie'],
-                ['lighting', 'Lumière'],
-                ['other', 'Autre'],
-              ] as const
-            ).map(([k, l]) => (
-              <label className="field" key={k}>
-                {l}
-                <textarea rows={2} value={seq.breakdown[k]} onChange={(e) => upd(`bd-${k}`, (s) => void (s.breakdown[k] = e.target.value))} />
-              </label>
-            ))}
-          </div>
-        </div>
-        <div className="row" style={{ alignItems: 'center' }}>
-          <button type="button" className="btn" disabled={bounds.first} onClick={() => st().moveSequence(seq.id, -1)}>
-            ↑ Monter
-          </button>
-          <button type="button" className="btn" disabled={bounds.last} onClick={() => st().moveSequence(seq.id, 1)}>
-            ↓ Descendre
-          </button>
-          <button type="button" className="btn danger" disabled={doc.sequences.length <= 1} onClick={() => st().deleteSequence(seq.id)}>
-            Supprimer la séquence ({seq.plans.length} plan{seq.plans.length > 1 ? 's' : ''})
-          </button>
-          <span className="spacer" />
-          <button type="button" className="btn primary" onClick={close}>
-            Terminé
-          </button>
-        </div>
-        <div className="row" style={{ alignItems: 'center', gap: 6 }}>
-          <span className="note" style={{ margin: 0 }}>
-            Tampon (TITRE, GÉNÉRIQUE…) :
-          </span>
-          <button type="button" className="btn small" onClick={() => st().addStamp('', { before: seq.id })}>
-            Insérer avant
-          </button>
-          <button type="button" className="btn small" onClick={() => st().addStamp('', { after: seq.id })}>
-            Insérer après
-          </button>
-        </div>
-        <p className="note" style={{ margin: 0 }}>
-          Les modifications sont appliquées immédiatement et s’annulent avec ⌘Z.
-        </p>
-      </div>
-    </div>
-  );
-}
-
 /** Tampon : mention entre deux séquences (TITRE, GÉNÉRIQUE DE FIN…), sans plan ni numéro. */
 export function StampDialog() {
   const id = useApp((s) => s.editingStampId);
@@ -474,6 +296,7 @@ export function StampDialog() {
 /** Position GPS du décor : collée depuis Plans, Google Maps ou un GPS ; jamais devinée. */
 export function GpsField({ value, onChange, label = 'Coordonnées GPS' }: { value: Sequence['gps']; onChange: (g: Sequence['gps']) => void; label?: string }) {
   const [draft, setDraft] = useState<string | null>(null);
+  const id = useId();
   const shown = draft ?? (value ? formatCoordinates(value) : '');
   const parsed = draft === null ? value : parseCoordinates(draft);
   const bad = draft !== null && draft.trim() !== '' && !parsed;
@@ -487,22 +310,28 @@ export function GpsField({ value, onChange, label = 'Coordonnées GPS' }: { valu
     }
   };
   return (
-    <label className="field">
-      {label}
+    <div className="field">
+      <span className="field-h">
+        <label htmlFor={id}>{label}</label>
+        <Info title="Coordonnées GPS">
+          <span>Pour les heures du soleil : collez la position depuis Plans, Google Maps (clic droit sur le lieu, puis clic sur les coordonnées) ou un GPS.</span>
+          <span>Formats : « 48.85837, 2.29448 » ou « 48°51′30″N 2°17′40″E ». Rien n’est deviné.</span>
+        </Info>
+      </span>
       <input
-        aria-label={label}
+        id={id}
         aria-invalid={bad}
         value={shown}
-        placeholder="ex. 48.85837, 2.29448 — pour le soleil"
+        placeholder="ex. 48.85837, 2.29448"
         style={bad ? { borderColor: 'var(--danger)' } : undefined}
         onChange={(e) => edit(e.target.value)}
         onBlur={() => setDraft(null)}
       />
-      <span className="note" style={{ fontSize: 11.5, color: bad ? 'var(--danger)' : undefined }}>
-        {bad
-          ? 'Format non reconnu : « 48.85837, 2.29448 » ou « 48°51′30″N 2°17′40″E ».'
-          : 'Google Maps : clic droit sur le lieu, puis clic sur les coordonnées pour les copier ; collez-les ici.'}
-      </span>
-    </label>
+      {bad && (
+        <span className="note" style={{ fontSize: 11.5, color: 'var(--danger)' }}>
+          Format non reconnu : « 48.85837, 2.29448 » ou « 48°51′30″N 2°17′40″E ».
+        </span>
+      )}
+    </div>
   );
 }

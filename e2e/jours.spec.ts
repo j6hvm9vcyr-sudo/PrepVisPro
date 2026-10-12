@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { pick } from './pick';
-import { openSettings, share } from './ui';
+import { openSettings, sequenceDetails, share } from './ui';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/?exemple');
@@ -12,10 +12,8 @@ test('tournage : jours et installations ensemble — séquences du jour, ordre, 
   await openSettings(page);
   await page.getByLabel('Fuseau horaire').selectOption('Europe/Paris');
   await page.getByRole('button', { name: 'Terminé' }).click();
-  await page.getByRole('button', { name: 'Modifier la séquence 1' }).click();
-  const dlg = page.getByRole('dialog', { name: /Séquence/ });
-  await dlg.getByLabel('Coordonnées GPS').fill('48.8566, 2.3522');
-  await dlg.getByRole('button', { name: 'Terminé' }).click();
+  const dlg = await sequenceDetails(page, '1');
+  await dlg.getByLabel('Coordonnées GPS', { exact: true }).fill('48.8566, 2.3522');
 
   await page.keyboard.press('ControlOrMeta+3');
   // Aucun jour : une ligne, un bouton ; les séquences attendent dans « Sans jour ». Le matériel de tout le tournage est à un clic.

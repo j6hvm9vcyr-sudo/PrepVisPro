@@ -12,7 +12,7 @@ import { Inspector } from './Inspector';
 import { FilmTree, InterfaceBar, SpaceBar, StatusBar, VerifyPanel } from './Chrome';
 import { isGridView, openSpace, SPACE_OF, useVerifyPanel } from './spaces';
 import { openDecoupagePanel, togglePanel, usePanelOpen, useRetoursPanel } from './panels';
-import { DropChoice, Preview, SequenceDialog, Shortcuts, StampDialog } from './Overlays';
+import { DropChoice, Preview, Shortcuts, StampDialog } from './Overlays';
 import { SettingsDialog } from './Settings';
 import { PrefsDialog } from './Preferences';
 import { Welcome } from './Welcome';
@@ -76,7 +76,7 @@ function useGlobalShortcuts(settingsOpen: boolean) {
         focusGrid();
         return;
       }
-      if (st.pendingDrop || st.editingSequenceId || st.editingStampId || st.libraryPick || settingsOpen) return;
+      if (st.pendingDrop || st.editingStampId || st.libraryPick || settingsOpen) return;
       if (st.editing) return;
       // Dans l'application Mac, ces raccourcis appartiennent au menu natif : ne pas les traiter deux fois.
       if (isTauri() && meta && isMenuShortcut(e)) return;
@@ -287,6 +287,16 @@ function Workspace() {
     [],
   );
 
+  // Séquence choisie (0.24) : un autre plan choisi, ou une case en saisie, ramène les détails du plan.
+  useEffect(
+    () =>
+      useApp.subscribe((s, prev) => {
+        if (!s.editingSequenceId || s.editingSequenceId !== prev.editingSequenceId) return;
+        if (s.cursor?.planId !== prev.cursor?.planId || (s.editing && !prev.editing)) useApp.getState().setEditingSequence(null);
+      }),
+    [],
+  );
+
   // Empêche le navigateur d'ouvrir une image lâchée hors d'une zone prévue.
   useEffect(() => {
     const stop = (e: DragEvent) => e.preventDefault();
@@ -378,7 +388,6 @@ function Workspace() {
       <Preview />
       <Shortcuts />
       <DropChoice />
-      <SequenceDialog />
       <StampDialog />
       <LibraryPicker />
       <ErrorBoundary label="fenêtre">

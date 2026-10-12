@@ -228,7 +228,7 @@ function useDrop(onFiles: (f: File[]) => void) {
   };
 }
 
-function ImportButton({ label = 'Importer des images…', primary = false, folderId = null }: { label?: string; primary?: boolean; folderId?: string | null }) {
+function ImportButton({ label = 'Importer des images…', primary = false, folderId = null, onFiles }: { label?: string; primary?: boolean; folderId?: string | null; onFiles?: (files: File[]) => void }) {
   const input = useRef<HTMLInputElement>(null);
   return (
     <>
@@ -243,7 +243,9 @@ function ImportButton({ label = 'Importer des images…', primary = false, folde
         className="sr-only"
         tabIndex={-1}
         onChange={(e) => {
-          void useApp.getState().importToLibrary(Array.from(e.target.files ?? []), folderId);
+          const files = Array.from(e.target.files ?? []);
+          if (onFiles) onFiles(files);
+          else void useApp.getState().importToLibrary(files, folderId);
           e.target.value = '';
         }}
       />
@@ -556,7 +558,19 @@ function PickerDialog({ pick }: { pick: NonNullable<AppState['libraryPick']> }) 
               {place === 'all' ? 'Toutes les images' : place === null ? 'Non rangées' : folderLabel(doc, place)}
             </Picker>
           )}
-          <ImportButton label="Importer…" folderId={place === 'all' ? null : place} />
+          <ImportButton
+            label="Importer…"
+            folderId={place === 'all' ? null : place}
+            onFiles={
+              pick.mode === 'plan'
+                ? (files) => {
+                    // Pour un plan : importées dans la bibliothèque et ajoutées au plan d'un coup.
+                    void st().addImages(pick.planId, kind, files);
+                    close();
+                  }
+                : undefined
+            }
+          />
         </div>
         {pick.mode === 'plan' && (
           <div className="seg" role="radiogroup" aria-label="Ranger en" style={{ alignSelf: 'flex-start' }}>

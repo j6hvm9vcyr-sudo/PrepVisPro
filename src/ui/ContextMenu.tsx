@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useApp } from '../state/appStore';
+import { setPanel } from './panels';
 import { selectDoc } from '../state/store';
 import { locatePlan } from '../model/ops';
 import { focusGrid } from './focus';
@@ -47,8 +48,7 @@ export function ContextMenu() {
       { label: 'Aperçu de l’image', keys: 'espace', disabled: loc.plan.images.length === 0, run: () => st().openPreview(loc.plan.id) },
     ],
     [
-      { label: `Modifier la séquence ${loc.seq.number || ''}`.trim() + '…', run: () => st().setEditingSequence(loc.seq.id) },
-      { label: 'Insérer un tampon après la séquence…', run: () => st().addStamp('', { after: loc.seq.id }) },
+      { label: `Détails de la séquence ${loc.seq.number || ''}`.trim(), run: () => (st().setEditingSequence(loc.seq.id), setPanel('details', true)) },
     ],
     [
       ...(setupIndex > 0 ? [{ label: 'Retirer cette caméra', danger: true, run: () => st().removeCamera(loc.plan.id, menu.setupId) }] : []),

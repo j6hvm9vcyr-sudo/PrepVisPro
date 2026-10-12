@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import ExcelJS from 'exceljs';
 import { readFileSync } from 'node:fs';
 import { PNG_160x90_B64 } from '../src/test/fixtures';
-import { openSettings, share } from './ui';
+import { openSettings, sequenceDetails, share } from './ui';
 
 const cell = (page: Page, row: number, col: string) => page.locator(`.line [id$="-${col}"]`).nth(row);
 
@@ -134,15 +134,23 @@ test('multicaméra et évolutif visibles, vue fiches', async ({ page }) => {
   await expect(page.locator('.card')).toHaveCount(0);
 });
 
-test('modifier une séquence', async ({ page }) => {
-  await page.getByRole('button', { name: 'Modifier la séquence 1' }).click();
-  const dlg = page.getByRole('dialog', { name: /Séquence/ });
+test('0.24 : modifier une séquence dans les détails ; un plan choisi ramène ses détails', async ({ page }) => {
+  const dlg = await sequenceDetails(page, '1');
+  await expect(page.locator('.band.chosen')).toHaveCount(1);
+  await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
   await dlg.getByLabel('Décor').fill('Gare du Nord');
   await dlg.getByLabel('Effet').selectOption('NUIT');
   await page.screenshot({ path: 'test-results/07-sequence.png' });
-  await dlg.getByRole('button', { name: 'Terminé' }).click();
   await expect(page.locator('.band .ttl').first()).toHaveText('EXT. GARE DU NORD — NUIT');
-  await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
+  // Choisir un plan (flèche dans le tableau) : les détails du plan reviennent.
+  await page.getByRole('grid', { name: 'Découpage' }).focus();
+  await page.keyboard.press('ArrowDown');
+  await expect(page.getByRole('complementary', { name: 'Détails du plan' })).toBeVisible();
+  await expect(page.locator('.band.chosen')).toHaveCount(0);
+  // ⌘Z annule la modification de la séquence.
+  await page.keyboard.press('ControlOrMeta+z');
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(page.locator('.band .ttl').first()).toHaveText('EXT. QUAI DE GARE — JOUR');
 });
 
 test('réglages : largeur capteur donne un angle de champ', async ({ page }) => {
@@ -291,21 +299,17 @@ test('saisie groupée : plusieurs lignes sélectionnées dans une colonne, une s
 });
 
 test('décor déjà utilisé : l’adresse est reprise, et peut être reportée aux autres séquences', async ({ page }) => {
-  await page.getByRole('button', { name: 'Modifier la séquence 1' }).click();
-  let dlg = page.getByRole('dialog', { name: /Séquence/ });
+  let dlg = await sequenceDetails(page, '1');
   await dlg.getByLabel('Adresse').fill('Gare de Lyon, Paris');
-  await dlg.getByRole('button', { name: 'Terminé' }).click();
   // Séquence 3 : même décor que la 1 → adresse remplie toute seule.
-  await page.getByRole('button', { name: 'Modifier la séquence 3' }).click();
-  dlg = page.getByRole('dialog', { name: /Séquence/ });
+  dlg = await sequenceDetails(page, '3');
   await dlg.getByLabel('Décor').fill('Quai de gare');
   await expect(dlg.getByLabel('Adresse')).toHaveValue('Gare de Lyon, Paris');
   // Changer l'adresse ici propose de la reporter à la séquence 1.
   await dlg.getByLabel('Adresse').fill('Gare de l’Est, Paris');
   await dlg.getByRole('button', { name: /Reporter cette adresse à/ }).click();
-  await dlg.getByRole('button', { name: 'Terminé' }).click();
-  await page.getByRole('button', { name: 'Modifier la séquence 1' }).click();
-  await expect(page.getByRole('dialog', { name: /Séquence/ }).getByLabel('Adresse')).toHaveValue('Gare de l’Est, Paris');
+  dlg = await sequenceDetails(page, '1');
+  await expect(dlg.getByLabel('Adresse')).toHaveValue('Gare de l’Est, Paris');
 });
 
 test('saisie groupée sur une sélection de plusieurs colonnes : la colonne active est remplie', async ({ page }) => {

@@ -42,7 +42,7 @@ test('bibliothèque : importer une fois, réutiliser dans plusieurs plans, jamai
   await page.locator('.line [id$="-action"]').nth(4).click();
   const imgs = page.getByRole('region', { name: 'Images', exact: true });
   await imgs.getByRole('radio', { name: 'Référence' }).click();
-  await imgs.getByRole('button', { name: 'Bibliothèque…' }).click();
+  await imgs.getByRole('button', { name: 'Ajouter…' }).click();
   const pick = page.getByRole('dialog', { name: 'Bibliothèque d’images' });
   await expect(pick).toContainText('Images pour le plan 2/1');
   await expect(pick.getByRole('radio', { name: 'Référence' })).toHaveAttribute('aria-checked', 'true');
@@ -51,14 +51,16 @@ test('bibliothèque : importer une fois, réutiliser dans plusieurs plans, jamai
   await expect(pick).toBeHidden();
   await expect(imgs.locator('.imgcard[data-kind="reference"] img')).toHaveCount(1);
   // La même image dans le même plan : proposée comme « déjà là ».
-  await imgs.getByRole('button', { name: 'Bibliothèque…' }).click();
+  await imgs.getByRole('button', { name: 'Ajouter…' }).click();
   await expect(pick.getByRole('option').first()).toHaveAttribute('aria-disabled', 'true');
   await page.keyboard.press('Escape');
   await expect(pick).toBeHidden();
 
-  // Une image glissée directement sur un plan entre aussi dans la bibliothèque (et n'y est pas dupliquée).
+  // Une image importée pour un plan (Ajouter… › Importer…) entre aussi dans la bibliothèque (et n'y est pas dupliquée).
   await imgs.getByRole('radio', { name: 'Repérage' }).click();
-  await imgs.locator('input[type=file]').setInputFiles([{ ...png, name: 'encore.png' }]);
+  await imgs.getByRole('button', { name: 'Ajouter…' }).click();
+  await pick.locator('input[type=file]').setInputFiles([{ ...png, name: 'encore.png' }]);
+  await expect(pick).toBeHidden();
   await expect(page.getByRole('status')).toContainText('déjà dans la bibliothèque');
   // Le panneau Images est resté ouvert sous le tableau.
   await expect(lib.locator('.libcard')).toHaveCount(1);
@@ -141,7 +143,7 @@ test('0.14 : dossiers dans les images — créer, ranger (menu ou glisser), doss
   // Choix pour un plan : on peut n'afficher qu'un dossier.
   await page.keyboard.press('ControlOrMeta+1');
   await page.locator('.line [id$="-action"]').nth(1).click();
-  await page.getByRole('region', { name: 'Images', exact: true }).getByRole('button', { name: 'Bibliothèque…' }).click();
+  await page.getByRole('region', { name: 'Images', exact: true }).getByRole('button', { name: 'Ajouter…' }).click();
   const pick = page.getByRole('dialog', { name: 'Bibliothèque d’images' });
   await expect(pick.getByRole('option')).toHaveCount(2);
   await pick.getByRole('button', { name: 'Dossier affiché' }).click();

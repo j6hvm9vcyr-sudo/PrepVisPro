@@ -16,3 +16,21 @@ export async function share(page: Page, tab: ShareTabName) {
   await dlg.getByRole('tab', { name: new RegExp(`^${tab}`) }).click();
   return dlg.getByRole('tabpanel', { name: PANEL[tab] });
 }
+
+/** Détails d'une séquence (0.24) : clic sur son bandeau dans le tableau. */
+export async function sequenceDetails(page: Page, n: string) {
+  await page.getByRole('button', { name: `Séquence ${n} : détails` }).click();
+  return page.getByRole('complementary', { name: 'Détails de la séquence' });
+}
+
+/** « ··· » du bandeau d'une séquence, puis une action. */
+export async function sequenceAction(page: Page, n: string, action: string | RegExp) {
+  await page.locator('.grid .band').getByRole('button', { name: `Séquence ${n} : plus d’actions` }).click();
+  await page.getByRole('menu').getByRole('menuitem', { name: action }).click();
+}
+
+/** « + Nouveau ▾ » de la barre du tableau, puis un élément. */
+export async function newItem(page: Page, item: string | RegExp) {
+  await page.getByRole('button', { name: 'Nouveau', exact: true }).click();
+  await page.getByRole('menu').getByRole('menuitem', { name: item }).click();
+}

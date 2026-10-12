@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { sequenceAction } from './ui';
 
 test('0.16–0.18 : minuter une séquence à la lecture, dans le panneau Scénario — espace, ⌫, pause, relecture, enregistrement annulable', async ({ page }) => {
   // Horloge maîtrisée : les durées mesurées sont exactes.
@@ -7,7 +8,7 @@ test('0.16–0.18 : minuter une séquence à la lecture, dans le panneau Scénar
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
   const band = page.locator('.band').first();
   await expect(band).toContainText('4 plans · 18"');
-  await page.getByRole('button', { name: 'Minuter la séquence 1' }).click();
+  await sequenceAction(page, '1', 'Minuter la séquence…');
   // Le minuteur s'ouvre dans le panneau Scénario, au-dessus de la scène.
   const dlg = page.getByRole('region', { name: 'Minuter la séquence 1' });
   await expect(page.getByRole('complementary', { name: 'Scénario' }).getByRole('region', { name: 'Minuter la séquence 1' })).toBeVisible();
@@ -48,7 +49,7 @@ test('0.16–0.18 : minuter une séquence à la lecture, dans le panneau Scénar
   await expect(band).toContainText('4 plans · 13"');
 
   // Une mesure en cours survit au changement de page (elle est gardée hors du panneau).
-  await page.getByRole('button', { name: 'Minuter la séquence 1' }).click();
+  await sequenceAction(page, '1', 'Minuter la séquence…');
   await page.keyboard.press('Space');
   await page.clock.runFor(2000);
   await page.keyboard.press('Space');

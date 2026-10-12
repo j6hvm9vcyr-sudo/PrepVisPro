@@ -2,7 +2,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { pick } from '../e2e/pick';
 import { resolve } from 'node:path';
-import { openSettings, share } from '../e2e/ui';
+import { newItem, openSettings, sequenceAction, sequenceDetails, share } from '../e2e/ui';
 
 const OUT = process.env.AUDIT_OUT ?? 'test-results/audit';
 const shot = (page: Page, name: string) => page.screenshot({ path: `${OUT}/${name}.png` });
@@ -44,10 +44,15 @@ test('audit', async ({ page }) => {
   await page.keyboard.press('ControlOrMeta+i');
   await shot(page, '07-tableau-sans-details');
   await page.keyboard.press('ControlOrMeta+i');
-  await page.getByRole('button', { name: 'Modifier la séquence 1' }).click();
+  await sequenceDetails(page, '1');
   await shot(page, '08-fiche-sequence');
-  await page.getByRole('dialog', { name: /Séquence/ }).getByRole('button', { name: 'Terminé' }).click();
-  await page.getByRole('button', { name: 'Minuter la séquence 1' }).click();
+  await page.locator('.grid .band').getByRole('button', { name: 'Séquence 1 : plus d’actions' }).click();
+  await shot(page, '08a-sequence-actions');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Nouveau', exact: true }).click();
+  await shot(page, '08c-nouveau');
+  await page.keyboard.press('Escape');
+  await sequenceAction(page, '1', 'Minuter la séquence…');
   await page.keyboard.press('Space');
   await page.keyboard.press('Space');
   await shot(page, '08b-minuter');
@@ -135,7 +140,7 @@ test('audit', async ({ page }) => {
   await page.keyboard.press('ControlOrMeta+Alt+3');
   await shot(page, '22b-images');
   await page.keyboard.press('ControlOrMeta+Alt+3');
-  await page.getByRole('navigation', { name: 'Le film' }).getByRole('button', { name: '+ Tampon' }).click();
+  await newItem(page, /^Tampon après/);
   await shot(page, '22c-tampon');
   await page.getByRole('dialog', { name: 'Tampon' }).getByRole('button', { name: 'TITRE', exact: true }).click();
   await page.keyboard.press('Escape');

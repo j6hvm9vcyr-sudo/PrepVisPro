@@ -22,7 +22,8 @@ test('0.22 : animatique pour le montage — une image par plan minuté, timeline
   await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
   // Une image de repérage sur 1/1 : elle sera l'image du plan.
   const imgs = page.getByRole('region', { name: 'Images', exact: true });
-  await imgs.locator('input[type=file]').setInputFiles([{ name: 'quai.png', mimeType: 'image/png', buffer: Buffer.from(PNG_160x90_B64, 'base64') }]);
+  await imgs.getByRole('button', { name: 'Ajouter…' }).click();
+  await page.getByRole('dialog', { name: 'Bibliothèque d’images' }).locator('input[type=file]').setInputFiles([{ name: 'quai.png', mimeType: 'image/png', buffer: Buffer.from(PNG_160x90_B64, 'base64') }]);
   await expect(page.locator('.line').first().locator('img')).toHaveCount(1);
   const dlg = await share(page, 'Animatique');
   const strip = dlg.getByLabel('Aperçu de l’animatique');

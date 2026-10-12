@@ -17,11 +17,20 @@ import { NotesList } from './Notes';
 import { CARD_FIELDS, CellEditor, editFromCard, useEditHost, type CardField } from './CellEditor';
 import { verify } from '../model/verify';
 import { Picker } from './Picker';
+import { SequenceDetails } from './SequenceDetails';
+import { ActionMenu, type MenuItems } from './ActionMenu';
 import { applyPreset, emptySetup, matchingPreset, presetLabel, savePreset } from '../model/shotPresets';
 
 export function Inspector() {
   const doc = useApp(selectDoc);
   const cursor = useApp(selectCursor);
+  const seqId = useApp((s) => s.editingSequenceId);
+  const chosenSeq = seqId ? doc.sequences.find((s) => s.id === seqId) : null;
+  if (chosenSeq) return <SequenceDetails seq={chosenSeq} />;
+  return <PlanDetails doc={doc} cursor={cursor} />;
+}
+
+function PlanDetails({ doc, cursor }: { doc: ReturnType<typeof selectDoc>; cursor: ReturnType<typeof selectCursor> }) {
   const loc = cursor ? locatePlan(doc, cursor.planId) : null;
   if (!loc) return <aside className="side-panel inspector" aria-label="Détails du plan" />;
   const plan = loc.plan;
@@ -62,8 +71,34 @@ export function Inspector() {
 
         <PlanLinksSection planId={plan.id} />
       </div>
+      <div className="side-foot">
+        <ActionMenu label={`Plan ${n.code} : plus d’actions`} items={planActions(plan.id)} className="btn small">
+          ··· Plus
+        </ActionMenu>
+        <span className="spacer" />
+        <button type="button" className="btn small danger" title="⌘⌫" onClick={() => (st().goToPlan(plan.id), st().deletePlan())}>
+          Supprimer le plan
+        </button>
+      </div>
     </aside>
   );
+}
+
+/** Actions d'un plan (0.24) : pied de ses Détails, aussi dans le menu contextuel du tableau. */
+function planActions(planId: string): MenuItems {
+  const st = useApp.getState;
+  const at = (fn: () => void) => () => {
+    st().goToPlan(planId);
+    fn();
+  };
+  return [
+    { label: 'Nouveau plan après', key: '⌘↩', run: at(() => st().newPlan(false)) },
+    { label: 'Reprise de ce plan', key: '⇧⌘↩', run: at(() => st().newPlan(true)) },
+    { label: 'Ajouter une caméra', key: '⇧⌘C', run: () => st().addCamera(planId) },
+    null,
+    { label: 'Monter le plan', key: '⌥↑', run: at(() => st().movePlan(-1)) },
+    { label: 'Descendre le plan', key: '⌥↓', run: at(() => st().movePlan(1)) },
+  ];
 }
 
 /** Scénario : l'extrait du plan ; « Voir » ouvre le texte de la scène pour y choisir l'extrait. */
@@ -115,7 +150,6 @@ const KIND_LABEL: Record<ImageKind, string> = { scouting: 'Repérage', reference
 function ImageSection({ plan }: { plan: Plan }) {
   const [over, setOver] = useState(false);
   const [kind, setKind] = useState<ImageKind>('scouting');
-  const input = useRef<HTMLInputElement>(null);
   const st = useApp.getState;
   // Repérages d'abord, puis références (ordre d'import conservé dans chaque groupe).
   const items = [...plan.images.filter((i) => i.kind === 'scouting'), ...plan.images.filter((i) => i.kind === 'reference')];
@@ -142,26 +176,9 @@ function ImageSection({ plan }: { plan: Plan }) {
           {items.length > 0 && <span className="count">{items.length}</span>}
         </span>
         <span className="spacer" />
-        <span className="sec-acts">
-          <button type="button" className="linkbtn" onClick={() => st().setLibraryPick({ mode: 'plan', planId: plan.id, kind })} title="Réutiliser une image déjà importée dans le projet">
-            Bibliothèque…
-          </button>
-          <button type="button" className="linkbtn" onClick={() => input.current?.click()} title="Importer depuis le disque">
-            Importer…
-          </button>
-        </span>
-        <input
-          ref={input}
-          type="file"
-          accept="image/*"
-          multiple
-          className="sr-only"
-          tabIndex={-1}
-          onChange={(e) => {
-            void st().addImages(plan.id, kind, Array.from(e.target.files ?? []));
-            e.target.value = '';
-          }}
-        />
+        <button type="button" className="btn small" onClick={() => st().setLibraryPick({ mode: 'plan', planId: plan.id, kind })} title="Choisir dans les images du projet, ou en importer">
+          Ajouter…
+        </button>
       </div>
       <div className="img-kind">
         <span className="note">Ajouter comme</span>

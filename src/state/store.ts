@@ -58,6 +58,7 @@ export interface AppState {
   showShortcuts: boolean;
   /** Images déposées sur un plan : fichiers du Finder, ou images de la bibliothèque (`libraryIds`). */
   pendingDrop: { planId: Id; files: File[]; libraryIds: Id[] } | null;
+  /** Séquence choisie (0.24) : ses détails remplacent ceux du plan, jusqu'au prochain plan choisi. */
   editingSequenceId: Id | null;
   /** Tampon ouvert en modification (TITRE, GÉNÉRIQUE…). */
   editingStampId: Id | null;
@@ -168,7 +169,7 @@ export function suggestSequenceNumber(doc: ProjectDoc, afterSeqId: Id | null): s
 
 /** Une fenêtre superposée a la main sur le clavier (le tableau ne doit pas réagir). */
 export function anyOverlay(s: AppState): boolean {
-  return !!(s.preview || s.showShortcuts || s.pendingDrop || s.editingSequenceId || s.editingStampId || s.libraryPick || s.showSettings || s.showPrefs || s.share || s.showVersions || s.importing || s.contextMenu);
+  return !!(s.preview || s.showShortcuts || s.pendingDrop || s.editingStampId || s.libraryPick || s.showSettings || s.showPrefs || s.share || s.showVersions || s.importing || s.contextMenu);
 }
 
 /** Rectangle sélectionné (une seule cellule s'il n'y a pas de sélection étendue). */
@@ -395,7 +396,8 @@ export function createAppStore(doc: ProjectDoc) {
 
       setCursor(c) {
         if (get().editing) return;
-        set({ cursor: c, anchor: null });
+        // Un plan choisi dans le tableau ramène ses détails (0.24), même s'il était déjà le plan en cours.
+        set({ cursor: c, anchor: null, editingSequenceId: null });
       },
 
       extendTo(c) {

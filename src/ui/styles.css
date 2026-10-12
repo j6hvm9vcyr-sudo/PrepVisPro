@@ -1332,3 +1332,25 @@ button.board-group-h:hover { background: var(--accent-soft); }
 .save-dot { width: 22px; height: 22px; border: 0; background: transparent; padding: 0; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; }
 .save-dot:hover { background: var(--border-soft); }
 .save-dot .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
+
+/* ——— 0.24.1 : Découpage — « + Nouveau », séquence dans les Détails, « ··· », pied des Détails ——— */
+.action-pop { position: fixed; z-index: 60; width: 270px; background: var(--pop); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); padding: 4px; display: flex; flex-direction: column; }
+.action-pop button { display: flex; align-items: center; gap: 12px; width: 100%; border: 0; background: transparent; border-radius: 6px; padding: 6px 9px; text-align: left; font: inherit; font-size: 13px; color: var(--text); }
+.action-pop button:hover:not(:disabled), .action-pop button:focus-visible { background: var(--accent); color: #fff; outline: none; }
+.action-pop button:hover:not(:disabled) .k, .action-pop button:focus-visible .k { color: rgba(255, 255, 255, 0.85); }
+.action-pop button:disabled { color: var(--text3); }
+.action-pop button.danger { color: var(--danger); }
+.action-pop .k { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--text3); }
+.action-pop hr { border: 0; border-top: 1px solid var(--border-soft); margin: 4px 2px; }
+.new-btn .chev { font-size: 10px; color: var(--text3); }
+.band .band-pick { display: inline-flex; align-items: center; gap: 10px; min-width: 0; border: 0; background: transparent; padding: 3px 6px; margin-left: -6px; border-radius: 6px; font: inherit; color: inherit; cursor: pointer; }
+.band .band-pick:hover { background: var(--border-soft); }
+.band.chosen { background: color-mix(in srgb, var(--accent) 12%, var(--band)); box-shadow: inset 3px 0 0 var(--accent), 0 1px 0 var(--border); }
+.band .more-btn { width: 30px; height: 24px; border: 0; border-radius: 6px; background: transparent; color: var(--text3); font: inherit; font-weight: 800; letter-spacing: 1px; padding: 0; }
+.band .more-btn:hover, .band .more-btn[aria-expanded='true'] { background: var(--panel); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14); }
+.side-foot { display: flex; align-items: center; gap: 8px; padding: 10px 16px 12px; border-top: 1px solid var(--border-soft); flex: none; }
+.field-h { display: inline-flex; align-items: center; gap: 6px; }
+.seq-details .big { font-size: 17px; font-weight: 700; }
+.seq-details .icard .row { display: grid; grid-template-columns: 64px minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.seq-details .field.small { min-width: 0; }
+.seq-details .field select, .seq-details .field input { width: 100%; min-width: 0; box-sizing: border-box; }
