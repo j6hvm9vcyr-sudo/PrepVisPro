@@ -42,6 +42,7 @@ export function migrate(raw: unknown): MigrateResult {
   if (v <= 22) doc = from22to23(doc);
   if (v <= 23) doc = from23to24(doc);
   if (v <= 24) doc = from24to25(doc);
+  if (v <= 25) doc = from25to26(doc);
   return { ok: true, raw: doc };
 }
 
@@ -350,4 +351,15 @@ function from23to24(doc: Record<string, unknown>): Record<string, unknown> {
 function from24to25(doc: Record<string, unknown>): Record<string, unknown> {
   const plans = Array.isArray(doc.floorPlans) ? doc.floorPlans : [];
   return { ...doc, schemaVersion: 25, floorPlans: plans.map((f) => (f && typeof f === 'object' ? { ...(f as object), axes: [] } : f)) };
+}
+
+/** Format 25 → 26 : retours 2 (création de plan, notes d'origine, passage cité), aucun sur les retours déjà reçus. */
+function from25to26(doc: Record<string, unknown>): Record<string, unknown> {
+  const fbs = Array.isArray(doc.feedback) ? doc.feedback : [];
+  const item = (i: unknown) => (i && typeof i === 'object' ? { ...(i as object), create: null, noteIds: [], quote: '' } : i);
+  return {
+    ...doc,
+    schemaVersion: 26,
+    feedback: fbs.map((f) => (f && typeof f === 'object' && Array.isArray((f as { items?: unknown }).items) ? { ...(f as object), items: (f as { items: unknown[] }).items.map(item) } : f)),
+  };
 }

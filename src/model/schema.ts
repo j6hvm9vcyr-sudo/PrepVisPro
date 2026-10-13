@@ -19,13 +19,16 @@ const feedbackItemSchema = z.object({
   verdict: z.enum(['ok', 'revoir']).nullable(),
   text: z.string().max(5000),
   proposal: z.object({ setupId: z.string().min(1).nullable(), field: z.enum(FEEDBACK_FIELDS), text: z.string().max(500), before: z.string().max(500) }).nullable(),
+  create: z.object({ afterPlanId: z.string().min(1).nullable() }).nullable(),
+  noteIds: z.array(z.string().min(1)).max(100),
+  quote: z.string().max(2000),
   state: z.enum(['new', 'applied', 'noted', 'ignored']),
 });
 export const feedbackSchema = z.object({
   id: z.string().min(1),
   author: z.string().max(200),
   role: z.string().max(200),
-  publication: z.number().int().positive(),
+  publication: z.number().int().positive().nullable(),
   sentAt: z.number().int().nonnegative(),
   receivedAt: z.number().int().nonnegative(),
   items: z.array(feedbackItemSchema).max(5000),
@@ -281,7 +284,11 @@ function checkIntegrity(doc: ProjectDoc): string | null {
   }
   // Retours : un fichier n'est gardé qu'une fois ; identifiants uniques dans chaque fichier.
   if (new Set(doc.feedback.map((f) => f.id)).size !== doc.feedback.length) return 'retours en double.';
-  for (const f of doc.feedback) if (!notesOk(f.items)) return `retour en double dans ${f.id}.`;
+  for (const f of doc.feedback) {
+    if (!notesOk(f.items)) return `retour en double dans ${f.id}.`;
+    const created = f.items.filter((i) => i.create);
+    if (created.some((i) => !i.planId || !i.seqId) || new Set(created.map((i) => i.planId)).size !== created.length) return `plan à créer incohérent dans ${f.id}.`;
+  }
   for (const fp of doc.floorPlans) {
     if (dup(fp.id)) return `identifiant de plan au sol en double (${fp.id}).`;
     for (const e of fp.elements) if (dup(e.id)) return `élément de plan au sol en double (${e.id}).`;

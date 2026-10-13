@@ -7,8 +7,7 @@ import { create } from 'zustand';
 import { useApp } from './appStore';
 import { selectDoc } from './store';
 import { getBackend } from '../platform/backend';
-import { addFeedback, itemOwner, itemToNote, readRetours, setItemState } from '../model/feedback';
-import { displayText, FIELD_LABEL } from '../model/entry';
+import { addFeedback, createPlanFromItem, FEEDBACK_LABEL, fieldValue, itemOwner, itemToNote, readRetours, setItemState } from '../model/feedback';
 import { visibleColumns } from './lines';
 import { locatePlan } from '../model/ops';
 import type { Feedback, FeedbackField, Id, ProjectDoc } from '../model/types';
@@ -123,13 +122,7 @@ export function noteAll(): void {
 /** Saisie en cours pour reprendre une proposition : marquée « reprise » si la case a changé. */
 const pending: { current: { fbId: Id; itemId: Id; planId: Id; setupId: Id; field: FeedbackField; before: string | null } | null } = { current: null };
 
-function cellValue(doc: ProjectDoc, planId: Id, setupId: Id, field: FeedbackField): string | null {
-  const loc = locatePlan(doc, planId);
-  if (!loc) return null;
-  if (field === 'action') return loc.plan.action;
-  const setup = loc.plan.cameras.find((c) => c.id === setupId);
-  return setup ? displayText(field, setup) : null;
-}
+const cellValue = (doc: ProjectDoc, planId: Id, setupId: Id, field: FeedbackField) => fieldValue(doc, planId, setupId, field);
 
 useApp.subscribe((s, prev) => {
   const p = pending.current;
@@ -155,18 +148,45 @@ export function takeProposal(fbId: Id, itemId: Id): void {
   if (!item?.proposal || !item.planId) return;
   const loc = locatePlan(doc, item.planId);
   if (!loc || !itemOwner(doc, item)) {
-    st.setMessage('Ce plan a été retiré depuis', 'warn');
+    st.setMessage(isToCreate(doc, item.planId) ? 'Créez d’abord ce plan (retour « nouveau plan »)' : 'Ce plan a été retiré depuis', 'warn');
     return;
   }
   const field = item.proposal.field;
-  if (field !== 'action' && !visibleColumns(doc.settings).includes(field)) {
-    st.setMessage(`Affichez la colonne ${FIELD_LABEL[field]} (Colonnes ▾) pour reprendre cette proposition`, 'warn');
+  if (field === 'duration' && loc.plan.repriseOf) {
+    st.setMessage('Une reprise a la durée de son plan', 'warn');
     return;
   }
-  const setup = loc.plan.cameras.find((c) => c.id === item.proposal!.setupId) ?? loc.plan.cameras[0]!;
+  if (field !== 'action' && !visibleColumns(doc.settings).includes(field)) {
+    st.setMessage(`Affichez la colonne ${FEEDBACK_LABEL[field]} (Colonnes ▾) pour reprendre cette proposition`, 'warn');
+    return;
+  }
+  // La durée est celle du plan : sur la ligne de sa première caméra.
+  const setup = (field === 'duration' ? null : loc.plan.cameras.find((c) => c.id === item.proposal!.setupId)) ?? loc.plan.cameras[0]!;
   if (st.view !== 'table') st.setView('table');
   st.goToPlan(item.planId);
   st.setCursor({ planId: item.planId, setupId: setup.id, col: field });
   pending.current = { fbId, itemId, planId: item.planId, setupId: setup.id, field, before: cellValue(doc, item.planId, setup.id, field) };
   useApp.getState().startEdit(item.proposal.text);
+}
+
+/** Le plan est-il un plan proposé à la création, pas encore créé ? */
+export function isToCreate(doc: ProjectDoc, planId: Id): boolean {
+  return !locatePlan(doc, planId) && doc.feedback.some((f) => f.items.some((i) => i.create && i.planId === planId && i.state === 'new'));
+}
+
+/** Créer le plan proposé (une étape, annulable) ; le curseur y va. */
+export function createPlanItem(fbId: Id, itemId: Id): void {
+  const st = useApp.getState();
+  const doc = selectDoc(st);
+  const next = createPlanFromItem(doc, fbId, itemId);
+  if (!next) {
+    st.setMessage('La séquence de ce plan a été retirée depuis', 'warn');
+    return;
+  }
+  const item = doc.feedback.find((f) => f.id === fbId)?.items.find((i) => i.id === itemId);
+  st.applyDoc(next, `Plan ${item?.code ?? ''} créé`.replace('  ', ' '));
+  if (item?.planId) {
+    if (st.view !== 'table' && st.view !== 'cards') st.setView('table');
+    useApp.getState().goToPlan(item.planId);
+  }
 }

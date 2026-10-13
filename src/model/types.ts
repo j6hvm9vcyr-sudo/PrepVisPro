@@ -297,14 +297,14 @@ export interface Feedback {
   author: string;
   /** Métier choisi dans le découpage interactif (« Réalisation »…). */
   role: string;
-  /** Publication sur laquelle portent les retours. */
-  publication: number;
+  /** Publication sur laquelle portent les retours ; null : propositions qui ne viennent pas d'une publication (notes de réunion rangées, 0.25). */
+  publication: number | null;
   sentAt: number;
   receivedAt: number;
   items: FeedbackItem[];
 }
 
-export const FEEDBACK_FIELDS = ['action', 'size', 'axis', 'angle', 'focal', 'movement', 'grip'] as const;
+export const FEEDBACK_FIELDS = ['action', 'size', 'axis', 'angle', 'focal', 'movement', 'grip', 'duration'] as const;
 export type FeedbackField = (typeof FEEDBACK_FIELDS)[number];
 
 export interface FeedbackItem {
@@ -318,11 +318,17 @@ export interface FeedbackItem {
   text: string;
   /** Valeur proposée pour un réglage, et celle qui était publiée. */
   proposal: { setupId: Id | null; field: FeedbackField; text: string; before: string } | null;
+  /** Retours 2 (0.25) : créer le plan `planId` dans la séquence `seqId`, après `afterPlanId` (null : en fin de séquence). */
+  create: { afterPlanId: Id | null } | null;
+  /** Notes du projet d'où vient le retour (cochées quand tous leurs retours sont traités). */
+  noteIds: Id[];
+  /** Passage de la note qui justifie la proposition (cité tel quel). */
+  quote: string;
   /** Nouveau, repris dans le découpage, rangé en note, ou laissé de côté. */
   state: 'new' | 'applied' | 'noted' | 'ignored';
 }
 
-export const SCHEMA_VERSION = 25 as const;
+export const SCHEMA_VERSION = 26 as const;
 
 export interface ProjectDoc {
   schemaVersion: typeof SCHEMA_VERSION;

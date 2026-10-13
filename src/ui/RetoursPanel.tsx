@@ -6,12 +6,10 @@
 import { useEffect, useMemo } from 'react';
 import { useApp } from '../state/appStore';
 import { selectDoc } from '../state/store';
-import { ignoreItem, importRetoursFile, importWaiting, noteAll, noteItem, scanRetours, takeProposal, useRetours } from '../state/retours';
+import { createPlanItem, ignoreItem, importRetoursFile, importWaiting, isToCreate, noteAll, noteItem, scanRetours, takeProposal, useRetours } from '../state/retours';
 import { usePublishFolder } from '../state/publish';
 import { computeNumbers } from '../model/numbering';
-import { locatePlan } from '../model/ops';
-import { displayText, FIELD_LABEL } from '../model/entry';
-import { itemOwner, pendingCount } from '../model/feedback';
+import { FEEDBACK_LABEL, fieldValue, isCreated, itemOwner, pendingCount } from '../model/feedback';
 import { revisionColor } from '../model/revisions';
 import type { Feedback, FeedbackItem, ProjectDoc } from '../model/types';
 import { PanelHead } from './Chrome';
@@ -26,11 +24,12 @@ function when(t: number): string {
 /** Valeur actuelle du réglage proposé (pour voir si le plan a changé depuis la publication). */
 function currentValue(doc: ProjectDoc, item: FeedbackItem): string | null {
   if (!item.proposal || !item.planId) return null;
-  const loc = locatePlan(doc, item.planId);
-  if (!loc) return null;
-  if (item.proposal.field === 'action') return loc.plan.action;
-  const setup = loc.plan.cameras.find((c) => c.id === item.proposal!.setupId) ?? loc.plan.cameras[0]!;
-  return displayText(item.proposal.field, setup);
+  return fieldValue(doc, item.planId, item.proposal.setupId, item.proposal.field) ?? fieldValue(doc, item.planId, null, item.proposal.field);
+}
+
+/** « publication 2 » ; rien pour des retours qui ne viennent pas d'une publication. */
+function pubText(f: Feedback): string {
+  return f.publication === null ? '' : `publication ${f.publication} · `;
 }
 
 /** Nombre à afficher sur le bouton Retours : retours à traiter et retours trouvés pas encore rangés. */
@@ -131,7 +130,8 @@ export function RetoursPane({ onDone }: { onDone: () => void }) {
           </strong>
           {waiting.map((f) => (
             <span key={f.id} className="note">
-              {f.role ? `${f.author} · ${f.role}` : f.author} · publication {f.publication} · {f.items.length} retour{f.items.length > 1 ? 's' : ''}
+              {f.role ? `${f.author} · ${f.role}` : f.author} · {pubText(f)}
+              {f.items.length} retour{f.items.length > 1 ? 's' : ''}
             </span>
           ))}
           <button type="button" className="btn primary" style={{ alignSelf: 'flex-start' }} onClick={importWaiting}>
@@ -163,10 +163,11 @@ export function RetoursPane({ onDone }: { onDone: () => void }) {
             const open = f.items.filter((i) => i.state === 'new').length;
             return (
               <div key={f.id} className="ret-file">
-                <span className="ret-rev" style={{ background: revisionColor(f.publication).hex }} aria-hidden />
+                {f.publication !== null && <span className="ret-rev" style={{ background: revisionColor(f.publication).hex }} aria-hidden />}
                 <strong>{f.role ? `${f.author} · ${f.role}` : f.author}</strong>
                 <span className="note">
-                  publication {f.publication} · {when(f.sentAt)}
+                  {pubText(f)}
+                  {when(f.sentAt)}
                 </span>
                 <span className="spacer" />
                 <span className={open ? 'warn-text' : 'note'}>{open ? `${open} à traiter` : 'tout est traité'}</span>
@@ -188,7 +189,7 @@ export function RetoursPane({ onDone }: { onDone: () => void }) {
 function FeedbackCard({ doc, fb, code }: { doc: ProjectDoc; fb: Feedback; code: (planId: string) => string | null }) {
   const open = fb.items.filter((i) => i.state === 'new');
   const done = fb.items.length - open.length;
-  const color = revisionColor(fb.publication);
+  const color = fb.publication !== null ? revisionColor(fb.publication) : null;
   return (
     <section className="ret-card" aria-label={`Retours de ${fb.author}`}>
       <div className="ret-who">
@@ -198,7 +199,8 @@ function FeedbackCard({ doc, fb, code }: { doc: ProjectDoc; fb: Feedback; code: 
         <div className="ret-whotext">
           <strong>{fb.role ? `${fb.author} · ${fb.role}` : fb.author}</strong>
           <span className="note">
-            <span className="ret-rev" style={{ background: color.hex }} aria-hidden /> publication {fb.publication} · {when(fb.sentAt)}
+            {color && <span className="ret-rev" style={{ background: color.hex }} aria-hidden />} {pubText(fb)}
+            {when(fb.sentAt)}
           </span>
         </div>
       </div>
@@ -219,7 +221,9 @@ function ItemRow({ doc, fb, item, code }: { doc: ProjectDoc; fb: Feedback; item:
   const st = useApp.getState;
   const owner = itemOwner(doc, item);
   const now = item.planId ? code(item.planId) : null;
-  const planGone = !!item.planId && !now;
+  // Plan proposé à la création, pas encore créé : il n'est pas « retiré ».
+  const toCreate = !!item.planId && !now && (item.create ? !isCreated(doc, item) : isToCreate(doc, item.planId));
+  const planGone = !!item.planId && !now && !toCreate;
   const cur = currentValue(doc, item);
   const changed = item.proposal && cur !== null && cur !== item.proposal.before;
   return (
@@ -240,7 +244,9 @@ function ItemRow({ doc, fb, item, code }: { doc: ProjectDoc; fb: Feedback; item:
         ) : (
           <span className="mono ret-code">{item.code}</span>
         )}
-        {now && now !== item.code && <span className="note">(publié {item.code})</span>}
+        {now && now !== item.code && <span className="note">({fb.publication === null ? 'proposé' : 'publié'} {item.code})</span>}
+        {item.create && <span className="tag-s new">nouveau plan</span>}
+        {!item.create && toCreate && <span className="tag-s">plan à créer</span>}
         {planGone && <span className="tag-s">plan retiré</span>}
         {item.verdict === 'ok' && <span className="tag-s ok">✓ validé</span>}
         {item.verdict === 'revoir' && <span className="tag-s warn">à revoir</span>}
@@ -248,14 +254,24 @@ function ItemRow({ doc, fb, item, code }: { doc: ProjectDoc; fb: Feedback; item:
       {item.text && <q className="ret-text">{item.text}</q>}
       {item.proposal && (
         <div className="ret-diff">
-          <span className="note">{FIELD_LABEL[item.proposal.field]}</span>
+          <span className="note">{FEEDBACK_LABEL[item.proposal.field]}</span>
           <s className="mono">{item.proposal.before || '—'}</s>→<b className="mono">{item.proposal.text}</b>
           {changed && <span className="note warn-text">aujourd’hui : {cur || '—'}</span>}
         </div>
       )}
+      {item.quote && (
+        <blockquote className="ret-quote" title="Passage de la note d’où vient ce retour">
+          {item.quote}
+        </blockquote>
+      )}
       <div className="row">
+        {item.create && toCreate && (
+          <button type="button" className="btn small primary" onClick={() => createPlanItem(fb.id, item.id)}>
+            Créer le plan
+          </button>
+        )}
         {item.proposal && !planGone && (
-          <button type="button" className="btn small primary" onClick={() => takeProposal(fb.id, item.id)} title="La case s’ouvre avec la valeur proposée : ↩ pour valider">
+          <button type="button" className={`btn small${toCreate ? '' : ' primary'}`} disabled={toCreate} onClick={() => takeProposal(fb.id, item.id)} title={toCreate ? 'Créez d’abord le plan' : 'La case s’ouvre avec la valeur proposée : ↩ pour valider'}>
             Reprendre
           </button>
         )}

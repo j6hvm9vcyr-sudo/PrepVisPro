@@ -4,7 +4,7 @@ import { validateProject } from './schema';
 import { newProject } from './defaults';
 import { produce } from 'immer';
 import { addElements, addFloorPlan, newFloorPlan } from './floorOps';
-import { sampleProjectMultiCam } from './sample';
+import { sampleProject, sampleProjectMultiCam } from './sample';
 
 describe('mise à niveau des fichiers', () => {
   it('format 1 → 3 : ajoute texte de scène et dépouillement, le reste est intact', () => {
@@ -159,6 +159,26 @@ describe('mise à niveau des fichiers', () => {
     // Un axe vers un personnage absent : fichier refusé (incohérent).
     const bad = produce(withAxis, (d) => void (d.floorPlans[0]!.axes[0]!.actorIds = ['a1', 'zz']));
     expect(validateProject(JSON.parse(JSON.stringify(bad))).ok).toBe(false);
+  });
+  it('format 25 → 26 : retours 2 (aucun plan à créer, aucune note citée), relu à l’identique', () => {
+    const cur = produce(sampleProject(), (d) =>
+      void d.feedback.push({
+        id: 'rt',
+        author: 'M',
+        role: '',
+        publication: 1,
+        sentAt: 1,
+        receivedAt: 2,
+        items: [{ id: 'i', planId: null, seqId: d.sequences[0]!.id, code: 'Séq. 1', verdict: null, text: 'x', proposal: null, create: null, noteIds: [], quote: '', state: 'new' }],
+      }),
+    );
+    const old = JSON.parse(JSON.stringify({ ...cur, schemaVersion: 25, feedback: cur.feedback.map((f) => ({ ...f, items: f.items.map(({ create: _c, noteIds: _n, quote: _q, ...i }) => i) })) }));
+    const m = migrate(old);
+    expect(m.ok).toBe(true);
+    if (!m.ok) return;
+    const r = validateProject(m.raw);
+    expect(r.ok && r.doc).toEqual(cur);
+    expect(Object.keys((r.ok && r.doc.feedback[0]!.items[0]) || {})).toEqual(Object.keys(cur.feedback[0]!.items[0]!));
   });
   it('format 16 → 17 : modèles d’export et icônes des figures dans le projet (aucun)', () => {
     const cur = newProject('X');

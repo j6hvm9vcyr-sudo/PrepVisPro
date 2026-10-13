@@ -122,3 +122,68 @@ test('0.21 : découpage interactif publié — révisions marquées « * », ret
   await page.keyboard.press('ControlOrMeta+Alt+4');
   await expect(page.locator('.notes-panel')).toContainText('Margaux (image) · validé');
 });
+
+test('0.25 : retours 2 — notes de réunion rangées ailleurs, un plan créé puis rempli, le passage cité', async ({ page }) => {
+  await page.goto('/?exemple');
+  await expect(page.getByRole('grid', { name: 'Découpage' })).toBeFocused();
+  // Les identifiants du projet, lus dans le découpage interactif publié.
+  const bar = page.getByRole('banner', { name: 'Barre du haut' });
+  await bar.getByRole('button', { name: 'Partager', exact: true }).click();
+  const pub = page.getByRole('dialog', { name: 'Partager' }).getByRole('tabpanel', { name: 'Publier' });
+  await pub.getByRole('button', { name: 'Choisir…' }).click();
+  await pub.getByRole('button', { name: /^Publier \(publication 1/ }).click();
+  await expect(pub.getByRole('status')).toContainText('Publication 1 :');
+  const html = await publishedText(page, HTML);
+  const data = JSON.parse(/id="topshot-data">(.*?)<\/script>/s.exec(html)![1]!) as { projectId: string; sequences: { id: string; plans: { id: string; code: string }[] }[] };
+  const seq = data.sequences[0]!;
+  const first = seq.plans[0]!;
+  const last = seq.plans.at(-1)!;
+  const nextCode = `${seq.plans[0]!.code.split('/')[0]}/${seq.plans.length + 1}`;
+  const file = {
+    topshotRetours: 2,
+    id: 'rt_reunion',
+    projectId: data.projectId,
+    publication: null,
+    author: 'Claude',
+    role: 'Notes de réunion',
+    sentAt: 1791820000000,
+    items: [
+      { id: 'n1', planId: 'pl_reunion1', seqId: seq.id, code: nextCode, verdict: null, text: 'Un plan plus serré à la fin', proposal: null, create: { afterPlanId: last.id }, quote: 'puis un plan plus serré' },
+      { id: 'n2', planId: 'pl_reunion1', seqId: seq.id, code: nextCode, verdict: null, text: '', proposal: { setupId: null, field: 'action', text: 'Plus serré, proche d’elle', before: '' }, quote: 'proche d’elle' },
+      { id: 'n3', planId: first.id, seqId: seq.id, code: first.code, verdict: null, text: '', proposal: { setupId: null, field: 'duration', text: '12', before: '' }, quote: 'une douzaine de secondes' },
+    ],
+  };
+  await page.evaluate((t) => void ((window as unknown as { __prepvisMemory: Memory }).__prepvisMemory.nextRetours = { name: 'Notes.topshot-retours', text: t }), JSON.stringify(file));
+  const recu = page.getByRole('dialog', { name: 'Partager' }).getByRole('tab', { name: /^Retours reçus/ });
+  await recu.click();
+  const pane = page.getByRole('dialog', { name: 'Partager' }).getByRole('tabpanel', { name: 'Retours reçus' });
+  await pane.getByRole('button', { name: 'Importer un fichier…' }).click();
+  await expect(pane).toContainText('Claude · Notes de réunion');
+  await expect(pane).not.toContainText('publication null');
+  await pane.getByRole('button', { name: 'Traiter dans le Découpage (3)' }).click();
+  const panel = page.getByRole('complementary', { name: 'Retours' });
+  const card = panel.getByRole('region', { name: 'Retours de Claude' });
+  await expect(card.locator('.ret-item')).toHaveCount(3);
+  const created = card.locator('.ret-item').filter({ hasText: 'nouveau plan' });
+  const action = card.locator('.ret-item').filter({ hasText: 'Plus serré, proche d’elle' });
+  await expect(action).toContainText('plan à créer');
+  await expect(action.getByRole('button', { name: 'Reprendre' })).toBeDisabled();
+  await expect(action.locator('.ret-quote')).toHaveText('proche d’elle');
+  await page.screenshot({ path: 'test-results/43-retours-2.png' });
+
+  // Créer le plan : il arrive en fin de séquence ; l'action se reprend ensuite.
+  const before = await page.locator('.line').count();
+  await created.getByRole('button', { name: 'Créer le plan' }).click();
+  await expect(page.locator('.line')).toHaveCount(before + 1);
+  await expect(card.locator('.ret-item')).toHaveCount(2);
+  await action.getByRole('button', { name: 'Reprendre' }).click();
+  await expect(page.locator('.editor input, .editor textarea').first()).toHaveValue('Plus serré, proche d’elle');
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('grid', { name: 'Découpage' })).toContainText('Plus serré, proche d’elle');
+  // La durée proposée : la colonne Durée doit être affichée.
+  const dur = card.locator('.ret-item').filter({ hasText: 'Durée' });
+  await dur.getByRole('button', { name: 'Reprendre' }).click();
+  await expect(page.getByText('Affichez la colonne Durée')).toBeVisible();
+  await dur.getByRole('button', { name: 'Ignorer' }).click();
+  await expect(card).toContainText('3 traités · tout est traité');
+});

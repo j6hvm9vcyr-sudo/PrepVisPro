@@ -1,6 +1,6 @@
 [package]
 name = "topshot"
-version = "0.24.2"
+version = "0.25.0"
 license = "MIT"
 description = "Topshot — préparation image"
 authors = ["Adrien Rousseau"]
